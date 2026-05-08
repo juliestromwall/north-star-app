@@ -9,7 +9,7 @@ export function ChoiceCard({
   label,
   description,
   emoji,
-  accentColor = '#ed148c',
+  accentColor = '#D4A853',
   accentFg = '#2F324F',
 }) {
   return (
@@ -143,7 +143,7 @@ export function QuizShell({
   onNext,
   nextLabel = 'Continue',
   nextDisabled = false,
-  accentColor = '#ed148c',
+  accentColor = '#D4A853',
   accentFg = '#2F324F',
   children,
 }) {
@@ -163,7 +163,7 @@ export function QuizShell({
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>
-        <img src="/abc-logo.png" alt="Abundant Beginnings" className="h-14 w-auto" />
+        <img src="/north-star-logo.png" alt="Abundant Beginnings" className="h-14 w-auto" />
         <div className="w-9" aria-hidden />
       </header>
 
@@ -175,7 +175,7 @@ export function QuizShell({
           <div className="w-full max-w-xs h-8 rounded-full overflow-hidden shadow-sm"
             style={{ background: '#e7e5e4' }}>
             <div className="h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center"
-              style={{ width: `${Math.max(progress, 20)}%`, background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
+              style={{ width: `${Math.max(progress, 20)}%`, background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
               {milestone && (
                 <span className="text-[11px] font-semibold text-white whitespace-nowrap">{milestone}</span>
               )}

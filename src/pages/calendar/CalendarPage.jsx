@@ -660,9 +660,9 @@ export default function CalendarPage() {
                         const url = urlMatch[1]
                         const appPath = url.match(/app\.abcsurrogacy\.com(\/[^\s]+)/) || url.match(/localhost:\d+(\/[^\s]+)/)
                         if (appPath) {
-                          return <a key={i} href={appPath[1]} className="text-[#283693] hover:underline block">{line}</a>
+                          return <a key={i} href={appPath[1]} className="text-[#1A3638] hover:underline block">{line}</a>
                         }
-                        return <a key={i} href={url} target="_blank" rel="noopener" className="text-[#283693] hover:underline block">{line}</a>
+                        return <a key={i} href={url} target="_blank" rel="noopener" className="text-[#1A3638] hover:underline block">{line}</a>
                       }
                       return <span key={i}>{line}{i < selectedEvent.description.split('\n').length - 1 ? '\n' : ''}</span>
                     })}

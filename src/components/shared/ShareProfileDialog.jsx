@@ -87,10 +87,10 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
         const body = `
           <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
             <div style="text-align: center; padding: 32px 24px 16px;">
-              <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 180px;" />
+              <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
             </div>
             <div style="padding: 0 32px 32px;">
-              <h2 style="color: #283693; font-size: 20px; margin: 0 0 8px;">A Profile Has Been Shared With You</h2>
+              <h2 style="color: #1A3638; font-size: 20px; margin: 0 0 8px;">A Profile Has Been Shared With You</h2>
               <p style="color: #78716c; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
                 Hi${form.name ? ` ${form.name.split(' ')[0]}` : ''},
               </p>
@@ -102,7 +102,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 <p style="margin: 0; font-size: 14px; color: #1c1917; line-height: 1.6; font-style: italic;">"${form.message}"</p>
               </div>` : ''}
               <div style="text-align: center; margin: 24px 0;">
-                <a href="${shareUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View ${firstName}'s Profile</a>
+                <a href="${shareUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View ${firstName}'s Profile</a>
               </div>
               <p style="font-size: 12px; color: #a8a29e; text-align: center; margin: 0 0 20px;">This link expires in 72 hours.</p>
               <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
@@ -112,7 +112,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 </p>
               </div>
               <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-                Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+                North Star Surrogacy, LLC &middot; northstarsurrogacy.com
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 type="checkbox"
                 checked={confirmReviewed}
                 onChange={e => setConfirmReviewed(e.target.checked)}
-                className="mt-0.5 accent-[#283693]"
+                className="mt-0.5 accent-[#1A3638]"
               />
               <span className="text-sm text-stone-700">I've reviewed this profile and confirm this is the correct one to share.</span>
             </label>
@@ -222,7 +222,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 <ChevronLeft className="size-4" /> Back
               </Button>
               <Button onClick={handleShare} disabled={sending || !confirmReviewed}
-                className="flex-1 gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                className="flex-1 gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                 <Send className="size-4" />
                 {sending ? 'Sharing...' : 'Send Profile'}
               </Button>
@@ -249,7 +249,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
             </div>
 
             <Button onClick={() => setStep(2)} disabled={!form.email}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               <Eye className="size-4" />
               Preview Profile
             </Button>

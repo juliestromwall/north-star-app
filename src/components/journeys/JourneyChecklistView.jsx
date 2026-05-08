@@ -210,7 +210,7 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
           progress bar below. */}
       <div className="px-1">
         <div className="flex items-baseline justify-between gap-4 mb-2">
-          <h2 className="font-heading font-black text-2xl text-[#283693] tracking-tight">
+          <h2 className="font-heading font-black text-2xl text-[#1A3638] tracking-tight">
             {stageLabel}
           </h2>
           <p className="text-sm font-bold text-stone-600 tabular-nums shrink-0">
@@ -222,7 +222,7 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${counts.total > 0 ? (counts.complete / counts.total) * 100 : 0}%`,
-              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
+              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)',
             }}
           />
         </div>
@@ -393,7 +393,7 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
 
   const headerColor = allComplete
     ? 'text-emerald-600'
-    : 'text-[#283693]'
+    : 'text-[#1A3638]'
 
   return (
     <section>
@@ -401,11 +401,11 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
           accent underline. Mirrors the profile sections the user loves. The
           underline is only drawn on non-complete sections so completed
           sections sit visually together with the next-up one below. */}
-      <div className={`flex items-baseline gap-3 mb-2 ${allComplete ? 'pb-1' : 'pb-2 border-b-2 border-[#ed148c]/20'} group`}>
-        <span className={`text-3xl font-heading font-black leading-none tabular-nums shrink-0 inline-block w-10 text-center ${allComplete ? 'text-emerald-500/70' : 'text-[#ed148c]/60'}`}>
+      <div className={`flex items-baseline gap-3 mb-2 ${allComplete ? 'pb-1' : 'pb-2 border-b-2 border-[#D4A853]/20'} group`}>
+        <span className={`text-3xl font-heading font-black leading-none tabular-nums shrink-0 inline-block w-10 text-center ${allComplete ? 'text-emerald-500/70' : 'text-[#D4A853]/60'}`}>
           {sectionNumber}
         </span>
-        {(() => { const Icon = iconForSection(section.label); return <Icon className={`size-4 shrink-0 ${allComplete ? 'text-emerald-500' : 'text-[#ed148c]'}`} /> })()}
+        {(() => { const Icon = iconForSection(section.label); return <Icon className={`size-4 shrink-0 ${allComplete ? 'text-emerald-500' : 'text-[#D4A853]'}`} /> })()}
         <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
           <h3
             className={`text-xl font-heading font-black tracking-tight cursor-pointer hover:opacity-80 transition-opacity ${headerColor}`}
@@ -430,15 +430,15 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
               onChange={e => setStepLabel(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') commitNewStep(); if (e.key === 'Escape') { setAddingStep(false); setStepLabel('') } }}
               placeholder="Step label…"
-              className="text-xs rounded border border-[#283693]/30 bg-white px-2 py-0.5 outline-none focus:border-[#283693] min-w-[180px]"
+              className="text-xs rounded border border-[#1A3638]/30 bg-white px-2 py-0.5 outline-none focus:border-[#1A3638] min-w-[180px]"
             />
             <button onClick={() => { setAddingStep(false); setStepLabel('') }} className="text-[10px] text-stone-500 hover:text-stone-700">Cancel</button>
-            <button onClick={commitNewStep} disabled={!stepLabel.trim()} className="text-[10px] font-semibold text-white bg-[#283693] hover:bg-[#1f2a73] disabled:bg-stone-300 rounded px-2 py-0.5">Add</button>
+            <button onClick={commitNewStep} disabled={!stepLabel.trim()} className="text-[10px] font-semibold text-white bg-[#1A3638] hover:bg-[#1f2a73] disabled:bg-stone-300 rounded px-2 py-0.5">Add</button>
           </div>
         ) : (
           <button
             onClick={() => setAddingStep(true)}
-            className="text-stone-300 hover:text-[#283693] font-semibold shrink-0"
+            className="text-stone-300 hover:text-[#1A3638] font-semibold shrink-0"
             title="Add a step to this section"
           >
             <Plus className="size-4" />
@@ -794,7 +794,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveUp && onMoveUp() }}
                 disabled={!onMoveUp}
-                className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                className="p-0.5 text-stone-500 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                 title={onMoveUp ? 'Move up' : 'Already at top'}
               >
                 <ChevronUp className="size-3.5" />
@@ -802,7 +802,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveDown && onMoveDown() }}
                 disabled={!onMoveDown}
-                className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                className="p-0.5 text-stone-500 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                 title={onMoveDown ? 'Move down' : 'Already at bottom'}
               >
                 <ChevronDown className="size-3.5" />
@@ -827,11 +827,11 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
               link to keep the layout tidy (admins rarely add new logs to a
               done step, but they should still be able to). */}
           {logRowVisible ? (
-            <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center rounded-lg border border-stone-200 bg-stone-50/40 p-1.5 focus-within:border-[#283693] focus-within:bg-white">
+            <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center rounded-lg border border-stone-200 bg-stone-50/40 p-1.5 focus-within:border-[#1A3638] focus-within:bg-white">
               <select
                 value={newLogStatus}
                 onChange={e => setNewLogStatus(e.target.value)}
-                className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693] min-w-[160px]"
+                className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638] min-w-[160px]"
               >
                 <option value="">Choose status…</option>
                 {pillOptions.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
@@ -840,7 +840,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
                 type="date"
                 value={newLogDate}
                 onChange={e => setNewLogDate(e.target.value)}
-                className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638]"
                 title="Log date"
               />
               <input
@@ -849,12 +849,12 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
                 onChange={e => setNewLogNote(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && newLogStatus) addNewLog() }}
                 placeholder="Optional note…"
-                className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638]"
               />
               <button
                 onClick={addNewLog}
                 disabled={!newLogStatus}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#283693] hover:bg-[#1f2a73] disabled:bg-stone-300 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#1f2a73] disabled:bg-stone-300 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors shrink-0"
               >
                 <Plus className="size-3.5" /> Log
               </button>
@@ -862,7 +862,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
           ) : (
             <button
               onClick={() => setShowLogRow(true)}
-              className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-[#283693] font-medium px-1"
+              className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-[#1A3638] font-medium px-1"
             >
               <Plus className="size-3" /> Add log
             </button>
@@ -877,14 +877,14 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
                 const isEditing = editingLogId === stableId
                 if (isEditing) {
                   return (
-                    <li key={stableId} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 p-2 space-y-1.5">
-                      <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Editing · {statusLabel(l.status, l.optionLabel)}</p>
+                    <li key={stableId} className="rounded-lg border border-[#1A3638]/30 bg-[#1A3638]/5 p-2 space-y-1.5">
+                      <p className="text-[10px] font-bold text-[#1A3638] uppercase tracking-wider">Editing · {statusLabel(l.status, l.optionLabel)}</p>
                       <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center">
-                        <input type="date" value={editLogDate} onChange={e => setEditLogDate(e.target.value)} className="text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
-                        <input type="text" value={editLogNote} onChange={e => setEditLogNote(e.target.value)} placeholder="Note…" className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
+                        <input type="date" value={editLogDate} onChange={e => setEditLogDate(e.target.value)} className="text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#1A3638]" />
+                        <input type="text" value={editLogNote} onChange={e => setEditLogNote(e.target.value)} placeholder="Note…" className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#1A3638]" />
                         <div className="flex gap-1">
                           <button onClick={cancelEditLog} className="text-[11px] text-stone-500 hover:text-stone-700 px-2 py-1">Cancel</button>
-                          <button onClick={saveEditLog} className="text-[11px] font-semibold text-white bg-[#283693] rounded px-2.5 py-1">Save</button>
+                          <button onClick={saveEditLog} className="text-[11px] font-semibold text-white bg-[#1A3638] rounded px-2.5 py-1">Save</button>
                         </div>
                       </div>
                     </li>
@@ -898,7 +898,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
                         {formatLogDate(l.changed_at)}
                         {' · '}<span title={l.changed_by || 'Unknown'}>{initialsOf(l.changed_by)}</span>
                       </span>
-                      {l.note && <span className="ml-2 font-medium text-[#283693]">{l.note}</span>}
+                      {l.note && <span className="ml-2 font-medium text-[#1A3638]">{l.note}</span>}
                     </span>
                     <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       {pendingDeleteId === stableId ? (
@@ -909,7 +909,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
                         </>
                       ) : (
                         <>
-                          <button onClick={() => startEditLog(withIdx)} className="p-0.5 text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 rounded" title="Edit log">
+                          <button onClick={() => startEditLog(withIdx)} className="p-0.5 text-stone-400 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded" title="Edit log">
                             <Pencil className="size-3" />
                           </button>
                           <button onClick={() => setPendingDeleteId(stableId)} className="p-0.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded" title="Delete log">
@@ -938,7 +938,7 @@ function InlineEditInput({ value, onChange, onCommit, onCancel, className, autoF
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') onCommit(); if (e.key === 'Escape') onCancel() }}
         placeholder={placeholder}
-        className={`flex-1 rounded-lg border-2 border-[#283693]/30 px-2 py-0.5 bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none ${className}`}
+        className={`flex-1 rounded-lg border-2 border-[#1A3638]/30 px-2 py-0.5 bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none ${className}`}
       />
       <button onClick={onCommit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check className="size-3.5" /></button>
       <button onClick={onCancel} className="p-1 text-stone-400 hover:bg-stone-100 rounded"><X className="size-3.5" /></button>

@@ -50,9 +50,9 @@ export default function ResetPasswordPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
-            <h1 className="text-3xl font-heading font-bold" style={{ color: '#283693' }}>
-              Set your <span style={{ color: '#ed148c' }}>password</span>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
+            <h1 className="text-3xl font-heading font-bold" style={{ color: '#1A3638' }}>
+              Set your <span style={{ color: '#D4A853' }}>password</span>
             </h1>
             <p className="text-stone-400 text-sm mt-2">Choose a strong password for your account</p>
           </div>
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
                       } catch { setTermsContent('Failed to load terms.') }
                     }
                     setTermsOpen(true)
-                  }} className="text-[#283693] underline hover:text-[#ed148c] font-medium">
+                  }} className="text-[#1A3638] underline hover:text-[#D4A853] font-medium">
                     Terms of Use & Privacy Policy
                   </button>
                 </label>
@@ -136,7 +136,7 @@ export default function ResetPasswordPage() {
                 type="submit"
                 disabled={!password || !confirmPw || !agreedTerms || loading}
                 className="w-full h-11 rounded-xl text-sm font-semibold text-white border-0"
-                style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
               >
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>
@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <footer className="py-8 text-center text-xs text-stone-300">
-        © {new Date().getFullYear()} Abundant Beginnings Co.
+        © {new Date().getFullYear()} North Star Surrogacy
       </footer>
 
       {/* Terms & Conditions Dialog */}
@@ -157,8 +157,8 @@ export default function ResetPasswordPage() {
           </DialogHeader>
           <div className="prose prose-sm prose-stone max-w-none text-sm leading-relaxed">
             {termsContent.split('\n').map((line, i) => {
-              if (line.startsWith('# ')) return <h1 key={i} className="text-lg font-bold text-[#283693] mt-6 mb-2">{line.replace('# ', '')}</h1>
-              if (line.startsWith('## ')) return <h2 key={i} className="text-base font-bold text-[#283693] mt-5 mb-2">{line.replace('## ', '')}</h2>
+              if (line.startsWith('# ')) return <h1 key={i} className="text-lg font-bold text-[#1A3638] mt-6 mb-2">{line.replace('# ', '')}</h1>
+              if (line.startsWith('## ')) return <h2 key={i} className="text-base font-bold text-[#1A3638] mt-5 mb-2">{line.replace('## ', '')}</h2>
               if (line.startsWith('### ')) return <h3 key={i} className="text-sm font-bold text-stone-700 mt-4 mb-1">{line.replace('### ', '')}</h3>
               if (line.startsWith('- **')) {
                 const match = line.match(/^- \*\*(.+?)\*\*:?\s*(.*)$/)
@@ -173,7 +173,7 @@ export default function ResetPasswordPage() {
             })}
           </div>
           <div className="flex justify-end pt-4 border-t">
-            <Button size="sm" onClick={() => { setTermsOpen(false); setAgreedTerms(true) }} className="gap-1" style={{ backgroundColor: '#283693' }}>
+            <Button size="sm" onClick={() => { setTermsOpen(false); setAgreedTerms(true) }} className="gap-1" style={{ backgroundColor: '#1A3638' }}>
               <CheckCircle2 className="size-3.5" /> I Agree
             </Button>
           </div>

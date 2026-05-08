@@ -10,7 +10,7 @@ import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProte
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 import { useIframeHeightReporter, scrollParentToIframeTop } from '@/lib/embed'
 
-const GC_COLOR = '#ed148c'
+const GC_COLOR = '#D4A853'
 const GC_FG = '#ffffff'
 
 const US_STATES = [
@@ -165,7 +165,7 @@ export default function SurrogateIntakeForm() {
         applicant_name: `${form.firstName} ${form.lastName}`.trim(),
         applicant_email: form.email.trim(),
         applicant_phone: form.phone.trim(),
-        assigned_to: qualified ? 'intake@abcsurrogacy.com' : null,
+        assigned_to: qualified ? 'intake@northstarsurrogacy.com' : null,
         country: 'United States',
         state_region: form.state || null,
         city: null,
@@ -296,7 +296,7 @@ export default function SurrogateIntakeForm() {
         {emailError && (
           <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">
             {emailError}{' '}
-            <a href="/login" className="text-[#283693] underline font-medium">Log in here</a>
+            <a href="/login" className="text-[#1A3638] underline font-medium">Log in here</a>
           </div>
         )}
       </div>
@@ -422,7 +422,7 @@ export default function SurrogateIntakeForm() {
   if (step === 5) return (
     <QuizShell {...shell(5)} title="Final step" subtitle="You're almost done. We'll review your responses and be in touch shortly." milestone="Last step!">
       <div>
-        <p className="text-sm font-medium text-stone-800 mb-2">How did you hear about Abundant Beginnings Co.?</p>
+        <p className="text-sm font-medium text-stone-800 mb-2">How did you hear about North Star Surrogacy?</p>
         <div className="space-y-2">
           {[
             { value: 'Instagram',              label: 'Instagram'        },
@@ -452,7 +452,7 @@ export default function SurrogateIntakeForm() {
       </div>
       <div
         className="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all"
-        style={form.agreeBackgroundCheck ? { borderColor: GC_COLOR, backgroundColor: '#ed148c18' } : { borderColor: '#e7e5e4' }}
+        style={form.agreeBackgroundCheck ? { borderColor: GC_COLOR, backgroundColor: '#D4A85318' } : { borderColor: '#e7e5e4' }}
         onClick={() => set('agreeBackgroundCheck', !form.agreeBackgroundCheck)}
       >
         <Checkbox id="bg-check" checked={form.agreeBackgroundCheck} onCheckedChange={v => set('agreeBackgroundCheck', v === true)} className="mt-0.5 shrink-0" />

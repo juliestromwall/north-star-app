@@ -262,12 +262,12 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelet
       {/* Add Record */}
       {addOpen ? (
         <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-3">
-          <p className="text-sm font-semibold text-[#283693]">Add Medical Record</p>
+          <p className="text-sm font-semibold text-[#1A3638]">Add Medical Record</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1 sm:col-span-2">
               <label className="text-xs text-stone-500 font-medium">Record Name</label>
               <input
-                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none"
                 value={addLabel}
                 onChange={e => setAddLabel(e.target.value)}
                 placeholder="e.g. Dr. Smith OB Records 2024"
@@ -292,7 +292,7 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelet
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleAdd} disabled={!addLabel.trim()} style={{ backgroundColor: '#283693', color: '#fff' }}>
+            <Button size="sm" onClick={handleAdd} disabled={!addLabel.trim()} style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               <Plus className="size-3.5 mr-1" /> Add Record
             </Button>
           </div>
@@ -785,7 +785,7 @@ export default function SurrogateDetailPage() {
                 <Button
                   size="icon"
                   title={surrogate.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
-                  className={`size-8 rounded-full ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0 shadow-md' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                  className={`size-8 rounded-full ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0 shadow-md' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                   onClick={() => { setSmsOpen(true); setSmsResult(null); setSmsMessage('') }}
                 >
                   <MessageSquare className="size-3.5" />
@@ -793,7 +793,7 @@ export default function SurrogateDetailPage() {
               )}
               <div className="relative">
                 {surrogate.preferredContact === 'Email' ? (
-                  <Button size="icon" title="Email (preferred)" className="size-8 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                  <Button size="icon" title="Email (preferred)" className="size-8 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
                     onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
                     <Mail className="size-3.5" />
                   </Button>
@@ -808,7 +808,7 @@ export default function SurrogateDetailPage() {
                     <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
                         onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id, caseId: surrogate.id, caseType: 'gc' }); setEmailMenuOpen(false) }}>
-                        <Mail className="size-3.5 text-[#283693]" /> Email {surrogate.name?.split(' ')[0]}
+                        <Mail className="size-3.5 text-[#1A3638]" /> Email {surrogate.name?.split(' ')[0]}
                       </button>
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
                         onClick={() => { navigator.clipboard.writeText(surrogate.email); setEmailMenuOpen(false) }}>
@@ -837,7 +837,7 @@ export default function SurrogateDetailPage() {
                 </div>
               ) : portalStatus?.exists && !portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center gap-0.5">
-                  <Button variant="outline" size="sm" className="gap-1.5 text-[#283693] border-[#283693]/30 hover:bg-[#283693] hover:text-white" disabled={inviting}
+                  <Button variant="outline" size="sm" className="gap-1.5 text-[#1A3638] border-[#1A3638]/30 hover:bg-[#1A3638] hover:text-white" disabled={inviting}
                     onClick={async () => {
                       if (!surrogate.email) return
                       setInviting(true); setInviteResult(null)
@@ -1003,7 +1003,7 @@ export default function SurrogateDetailPage() {
             <DialogContent className="max-w-sm">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-base">
-                  <ClipboardList className="size-5 text-[#283693]" />
+                  <ClipboardList className="size-5 text-[#1A3638]" />
                   Release Application
                 </DialogTitle>
               </DialogHeader>
@@ -1013,7 +1013,7 @@ export default function SurrogateDetailPage() {
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   disabled={releasing}
-                  style={{ backgroundColor: '#283693' }}
+                  style={{ backgroundColor: '#1A3638' }}
                   onClick={async () => {
                     setReleasing(true)
                     try {
@@ -1244,11 +1244,11 @@ export default function SurrogateDetailPage() {
                 <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Pregnancy History</span>
               </div>
               <div className="flex flex-wrap items-center gap-6">
-                <span className="font-mono text-xl font-bold tracking-wider" style={{ color: '#283693' }}>
+                <span className="font-mono text-xl font-bold tracking-wider" style={{ color: '#1A3638' }}>
                   G{gtpal.g}P{gtpal.t}{gtpal.p}{gtpal.a}{gtpal.l}
                 </span>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <GTPALChip label="Pregnancies" value={gtpal.g} color="#283693" />
+                  <GTPALChip label="Pregnancies" value={gtpal.g} color="#1A3638" />
                   <GTPALChip label="Term" value={gtpal.t} color="#10b981" />
                   <GTPALChip label="Preterm" value={gtpal.p} color="#f59e0b" />
                   <GTPALChip label="Losses" value={gtpal.a} color="#ef4444" />
@@ -1339,7 +1339,7 @@ export default function SurrogateDetailPage() {
                         title: `Complete Reference Checks for ${surrogate.name || 'Surrogate'}`,
                         due_date: date || new Date().toISOString().split('T')[0],
                         priority: 'normal',
-                        assigned_to: 'intake@abcsurrogacy.com',
+                        assigned_to: 'intake@northstarsurrogacy.com',
                         created_by: currentUser?.email,
                         status: 'open',
                         case_id: surrogate.id,
@@ -1378,7 +1378,7 @@ export default function SurrogateDetailPage() {
                   }
                   // Auto-create incentive payment tasks on Medical Clearance / Legal Clearance complete
                   if (status === 'complete') {
-                    const julieEmail = 'julie@abcsurrogacy.com'
+                    const julieEmail = 'julie@northstarsurrogacy.com'
                     const sName = surrogate.name || 'Surrogate'
                     const logDt = date || new Date().toISOString().split('T')[0]
                     const lbl = stepLabel.toLowerCase()
@@ -1698,7 +1698,7 @@ export default function SurrogateDetailPage() {
               <CardTitle>Notes ({notes.length})</CardTitle>
               <Dialog open={noteAddOpen} onOpenChange={v => { setNoteAddOpen(v); if (!v) setNoteText('') }}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                     <Plus className="size-3.5" /> Add Note
                   </Button>
                 </DialogTrigger>
@@ -1729,7 +1729,7 @@ export default function SurrogateDetailPage() {
                     }}
                     disabled={noteSaving || !noteText || noteText === '<p></p>'}
                     className="w-full"
-                    style={{ backgroundColor: '#283693', color: '#fff' }}
+                    style={{ backgroundColor: '#1A3638', color: '#fff' }}
                   >
                     {noteSaving ? 'Saving...' : 'Save Note'}
                   </Button>
@@ -1751,7 +1751,7 @@ export default function SurrogateDetailPage() {
                         <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
                         <Button
                           size="sm"
-                          style={{ backgroundColor: '#283693', color: '#fff' }}
+                          style={{ backgroundColor: '#1A3638', color: '#fff' }}
                           disabled={noteSaving || !editNoteText || editNoteText === '<p></p>'}
                           onClick={async () => {
                             setNoteSaving(true)
@@ -1837,7 +1837,7 @@ export default function SurrogateDetailPage() {
       <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {surrogate.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#1A3638" /> Insurance — {surrogate.name}</DialogTitle>
           </DialogHeader>
           <InsuranceTab caseId={surrogate.id} caseType="surrogate" surrogateNameForDisplay={surrogate.name} />
         </DialogContent>
@@ -1864,7 +1864,7 @@ export default function SurrogateDetailPage() {
               className="resize-none"
               disabled={smsSending}
             />
-            <p className="text-[11px] text-stone-400">Sent from ABC Surrogacy's Twilio number. Trial accounts can only text verified numbers.</p>
+            <p className="text-[11px] text-stone-400">Sent from North Star Surrogacy's Twilio number. Trial accounts can only text verified numbers.</p>
             {smsResult === 'sent' && (
               <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
                 <CheckCircle2 className="size-4" /> Message sent successfully!
@@ -1894,7 +1894,7 @@ export default function SurrogateDetailPage() {
               }}
               disabled={!smsMessage.trim() || smsSending}
               className="gap-1.5"
-              style={{ backgroundColor: '#283693' }}
+              style={{ backgroundColor: '#1A3638' }}
             >
               {smsSending ? 'Sending...' : 'Send Text'}
             </Button>
@@ -1907,8 +1907,8 @@ export default function SurrogateDetailPage() {
 
 // ── Documents Tab ──────────────────────────────────────────
 const DOC_CATEGORIES = [
-  { id: 'photo-id', label: 'Photo IDs', icon: FileImage, color: '#ed148c' },
-  { id: 'agency-documents', label: 'Agency Documents', icon: FileText, color: '#283693' },
+  { id: 'photo-id', label: 'Photo IDs', icon: FileImage, color: '#D4A853' },
+  { id: 'agency-documents', label: 'Agency Documents', icon: FileText, color: '#1A3638' },
   { id: 'clinic', label: 'Clinic', icon: FileText, color: '#10b981' },
   { id: 'medical-records', label: 'Medical Records', icon: FileText, color: '#8b5cf6' },
   { id: 'insurance', label: 'Insurance', icon: FileText, color: '#f59e0b' },
@@ -1918,7 +1918,7 @@ const DOC_CATEGORIES = [
   { id: 'escrow', label: 'Escrow', icon: FileText, color: '#0ea5e9' },
   { id: 'receipts', label: 'Receipts', icon: Receipt, color: '#f97316' },
   { id: 'photos', label: 'Photos', icon: FileImage, color: '#ec4899' },
-  { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
+  { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#1A3638' },
   { id: 'uploads', label: 'Client Uploads', icon: Upload, color: '#0891b2' },
   { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
 ]
@@ -1958,7 +1958,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className={`rounded-2xl overflow-hidden h-full transition-all ${dragOver ? 'ring-2 ring-[#283693] shadow-lg scale-[1.02]' : ''}`}
+      <Card className={`rounded-2xl overflow-hidden h-full transition-all ${dragOver ? 'ring-2 ring-[#1A3638] shadow-lg scale-[1.02]' : ''}`}
         onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
         <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: cat.color + '0a' }}>
           <div className="flex items-center gap-2.5">
@@ -1986,7 +1986,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
               {catDocs.map(doc => <DocRow key={doc.id} doc={doc} />)}
             </div>
           ) : (
-            <div className={`px-4 py-6 text-center ${dragOver ? 'bg-[#283693]/5' : ''}`}>
+            <div className={`px-4 py-6 text-center ${dragOver ? 'bg-[#1A3638]/5' : ''}`}>
               <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
               <p className="text-[11px] text-stone-400">{dragOver ? 'Drop files here' : 'No files yet'}</p>
               <button className="text-[11px] font-medium mt-1 hover:underline" style={{ color: cat.color }}
@@ -2356,8 +2356,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               const name = sd.name || ''
               const dob = sd.dob ? new Date(sd.dob).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
               setFaxDoc(doc)
-              setFaxSubject(`STAT! ABC Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
-              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@abcsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
+              setFaxSubject(`STAT! North Star Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
+              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@northstarsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
               setFaxIncludeDL(true)
               // Fetch current user's Gmail signature
               import('@/lib/google').then(({ getGmailSignature }) => {
@@ -2411,12 +2411,12 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
       {/* File assignment dialog (shown after zip extraction or for matched-case direct uploads) */}
       {zipFiles && (
-        <Card className="rounded-2xl border-2 border-[#283693]/30 shadow-lg">
+        <Card className="rounded-2xl border-2 border-[#1A3638]/30 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Assign Files ({zipFiles.length})</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setZipFiles(null)}>Cancel</Button>
-              <Button size="sm" onClick={uploadZipFiles} disabled={uploading} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Button size="sm" onClick={uploadZipFiles} disabled={uploading} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                 {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
                 {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : 'Upload All'}
               </Button>
@@ -2430,7 +2430,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                   <span>{Math.round((uploadProgress.done / uploadProgress.total) * 100)}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
                 </div>
               </div>
             )}
@@ -2441,7 +2441,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                   {caseFolderOptions.map(opt => (
                     <button
                       key={opt.id}
-                      className="px-2 py-1 rounded-md border border-stone-200 hover:border-[#283693] hover:bg-[#283693]/5 text-stone-600 hover:text-[#283693]"
+                      className="px-2 py-1 rounded-md border border-stone-200 hover:border-[#1A3638] hover:bg-[#1A3638]/5 text-stone-600 hover:text-[#1A3638]"
                       onClick={() => setZipFiles(prev => prev.map(f => ({ ...f, caseId: opt.id })))}
                     >
                       {opt.label} folder
@@ -2461,7 +2461,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               {zipFiles.map((item, idx) => (
                 <div key={idx} className={`grid ${isMatchedView ? 'grid-cols-[auto_1fr_1fr_120px_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'} items-center px-4 py-2 border-b border-gray-100 last:border-0 gap-2`}>
                   {item.previewUrl ? (
-                    <button className="p-1 rounded hover:bg-[#283693]/10 text-[#283693]" onClick={() => setZipPreviewIdx(idx)} title="Preview">
+                    <button className="p-1 rounded hover:bg-[#1A3638]/10 text-[#1A3638]" onClick={() => setZipPreviewIdx(idx)} title="Preview">
                       <Eye className="size-4" />
                     </button>
                   ) : (
@@ -2541,7 +2541,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
         </Button>
         {showCaseActions && (
           <>
-            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+            <Button className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}
               onClick={() => window.open(`/e-signature?caseType=${caseType}&caseId=${surrogateId}`, '_blank')}>
               <FileText className="size-4" /> Send for Signature
             </Button>
@@ -2622,7 +2622,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                   <File className="size-12 text-stone-300 mx-auto mb-3" />
                   <p className="text-sm text-stone-500">Preview not available for this file type.</p>
                   <a href={previewDoc.public_url} target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-medium mt-2 inline-block hover:underline" style={{ color: '#283693' }}>
+                    className="text-sm font-medium mt-2 inline-block hover:underline" style={{ color: '#1A3638' }}>
                     Download to view
                   </a>
                 </div>
@@ -2689,7 +2689,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
             </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setEditingDoc(null)}>Cancel</Button>
-              <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} disabled={editSaving} onClick={handleEditSave}>
+              <Button size="sm" style={{ backgroundColor: '#1A3638', color: '#fff' }} disabled={editSaving} onClick={handleEditSave}>
                 {editSaving ? 'Saving...' : 'Save'}
               </Button>
             </div>
@@ -2720,7 +2720,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Printer className="size-5 text-[#283693]" /> Fax Document
+              <Printer className="size-5 text-[#1A3638]" /> Fax Document
             </DialogTitle>
           </DialogHeader>
           {faxResult?.success ? (
@@ -2758,7 +2758,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               <div className="space-y-1">
                 <label className="text-xs font-medium text-stone-600">Message</label>
                 <textarea value={faxMessage} onChange={e => setFaxMessage(e.target.value)} rows={4}
-                  className="w-full text-sm rounded-md border border-stone-200 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-[#283693]/30 resize-none" />
+                  className="w-full text-sm rounded-md border border-stone-200 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-[#1A3638]/30 resize-none" />
               </div>
               {/* Signature preview */}
               {faxSignatureHtml && (
@@ -2772,7 +2772,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               )}
               {/* Driver's License toggle */}
               <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-700">
-                <input type="checkbox" checked={faxIncludeDL} onChange={e => setFaxIncludeDL(e.target.checked)} className="size-4 accent-[#283693]" />
+                <input type="checkbox" checked={faxIncludeDL} onChange={e => setFaxIncludeDL(e.target.checked)} className="size-4 accent-[#1A3638]" />
                 Include Driver's License
                 {faxIncludeDL && !docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc') && (
                   <span className="text-[10px] text-amber-500 ml-1">(No GC Photo ID found — label one in Photo IDs folder)</span>
@@ -2781,7 +2781,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               {faxResult?.error && <p className="text-xs text-red-500">{faxResult.error}</p>}
               <div className="flex gap-2 justify-end pt-1">
                 <Button variant="outline" size="sm" onClick={() => { setFaxDoc(null); setFaxResult(null); setFaxNumber(''); setFaxToName('') }}>Cancel</Button>
-                <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+                <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                   disabled={faxSending || !/^\d{3}-\d{3}-\d{4}$/.test(faxNumber)}
                   onClick={async () => {
                     setFaxSending(true); setFaxResult(null)
@@ -2796,7 +2796,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; margin-bottom: 30px;">
                             <tr>
                               <td style="text-align: center; padding: 25px; vertical-align: middle;">
-                                <img src="${window.location.origin}/abc-logo.png" style="height: 90px; display: inline-block;" />
+                                <img src="${window.location.origin}/north-star-logo.png" style="height: 90px; display: inline-block;" />
                                 <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 818-321-9329 &nbsp;&nbsp; Fax: 323-843-9433</p>
                               </td>
                               <td style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700; text-align: center; width: 120px; vertical-align: middle;">Fax</td>
@@ -2805,7 +2805,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                             <tr>
                               <td style="padding: 10px 0; width: 50%;"><strong>To:</strong> &nbsp; ${faxToName || ''}</td>
-                              <td style="padding: 10px 0;"><strong>From:</strong> &nbsp; ${currentUser?.name || 'ABC Surrogacy'}</td>
+                              <td style="padding: 10px 0;"><strong>From:</strong> &nbsp; ${currentUser?.name || 'North Star Surrogacy'}</td>
                             </tr>
                             <tr>
                               <td style="padding: 10px 0;"><strong>Fax:</strong> &nbsp; ${faxNumber}</td>
@@ -2817,7 +2817,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           </div>
                           <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">${faxMessage}</div>
                           <div style="margin-top: 40px;">
-                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/abc-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'ABC Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
+                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/north-star-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'North Star Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
                           </div>
                           <div style="margin-top: 30px; padding: 12px; border: 1px solid #000; font-size: 9px; line-height: 1.4;">
                             ABUNDANT BEGINNINGS COMPANY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
@@ -2828,7 +2828,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       // Render cover page
                       const overlay = document.createElement('div')
                       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
-                      overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Preparing fax...</p>'
+                      overlay.innerHTML = '<p style="color:#1A3638;font-size:18px;font-weight:600;">Preparing fax...</p>'
                       document.body.appendChild(overlay)
 
                       const coverEl = document.createElement('div')
@@ -3050,7 +3050,7 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
           ) : (
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                 onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
                 Save
@@ -3179,7 +3179,7 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }
         size="icon"
         title={`${label} (preferred)`}
         className="size-8 rounded-full text-white shadow-md"
-        style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+        style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
         onClick={onFlip}
       >
         <Icon className="size-3.5" />
@@ -3700,7 +3700,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
           <h3 className="text-sm font-semibold text-stone-700">Pre-Match Expenses</h3>
           <p className="text-xs text-stone-400 mt-0.5">These will roll into the matched journey once a match is made.</p>
         </div>
-        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#1A3638' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Expense
         </Button>
       </div>
@@ -3743,10 +3743,10 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
                   {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
                 </div>
               ))}
-              <button onClick={() => setLineItems(prev => [...prev, emptyLineItem()])} className="text-xs text-[#283693] hover:underline font-medium" type="button">+ Add Line Item</button>
+              <button onClick={() => setLineItems(prev => [...prev, emptyLineItem()])} className="text-xs text-[#1A3638] hover:underline font-medium" type="button">+ Add Line Item</button>
               <div className="flex items-center justify-between pt-2 border-t border-stone-100">
                 <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
-                <span className="text-base font-bold text-[#283693]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-base font-bold text-[#1A3638]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
@@ -3817,7 +3817,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
-              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
+              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#1A3638' }} className="gap-1">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {saving ? 'Adding...' : 'Add Expense'}
               </Button>
@@ -3999,7 +3999,7 @@ function CaseTextsTab({ phone, caseName }) {
             onClick={handleSend}
             disabled={!smsText.trim() || sending || !sendFrom}
             className="self-end"
-            style={{ backgroundColor: '#283693' }}
+            style={{ backgroundColor: '#1A3638' }}
           >
             {sending ? '...' : 'Send'}
           </Button>
@@ -4020,7 +4020,7 @@ function CaseTextsTab({ phone, caseName }) {
               if (!isOutbound && !isMessageRead(m.sid)) markSMSRead(m.sid)
               return (
                 <div key={m.sid} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isOutbound ? 'bg-[#283693] text-white rounded-br-md' : 'bg-stone-100 text-stone-800 rounded-bl-md'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isOutbound ? 'bg-[#1A3638] text-white rounded-br-md' : 'bg-stone-100 text-stone-800 rounded-bl-md'}`}>
                     {isOutbound && senderName && (
                       <p className="text-[10px] text-white/50 font-medium mb-0.5">{senderName}</p>
                     )}
@@ -4062,9 +4062,9 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
 
   // Calculate gradient color per milestone based on position
   const getGradientColor = (index) => {
-    if (total <= 1) return '#ed148c'
+    if (total <= 1) return '#D4A853'
     const t = index / (total - 1)
-    // pink #ed148c → blue #283693
+    // pink #D4A853 → blue #1A3638
     const r = Math.round(237 + (40 - 237) * t)
     const g = Math.round(20 + (54 - 20) * t)
     const b = Math.round(140 + (147 - 140) * t)
@@ -4074,7 +4074,7 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[#283693]">Milestones</h3>
+        <h3 className="text-lg font-semibold text-[#1A3638]">Milestones</h3>
         <span className="text-sm font-semibold text-stone-400">{completed}/{total}</span>
       </div>
 
@@ -4093,7 +4093,7 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
                 style={{
                   width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
                   maxWidth: 'calc(100% - 28px)',
-                  background: 'linear-gradient(90deg, #ed148c, #283693)',
+                  background: 'linear-gradient(90deg, #D4A853, #1A3638)',
                 }}
               />
             )}
@@ -4284,9 +4284,9 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, lo
           )}
         </div>
       ) : (
-        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 transition-colors ${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5'} ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 transition-colors ${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5'} ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="text-center">
-            {locked ? <span className="text-xs text-stone-400">Locked</span> : uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+            {locked ? <span className="text-xs text-stone-400">Locked</span> : uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#1A3638] animate-spin" /> : (
               <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
             )}
           </div>
@@ -4386,9 +4386,9 @@ function AdminGallery({ storagePath, onPhotosChange, locked = false }) {
               )
             ))}
             {!locked && (
-              <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+              <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
                 <div className="text-center">
-                  {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+                  {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#1A3638] animate-spin" /> : (
                     <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
                   )}
                 </div>
@@ -4543,7 +4543,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
     <Card className="rounded-2xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Camera className="w-4 h-4 text-[#283693]" /> Profile Photos
+          <Camera className="w-4 h-4 text-[#1A3638]" /> Profile Photos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -4691,8 +4691,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           }
           body { background: #fdf8f3; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
           .print-container { max-width: 100%; margin: 0; padding: 0; }
-          .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-          .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+          .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+          .print-bar button { background: white; color: #1A3638; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
           .print-bar button:hover { opacity: 0.9; }
           .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
           /* PDF-specific: cover photo shown at tight height, portrait overlapping */
@@ -4996,7 +4996,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'gunsInHomeAdminNotes',
   ])
 
-  const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+  const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none"
 
   function renderScalarFieldEdit(field, secKey, sourceData = editData) {
     const val = sourceData?.[field]
@@ -5034,10 +5034,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled || isApproved}
                   className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
                     isOn
-                      ? 'bg-[#283693] text-white border-[#283693]'
+                      ? 'bg-[#1A3638] text-white border-[#1A3638]'
                       : disabled
                         ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
-                        : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+                        : 'bg-white text-stone-600 border-stone-300 hover:border-[#1A3638] hover:text-[#1A3638]'
                   }`}>
                   {opt}
                 </button>
@@ -5152,11 +5152,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           {labelRow}
           <div className="flex items-center gap-2 pt-0.5">
             <button type="button" disabled={isApproved} onClick={() => updateEditField(field, 'yes')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'yes' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'yes' ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               Yes
             </button>
             <button type="button" disabled={isApproved} onClick={() => updateEditField(field, 'no')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'no' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'no' ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               No
             </button>
           </div>
@@ -5183,7 +5183,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     }
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
-        <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+        <p className="text-sm font-semibold text-[#1A3638]">Pregnancy #{i + 1}</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
@@ -5257,7 +5257,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
                 {/* Baby A */}
                 <div className={`${isMultiples ? 'col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2' : 'contents'}`}>
-                  {isMultiples && <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby A</p>}
+                  {isMultiples && <p className="text-[10px] font-bold text-[#1A3638] uppercase tracking-wider">Baby A</p>}
                   <div className={isMultiples ? 'grid grid-cols-2 sm:grid-cols-4 gap-2' : 'contents'}>
                     <div className="space-y-1">
                       <span className="text-[10px] text-gray-400 uppercase">Name</span>
@@ -5297,7 +5297,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 {/* Baby B */}
                 {isMultiples && (
                   <div className="col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2">
-                    <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby B</p>
+                    <p className="text-[10px] font-bold text-[#1A3638] uppercase tracking-wider">Baby B</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="space-y-1">
                         <span className="text-[10px] text-gray-400 uppercase">Name</span>
@@ -5338,7 +5338,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 {/* Baby C */}
                 {isTriplets && (
                   <div className="col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2">
-                    <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby C</p>
+                    <p className="text-[10px] font-bold text-[#1A3638] uppercase tracking-wider">Baby C</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="space-y-1">
                         <span className="text-[10px] text-gray-400 uppercase">Name</span>
@@ -5448,7 +5448,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-[#283693]">Member #{i + 1}</span>
+          <span className="text-xs font-semibold text-[#1A3638]">Member #{i + 1}</span>
           {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
           </Button>}
@@ -5499,7 +5499,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-[#283693]">Journey #{i + 1}</p>
+          <p className="text-sm font-semibold text-[#1A3638]">Journey #{i + 1}</p>
           {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
           </Button>}
@@ -5561,7 +5561,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-[#283693]">#{i + 1}</p>
+          <p className="text-xs font-semibold text-[#1A3638]">#{i + 1}</p>
           {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
           </Button>}
@@ -5628,13 +5628,13 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 size="sm"
                 disabled={sendingBack || !sendBackMessage.trim()}
                 className="gap-1.5"
-                style={{ backgroundColor: '#283693', color: '#fff' }}
+                style={{ backgroundColor: '#1A3638', color: '#fff' }}
                 onClick={async () => {
                   setSendingBack(true)
                   try {
                     const firstName = surrogate.name?.split(' ')[0] || 'there'
                     const adminName = currentUser?.name || 'The ABC Team'
-                    const subject = '📝 Your ABC Surrogacy Profile is Missing Some Information'
+                    const subject = '📝 Your North Star Surrogacy Profile is Missing Some Information'
                     const missingListHtml = sendBackMessage
                       .trim()
                       .split('\n')
@@ -5645,12 +5645,12 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                     const bodyHtml = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 200px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 200px;" />
       </div>
 
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
-          A few things to <span style="color: #ed148c;">finish up</span>
+        <h1 style="color: #1A3638; font-size: 24px; margin: 0 0 8px; text-align: center;">
+          A few things to <span style="color: #D4A853;">finish up</span>
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
           Your profile is almost there!
@@ -5676,7 +5676,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         </p>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.abcsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <a href="https://app.northstarsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
             Finish My Profile
           </a>
         </div>
@@ -5689,7 +5689,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC · abcsurrogacy.com
+          North Star Surrogacy, LLC · northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -5757,7 +5757,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
                 </div>
               </div>
               <span className="text-sm font-bold text-abc-indigo">{overallPercent}%</span>
@@ -5847,11 +5847,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
-                          <ChevronDown className={`size-5 text-[#283693] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        <div className="size-10 rounded-xl bg-[#1A3638]/10 flex items-center justify-center">
+                          <ChevronDown className={`size-5 text-[#1A3638] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </div>
                         <div>
-                          <CardTitle className="text-base text-[#283693]">{sec.title}</CardTitle>
+                          <CardTitle className="text-base text-[#1A3638]">{sec.title}</CardTitle>
                           {SECTION_DESCRIPTIONS[sec.key] && <p className="text-xs text-muted-foreground mt-0.5">{SECTION_DESCRIPTIONS[sec.key]}</p>}
                         </div>
                       </div>
@@ -5934,7 +5934,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                             <div className="space-y-2">
                               {normalizeStructuredList(sectionData[field]).map((item, i) => (
                                 <div key={i} className="rounded-lg border border-gray-100 bg-gray-50/50 p-2.5">
-                                  <span className="text-xs font-semibold text-[#283693]">#{i + 1}</span>
+                                  <span className="text-xs font-semibold text-[#1A3638]">#{i + 1}</span>
                                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                                     {Object.entries(item).filter(([k, v]) => k !== 'id' && v !== '' && v !== null && v !== undefined).map(([k, v]) => (
                                       <span key={k} className="text-xs">

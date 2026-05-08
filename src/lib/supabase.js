@@ -4,16 +4,20 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // ── Localhost-vs-prod safety guard ──────────────────────────
-// Local dev pointed at production once already wiped checklist_config,
-// status_config, and surrogate_stages because background loaders silently
-// auto-save to whichever Supabase the browser is talking to. This block
-// detects the dangerous combination — running on localhost while pointed
-// at the prod Supabase — and refuses to start. The escape hatch is an
-// explicit env var so debugging-against-prod is still possible if someone
-// really needs it.
+// Local dev pointed at production once already wiped admin-customized
+// app_config rows because background loaders silently auto-save to
+// whichever Supabase the browser is talking to. This block detects the
+// dangerous combination — running on localhost while pointed at a known
+// prod Supabase host — and refuses to start. The escape hatch is an
+// explicit env var so debugging-against-prod is still possible if
+// someone really needs it.
+//
+// IMPORTANT: add North Star's prod project ref / hostname to the list
+// below once known (e.g. /<your-prod-project-ref>\.supabase\.co/i).
+const PROD_HOST_PATTERNS = []
 function looksLikeProd(url) {
   if (!url) return false
-  return /(?:db\.abcsurrogacy\.com|ertvelqlskevksgaanwd\.supabase\.co)/i.test(url)
+  return PROD_HOST_PATTERNS.some(re => re.test(url))
 }
 function isLocalhost() {
   if (typeof window === 'undefined') return false
@@ -28,7 +32,7 @@ if (typeof window !== 'undefined' && isLocalhost() && looksLikeProd(supabaseUrl)
 ║                                                                       ║
 ║  Add this to .env.local:                                              ║
 ║                                                                       ║
-║    VITE_SUPABASE_URL=https://hdnavfdmadciihsgscmq.supabase.co         ║
+║    VITE_SUPABASE_URL=<your STAGING Supabase URL>                      ║
 ║    VITE_SUPABASE_PUBLISHABLE_KEY=<your staging publishable key>       ║
 ║                                                                       ║
 ║  Then restart \`npm run dev\`.                                          ║
@@ -49,7 +53,7 @@ if (typeof window !== 'undefined' && isLocalhost() && looksLikeProd(supabaseUrl)
 // Diagnostic: print the Supabase URL on app load so we can confirm staging vs prod.
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line no-console
-  console.log('[ABC] Supabase URL in use:', supabaseUrl)
+  console.log('[NorthStar] Supabase URL in use:', supabaseUrl)
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey

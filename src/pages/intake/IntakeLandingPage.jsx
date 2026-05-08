@@ -80,7 +80,7 @@ export default function IntakeLandingPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#faf8f5' }}>
       {/* Header */}
       <header className="flex items-center justify-center px-6 py-5 bg-white border-b border-stone-100">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
       </header>
 
       {/* Hero */}
@@ -89,16 +89,16 @@ export default function IntakeLandingPage() {
           type="button"
           onClick={() => navigate('/apply/surrogate')}
           className="inline-flex items-center gap-2 rounded-full px-5 py-2 mb-6 text-sm font-semibold shadow-sm cursor-pointer transition-transform hover:scale-[1.03] hover:shadow-md active:scale-[0.98]"
-          style={{ background: 'linear-gradient(135deg, #ed148c, #283693)', color: '#fff' }}>
+          style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)', color: '#fff' }}>
           <Clock className="w-4 h-4" />
           See if you qualify in less than 5 minutes.
         </button>
         <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight mb-4">
-          <span style={{ color: '#283693' }}>Could surrogacy be</span>{' '}
-          <span style={{ color: '#ed148c' }}>your next chapter?</span>
+          <span style={{ color: '#1A3638' }}>Could surrogacy be</span>{' '}
+          <span style={{ color: '#D4A853' }}>your next chapter?</span>
         </h1>
         <p className="text-stone-500 text-lg leading-relaxed max-w-lg mx-auto">
-          Take our quick fit quiz and find out whether you qualify to carry for a family with Abundant Beginnings Co.
+          Take our quick fit quiz and find out whether you qualify to carry for a family with North Star Surrogacy
         </p>
         <div className="flex items-center justify-center gap-5 mt-5 flex-wrap">
           {[
@@ -119,7 +119,7 @@ export default function IntakeLandingPage() {
           type="button"
           onClick={() => navigate('/apply/surrogate')}
           className="group w-full text-left bg-white rounded-2xl border-2 border-stone-200 hover:shadow-lg transition-all duration-200 p-7 flex flex-col"
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#ed148c'}
+          onMouseEnter={e => e.currentTarget.style.borderColor = '#D4A853'}
           onMouseLeave={e => e.currentTarget.style.borderColor = ''}
         >
           <div className="text-4xl mb-4 select-none" aria-hidden>🤰</div>
@@ -129,7 +129,7 @@ export default function IntakeLandingPage() {
           <p className="text-sm text-stone-500 leading-relaxed flex-1 mb-6">
             Discover if you could help a loving family begin their journey — earn $60,000 to $85,000+ while being supported every step of the way.
           </p>
-          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#ed148c' }}>
+          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#D4A853' }}>
             Take the quiz
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </div>
@@ -145,7 +145,7 @@ export default function IntakeLandingPage() {
           <div className="grid grid-cols-3 gap-6">
             {STATS.map(({ stat, label }) => (
               <div key={label}>
-                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#ed148c' }}>{stat}</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#D4A853' }}>{stat}</div>
                 <div className="text-xs text-stone-500 mt-1">{label}</div>
               </div>
             ))}
@@ -155,7 +155,7 @@ export default function IntakeLandingPage() {
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} Abundant Beginnings Co. ·{' '}
+        © {new Date().getFullYear()} North Star Surrogacy ·{' '}
         <a href="#" className="underline hover:text-stone-600">Privacy Policy</a>
       </footer>
     </div>

@@ -59,9 +59,9 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
         <span className="text-sm text-stone-600">Has Insurance?</span>
         <div className="flex gap-1.5">
           <button onClick={() => setForm(f => ({ ...f, has_insurance: true }))}
-            className={`px-3 py-1 rounded-full text-xs font-medium ${form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+            className={`px-3 py-1 rounded-full text-xs font-medium ${form.has_insurance ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
           <button onClick={() => setForm(f => ({ ...f, has_insurance: false }))}
-            className={`px-3 py-1 rounded-full text-xs font-medium ${!form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+            className={`px-3 py-1 rounded-full text-xs font-medium ${!form.has_insurance ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
         </div>
       </div>
       {form.has_insurance && (
@@ -115,9 +115,9 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
             <label className="text-[11px] text-stone-400 font-medium">Enrolled in Autopay?</label>
             <div className="flex gap-1.5 mt-1">
               <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: true }))}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                className={`px-3 py-1 rounded-full text-xs font-medium ${form.enrolled_autopay ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
               <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: false, autopay_day: '' }))}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.enrolled_autopay ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
             </div>
           </div>
           {form.enrolled_autopay && (
@@ -138,9 +138,9 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
             <label className="text-[11px] text-stone-400 font-medium">Binder Payment Paid?</label>
             <div className="flex gap-1.5 mt-1">
               <button onClick={() => setForm(f => ({ ...f, binder_payment_paid: true }))}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${form.binder_payment_paid ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                className={`px-3 py-1 rounded-full text-xs font-medium ${form.binder_payment_paid ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
               <button onClick={() => setForm(f => ({ ...f, binder_payment_paid: false }))}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.binder_payment_paid ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.binder_payment_paid ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
             </div>
           </div>
           <div className="space-y-1">
@@ -158,7 +158,7 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
         </div>
       )}
       <div className="flex gap-2 pt-2">
-        <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={onSave} disabled={saving}>
+        <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={onSave} disabled={saving}>
           {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
           {saving ? 'Saving...' : 'Save'}
         </Button>
@@ -305,7 +305,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
             <p className="text-sm font-semibold text-stone-700">No insurance information</p>
             <p className="text-xs text-stone-400 mt-1">Add insurance details for {surrogateNameForDisplay || 'this surrogate'}</p>
           </div>
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={startEdit}>
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={startEdit}>
             <Plus className="size-3.5" /> Add Insurance
           </Button>
         </CardContent>
@@ -321,7 +321,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
       <Card className="rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
-            <InsuranceCardIcon size={18} color="#283693" /> Add Insurance
+            <InsuranceCardIcon size={18} color="#1A3638" /> Add Insurance
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -339,7 +339,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <InsuranceCardIcon size={18} color={isCancelled ? '#a8a29e' : '#283693'} />
+              <InsuranceCardIcon size={18} color={isCancelled ? '#a8a29e' : '#1A3638'} />
               Insurance {isCancelled && <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Cancelled</span>}
             </CardTitle>
             <div className="flex gap-1.5">
@@ -376,7 +376,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
               </div>
               <div>
                 <span className="text-stone-400 text-xs">Website</span>
-                <p className="font-medium">{insurance.website ? <a href={insurance.website} target="_blank" rel="noopener" className="text-[#283693] hover:underline">{insurance.website}</a> : '—'}</p>
+                <p className="font-medium">{insurance.website ? <a href={insurance.website} target="_blank" rel="noopener" className="text-[#1A3638] hover:underline">{insurance.website}</a> : '—'}</p>
               </div>
               <div>
                 <span className="text-stone-400 text-xs">Portal Login</span>
@@ -451,7 +451,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Payment History</CardTitle>
               {(
-                <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setPayOpen(true)}>
+                <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#1A3638' }} onClick={() => setPayOpen(true)}>
                   <Plus className="size-3" /> Log Payment
                 </Button>
               )}
@@ -532,7 +532,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => setPayOpen(false)}>Cancel</Button>
-              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleLogPayment} disabled={paySaving || !payForm.month_for || !payForm.paid_date}>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleLogPayment} disabled={paySaving || !payForm.month_for || !payForm.paid_date}>
                 {paySaving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
                 {paySaving ? 'Saving...' : 'Log Payment'}
               </Button>

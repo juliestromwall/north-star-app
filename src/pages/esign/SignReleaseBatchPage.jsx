@@ -45,14 +45,14 @@ function SignaturePad({ value, onChange, signerName }) {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button type="button" onClick={() => setMode('typed')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-        <button type="button" onClick={() => setMode('drawn')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+        <button type="button" onClick={() => setMode('typed')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
       </div>
       {mode === 'typed' ? (
         <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
           onChange={e => onChange({ type: 'typed', name: e.target.value })}
           placeholder="Type your full name"
-          className="w-full text-lg sm:text-xl py-3 px-4 border-b-2 border-[#283693]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
+          className="w-full text-lg sm:text-xl py-3 px-4 border-b-2 border-[#1A3638]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
       ) : (
         <div>
           <canvas ref={canvasRef} width={500} height={120} className="w-full h-24 sm:h-20 border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none" onMouseDown={handleDown} onTouchStart={handleDown} />
@@ -169,7 +169,7 @@ export default function SignReleaseBatchPage() {
             let filledHtml = html
               .replace(/\{\{Signature:GC\}\}/g, sig.type === 'drawn' && sig.image
                 ? `<img src="${sig.image}" style="height: 30px;" />`
-                : `<span style="font-family: serif; font-style: italic; font-size: 18px; color: #283693;">${sig.name || mySigner.name}</span>`)
+                : `<span style="font-family: serif; font-style: italic; font-size: 18px; color: #1A3638;">${sig.name || mySigner.name}</span>`)
               .replace(/\{\{Name:GC\}\}/g, mySigner.name || '')
               .replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
 
@@ -177,8 +177,8 @@ export default function SignReleaseBatchPage() {
             const signedAt = new Date()
             const auditHtml = `
               <div style="font-family: Arial, sans-serif; padding: 40px; color: #000; font-size: 12px; line-height: 1.5;">
-                <div style="border-top: 2px solid #283693; padding-top: 20px;">
-                  <p style="font-weight: 700; color: #283693; font-size: 14px; margin: 0 0 12px 0;">ELECTRONIC SIGNATURE CERTIFICATE</p>
+                <div style="border-top: 2px solid #1A3638; padding-top: 20px;">
+                  <p style="font-weight: 700; color: #1A3638; font-size: 14px; margin: 0 0 12px 0;">ELECTRONIC SIGNATURE CERTIFICATE</p>
                   <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                     <tr><td style="padding: 4px 0; width: 180px;"><strong>Completed:</strong></td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
                     <tr><td style="padding: 4px 0;"><strong>Signer:</strong></td><td>${mySigner.name}</td></tr>
@@ -186,7 +186,7 @@ export default function SignReleaseBatchPage() {
                     <tr><td style="padding: 4px 0;"><strong>Signature type:</strong></td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
                     <tr><td style="padding: 4px 0;"><strong>IP Address:</strong></td><td>Captured at signing</td></tr>
                   </table>
-                  <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
+                  <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
                 </div>
               </div>
             `
@@ -203,7 +203,7 @@ export default function SignReleaseBatchPage() {
 
               const overlay = document.createElement('div')
               overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
-              overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Generating PDFs...</p>'
+              overlay.innerHTML = '<p style="color:#1A3638;font-size:18px;font-weight:600;">Generating PDFs...</p>'
               document.body.appendChild(overlay)
 
               // Page 1: the release form (no audit trail)
@@ -297,14 +297,14 @@ export default function SignReleaseBatchPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="size-8 animate-spin text-[#283693]" /></div>
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="size-8 animate-spin text-[#1A3638]" /></div>
   }
 
   if (docs.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
-          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 mx-auto mb-6" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 mx-auto mb-6" />
           <FileText className="size-12 text-stone-300 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-stone-700">No documents found</h1>
           <p className="text-stone-500 mt-2 text-sm">This signing link may have expired or the documents have already been signed.</p>
@@ -317,7 +317,7 @@ export default function SignReleaseBatchPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
-          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 mx-auto mb-6" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 mx-auto mb-6" />
           <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-stone-800">All Release Forms Signed!</h1>
           <p className="text-stone-500 mt-2">Thank you! {docs.length} medical records release form{docs.length === 1 ? ' has' : 's have'} been signed and filed.</p>
@@ -334,13 +334,13 @@ export default function SignReleaseBatchPage() {
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-sm">
             <div className="text-center mb-8">
-              <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
-              <h1 className="text-2xl font-heading font-bold" style={{ color: '#283693' }}>Medical Records <span style={{ color: '#ed148c' }}>Release</span></h1>
+              <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
+              <h1 className="text-2xl font-heading font-bold" style={{ color: '#1A3638' }}>Medical Records <span style={{ color: '#D4A853' }}>Release</span></h1>
               <p className="text-stone-400 text-sm mt-2">Verify your identity to continue</p>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 space-y-4">
               <div className="text-center">
-                <Shield className="size-8 text-[#283693] mx-auto mb-2" />
+                <Shield className="size-8 text-[#1A3638] mx-auto mb-2" />
                 <p className="text-sm text-stone-500">Enter your email address to access {docs.length} medical records release form{docs.length === 1 ? '' : 's'}.</p>
               </div>
               <div className="space-y-1.5">
@@ -350,11 +350,11 @@ export default function SignReleaseBatchPage() {
                   onKeyDown={e => e.key === 'Enter' && handleVerify()}
                   className="h-11" />
               </div>
-              <Button className="w-full h-11 gap-2 text-sm font-semibold" style={{ backgroundColor: '#283693' }} onClick={handleVerify}>
+              <Button className="w-full h-11 gap-2 text-sm font-semibold" style={{ backgroundColor: '#1A3638' }} onClick={handleVerify}>
                 <Mail className="size-4" /> Verify & Continue
               </Button>
             </div>
-            <p className="text-center text-xs text-stone-400 mt-6">Abundant Beginnings Company, LLC</p>
+            <p className="text-center text-xs text-stone-400 mt-6">North Star Surrogacy, LLC</p>
           </div>
         </div>
       </div>
@@ -369,15 +369,15 @@ export default function SignReleaseBatchPage() {
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Header */}
       <div className="text-center px-2">
-        <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
-        <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">Medical Records Release Forms</h1>
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+        <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">Medical Records Release Forms</h1>
         <p className="text-stone-500 text-sm mt-1">Please review and sign each form below. {signedDocs.size > 0 && `${signedDocs.size} of ${docs.length} complete.`}</p>
       </div>
 
       {/* Progress bar */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-2 rounded-full bg-stone-100">
-          <div className="h-2 rounded-full bg-[#ed148c] transition-all duration-500" style={{ width: `${((Object.keys(signatures).length) / docs.length) * 100}%` }} />
+          <div className="h-2 rounded-full bg-[#D4A853] transition-all duration-500" style={{ width: `${((Object.keys(signatures).length) / docs.length) * 100}%` }} />
         </div>
         <span className="text-xs text-stone-500 font-medium">{Object.keys(signatures).length}/{docs.length}</span>
       </div>
@@ -394,7 +394,7 @@ export default function SignReleaseBatchPage() {
               {/* Provider header */}
               <div className="flex items-start sm:items-center justify-between gap-2">
                 <div className="flex items-start sm:items-center gap-2.5">
-                  <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-7 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">{i + 1}</span>
+                  <span className="text-xs font-bold text-white bg-[#1A3638] rounded-full size-7 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">{i + 1}</span>
                   <div>
                     <p className="font-semibold text-stone-800 text-sm sm:text-base leading-snug">{meta.providerName || doc.title}</p>
                     <p className="text-xs text-stone-400">
@@ -408,13 +408,13 @@ export default function SignReleaseBatchPage() {
 
               {/* Document content — responsive height */}
               {html && (
-                <div className="border rounded-lg p-3 sm:p-4 bg-white max-h-[300px] sm:max-h-[400px] overflow-y-auto text-xs sm:text-sm leading-relaxed [&_table]:w-full [&_table]:text-xs [&_td]:py-1 [&_td]:px-1" dangerouslySetInnerHTML={{ __html: html.replace(/\{\{Signature:GC\}\}/g, '<span style="color: #ed148c; font-weight: 600;">[Sign below]</span>').replace(/\{\{Name:GC\}\}/g, mySigner?.name || '').replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })) }} />
+                <div className="border rounded-lg p-3 sm:p-4 bg-white max-h-[300px] sm:max-h-[400px] overflow-y-auto text-xs sm:text-sm leading-relaxed [&_table]:w-full [&_table]:text-xs [&_td]:py-1 [&_td]:px-1" dangerouslySetInnerHTML={{ __html: html.replace(/\{\{Signature:GC\}\}/g, '<span style="color: #D4A853; font-weight: 600;">[Sign below]</span>').replace(/\{\{Name:GC\}\}/g, mySigner?.name || '').replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })) }} />
               )}
 
               {/* Signature for this doc */}
               {!isSigned && (
                 <div className="pt-3 border-t">
-                  <p className="text-xs font-semibold text-stone-600 mb-2">Sign for: <span className="text-[#283693]">{meta.providerName}</span></p>
+                  <p className="text-xs font-semibold text-stone-600 mb-2">Sign for: <span className="text-[#1A3638]">{meta.providerName}</span></p>
                   <SignaturePad
                     value={signatures[doc.id]}
                     onChange={v => setSignatures(prev => ({ ...prev, [doc.id]: v }))}
@@ -430,10 +430,10 @@ export default function SignReleaseBatchPage() {
       {/* Submit all */}
       <div className="flex flex-col items-center gap-4 pt-4 pb-8 px-2">
         <label className="flex items-center gap-2.5 text-sm text-stone-700 leading-snug text-center">
-          <input type="checkbox" id="agree-batch" className="size-5 accent-[#283693] shrink-0" />
+          <input type="checkbox" id="agree-batch" className="size-5 accent-[#1A3638] shrink-0" />
           <span>I agree that my electronic signature is legally binding</span>
         </label>
-        <Button size="lg" className="gap-2 text-base w-full sm:w-auto sm:px-10 py-3" style={{ backgroundColor: '#ed148c' }}
+        <Button size="lg" className="gap-2 text-base w-full sm:w-auto sm:px-10 py-3" style={{ backgroundColor: '#D4A853' }}
           onClick={() => {
             const agreed = document.getElementById('agree-batch')?.checked
             if (!agreed) { alert('Please agree to the terms before signing.'); return }
@@ -443,7 +443,7 @@ export default function SignReleaseBatchPage() {
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Signing...' : `Sign All ${docs.length} Release Forms`}
         </Button>
-        <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+        <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
       </div>
     </div>
   )

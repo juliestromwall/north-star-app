@@ -30,8 +30,8 @@ import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys, isJourneyActive, fetchCompletedJourneys } from '@/lib/matching'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
+  'julie@northstarsurrogacy.com',
+  'nicole@northstarsurrogacy.com',
 ])
 
 const US_STATES = [
@@ -104,7 +104,7 @@ function GTPALBadge({ gtpal }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-0.5 font-mono text-sm font-bold tracking-wide"
-        style={{ color: '#283693' }}>
+        style={{ color: '#1A3638' }}>
         <span>{code}</span>
       </div>
       <div className="flex items-center gap-2 text-[10px] text-stone-400 leading-none">
@@ -154,7 +154,7 @@ function ScreeningProgress({ screening, recordTracking, surrogateId, stageId }) 
         <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
       </div>
       {cardMilestones.length > 0 && (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -561,10 +561,10 @@ export default function SurrogateListPage() {
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <button
           onClick={() => setStatusFilter('active')}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' ? 'ring-2 ring-[#1A3638] border-[#1A3638]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !INACTIVE_GC_STAGES.has(st) && !completedGcIds.has(normalizeCaseId(s.id)) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#1A3638' }}>{ownerFiltered.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !INACTIVE_GC_STAGES.has(st) && !completedGcIds.has(normalizeCaseId(s.id)) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {SURROGATE_STAGES.filter(s => !s.hidden).flatMap(stage => {
@@ -754,7 +754,7 @@ export default function SurrogateListPage() {
                     <TableCell className="font-medium">{surrogate.age || '—'}</TableCell>
                     <TableCell>
                       {gtpal ? (
-                        <span className="font-mono text-xs font-bold" style={{ color: '#283693' }}>
+                        <span className="font-mono text-xs font-bold" style={{ color: '#1A3638' }}>
                           G{gtpal.g}P{gtpal.t}{gtpal.p}{gtpal.a}{gtpal.l}
                         </span>
                       ) : (
@@ -847,7 +847,7 @@ export default function SurrogateListPage() {
             )}
             <Button onClick={handleAddSurrogate}
               disabled={addSaving || !addForm.firstName || !addForm.lastName || !addForm.email || !addForm.phone || !addForm.state || !addForm.dob}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {addSaving ? 'Adding...' : 'Add Surrogate'}
             </Button>
           </div>

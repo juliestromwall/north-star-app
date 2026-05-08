@@ -15,7 +15,7 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@northstarsurrogacy.com'
   const supabaseUrl = env.SUPABASE_URL
   const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -54,14 +54,14 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 180px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h2 style="color: #283693; font-size: 20px; margin: 0 0 8px;">
+        <h2 style="color: #1A3638; font-size: 20px; margin: 0 0 8px;">
           New Question About ${profileName}'s Profile
         </h2>
         <p style="color: #78716c; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
-          Heads up! <strong style="color: #1c1917;">${displayName}</strong> has sent you a question about <strong style="color: #283693;">${profileName}</strong>'s profile.
+          Heads up! <strong style="color: #1c1917;">${displayName}</strong> has sent you a question about <strong style="color: #1A3638;">${profileName}</strong>'s profile.
         </p>
 
         <table style="width: 100%; border-collapse: collapse; background: #f0f1fa; border-radius: 12px; overflow: hidden; margin: 0 0 24px;">
@@ -72,7 +72,7 @@ export async function onRequestPost(context) {
           <tr>
             <td style="padding: 12px 16px; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e0e2f0;">Email</td>
             <td style="padding: 12px 16px; font-size: 14px; color: #1c1917; border-bottom: 1px solid #e0e2f0;">
-              ${askerEmail ? `<a href="mailto:${askerEmail}" style="color: #283693; text-decoration: none;">${askerEmail}</a>` : '<span style="color: #a8a29e;">Not provided</span>'}
+              ${askerEmail ? `<a href="mailto:${askerEmail}" style="color: #1A3638; text-decoration: none;">${askerEmail}</a>` : '<span style="color: #a8a29e;">Not provided</span>'}
             </td>
           </tr>
           <tr>
@@ -86,7 +86,7 @@ export async function onRequestPost(context) {
         </table>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.abcsurrogacy.com/matching" style="display: inline-block; background: #283693; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="https://app.northstarsurrogacy.com/matching" style="display: inline-block; background: #1A3638; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
             View in App
           </a>
         </div>
@@ -100,7 +100,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -112,7 +112,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: [adminEmail],
         subject: `\u{1F4AC} ${displayName} has submitted a question about ${profileName}'s Profile`,
         html: htmlBody,
@@ -147,7 +147,7 @@ export async function onRequestPost(context) {
           body: JSON.stringify({
             surrogate_id: Number(caseId),
             author_name: 'System',
-            author_email: 'system@abcsurrogacy.com',
+            author_email: 'system@northstarsurrogacy.com',
             content: noteContent,
           }),
         })
@@ -169,7 +169,7 @@ export async function onRequestPost(context) {
             body: JSON.stringify({
               surrogate_id: ipCases[0].id,
               author_name: 'System',
-              author_email: 'system@abcsurrogacy.com',
+              author_email: 'system@northstarsurrogacy.com',
               content: `📬 ${displayName} asked a question about ${profileName}'s profile:\n\n"${question}"`,
             }),
           })

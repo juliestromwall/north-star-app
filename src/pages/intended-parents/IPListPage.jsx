@@ -24,8 +24,8 @@ import StageBadge from '@/components/shared/StageBadge'
 import { mockUsers, getAdminStaff } from '@/data/mock/users'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
+  'julie@northstarsurrogacy.com',
+  'nicole@northstarsurrogacy.com',
 ])
 
 const INACTIVE_IP_STAGES = new Set(['holding', 'withdrawn'])
@@ -72,7 +72,7 @@ export function MilestoneProgress({ caseId, stageId, recordTracking }) {
         <span>Milestones</span><span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {milestones.map(ms => (
@@ -348,10 +348,10 @@ export default function IPListPage() {
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
           onClick={() => setStageFilter('active')}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' ? 'ring-2 ring-[#1A3638] border-[#1A3638]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !INACTIVE_IP_STAGES.has(st) && !completedIpIds.has(String(ip.id)) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#1A3638' }}>{ownerFiltered.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !INACTIVE_IP_STAGES.has(st) && !completedIpIds.has(String(ip.id)) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {IP_STAGES.filter(s => !s.hidden).map(stage => (
@@ -632,7 +632,7 @@ export default function IPListPage() {
             )}
             <Button onClick={handleAddIP}
               disabled={addSaving || !addForm.firstName || !addForm.lastName || !addForm.email || !addForm.phone}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {addSaving ? 'Adding...' : 'Add Intended Parent'}
             </Button>
           </div>

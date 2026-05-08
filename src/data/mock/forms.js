@@ -114,7 +114,7 @@ export const mockFormDefinitions = [
         title: 'About You',
         fields: [
           { id: 'ip13', type: 'textarea', label: 'Tell us about yourselves and your family-building journey', required: true },
-          { id: 'ip14', type: 'radio', label: 'How did you hear about ABC Surrogacy?', required: true, options: ['Google search', 'Social media', 'Referral', 'Fertility clinic', 'Other'] },
+          { id: 'ip14', type: 'radio', label: 'How did you hear about North Star Surrogacy?', required: true, options: ['Google search', 'Social media', 'Referral', 'Fertility clinic', 'Other'] },
         ],
       },
     ],

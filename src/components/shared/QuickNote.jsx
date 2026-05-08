@@ -36,7 +36,7 @@ export default function QuickNote({ caseId, caseType = 'gc' }) {
     <div className="mb-3">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${note ? 'text-[#283693]' : 'text-stone-400 hover:text-stone-600'}`}
+        className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${note ? 'text-[#1A3638]' : 'text-stone-400 hover:text-stone-600'}`}
       >
         <FileText className="size-3.5" />
         Quick Note
@@ -48,7 +48,7 @@ export default function QuickNote({ caseId, caseType = 'gc' }) {
           value={note}
           onChange={e => handleChange(e.target.value)}
           placeholder="Type a quick note for this case..."
-          className="mt-1.5 w-full rounded-lg border border-stone-200 bg-yellow-50/50 px-3 py-2 text-sm text-stone-700 resize-none outline-none focus:border-[#283693]/40 focus:ring-1 focus:ring-[#283693]/20 placeholder:text-stone-300"
+          className="mt-1.5 w-full rounded-lg border border-stone-200 bg-yellow-50/50 px-3 py-2 text-sm text-stone-700 resize-none outline-none focus:border-[#1A3638]/40 focus:ring-1 focus:ring-[#1A3638]/20 placeholder:text-stone-300"
           rows={2}
         />
       )}

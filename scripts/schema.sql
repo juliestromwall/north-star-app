@@ -1,4 +1,4 @@
--- ABC Surrogacy — Supabase Schema
+-- North Star Surrogacy — Supabase Schema
 -- Run this in Supabase SQL Editor to set up the database
 
 -- ── Admin Notes ──────────────────────────────────────────

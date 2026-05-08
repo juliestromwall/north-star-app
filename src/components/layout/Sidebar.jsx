@@ -48,14 +48,14 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
-            <img src="/abc-buggy.png" alt="ABC" className="h-8 w-auto object-contain" />
+            <img src="/north-star-mark.png" alt="ABC" className="h-8 w-auto object-contain" />
           ) : (
-            <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto" />
           )}
         </button>
       ) : (
         <div className="flex items-center justify-center shrink-0 px-5 py-5">
-          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto" />
         </div>
       )}
 

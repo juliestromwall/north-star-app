@@ -14,8 +14,8 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
-  // Supports comma-separated list: intake@abcsurrogacy.com, nicole@abcsurrogacy.com
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
+  // Supports comma-separated list: intake@northstarsurrogacy.com, nicole@northstarsurrogacy.com
   const notifyEmails = (env.GC_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
     .split(',').map(e => e.trim()).filter(Boolean)
 
@@ -50,10 +50,10 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 160px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 20px; margin: 0 0 4px; text-align: center;">
+        <h1 style="color: #1A3638; font-size: 20px; margin: 0 0 4px; text-align: center;">
           New Surrogate Application
         </h1>
         <p style="text-align: center; margin: 0 0 20px;">
@@ -69,7 +69,7 @@ export async function onRequestPost(context) {
           </tr>
           <tr style="border-bottom: 1px solid #f0f0f0;">
             <td style="padding: 10px 0; color: #78716c;"><strong>Email</strong></td>
-            <td style="padding: 10px 0;"><a href="mailto:${applicantEmail}" style="color: #283693;">${applicantEmail}</a></td>
+            <td style="padding: 10px 0;"><a href="mailto:${applicantEmail}" style="color: #1A3638;">${applicantEmail}</a></td>
           </tr>
           <tr style="border-bottom: 1px solid #f0f0f0;">
             <td style="padding: 10px 0; color: #78716c;"><strong>Phone</strong></td>
@@ -93,14 +93,14 @@ export async function onRequestPost(context) {
         ` : ''}
 
         <div style="text-align: center; margin: 20px 0;">
-          <a href="https://app.abcsurrogacy.com/intake" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="https://app.northstarsurrogacy.com/intake" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             View in Applications
           </a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 20px 0;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -111,7 +111,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `${qualified ? '✅' : '❌'} New Surrogate Application — ${applicantName}`,
         html: htmlBody,

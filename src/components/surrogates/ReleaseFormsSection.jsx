@@ -235,7 +235,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
     <Card id="app-sec-waivers">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Shield className="size-4 text-[#283693]" /> Release Forms
+          <Shield className="size-4 text-[#1A3638]" /> Release Forms
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -246,7 +246,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
             disabled={sending || selectedCount === 0}
             onClick={handleSendSelected}
             className="gap-1.5"
-            style={{ background: selectedCount ? 'linear-gradient(135deg, #ed148c, #283693)' : undefined }}
+            style={{ background: selectedCount ? 'linear-gradient(135deg, #D4A853, #1A3638)' : undefined }}
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             {sending ? 'Sending...' : `Send Selected${selectedCount ? ` (${selectedCount})` : ''}`}
@@ -317,7 +317,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                           <button
                             onClick={() => handleResend(templateId)}
                             disabled={isResending}
-                            className="inline-flex items-center gap-1 text-[10px] font-medium text-[#283693] hover:underline ml-1"
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-[#1A3638] hover:underline ml-1"
                           >
                             {isResending ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
                             {isResending ? 'Sending...' : 'Resend'}
@@ -401,7 +401,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                 await actuallySendSelected(adminPrefillValues)
               }}
               className="gap-1.5"
-              style={{ backgroundColor: '#283693' }}
+              style={{ backgroundColor: '#1A3638' }}
             >
               {sending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
               {sending ? 'Sending…' : 'Send'}

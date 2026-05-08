@@ -15,7 +15,7 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
   const supabaseUrl = env.SUPABASE_URL
   const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -27,10 +27,10 @@ export async function onRequestPost(context) {
     })
   }
 
-  const notifyEmails = ['intake@abcsurrogacy.com', 'julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com', 'juliestromwall@gmail.com']
+  const notifyEmails = ['intake@northstarsurrogacy.com', 'julie@northstarsurrogacy.com', 'nicole@northstarsurrogacy.com', 'juliestromwall@gmail.com']
   const reviewUrl = caseId
-    ? `https://app.abcsurrogacy.com/surrogates/${caseId}`
-    : 'https://app.abcsurrogacy.com/surrogates'
+    ? `https://app.northstarsurrogacy.com/surrogates/${caseId}`
+    : 'https://app.northstarsurrogacy.com/surrogates'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -44,29 +44,29 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 160px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
+        <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
           Profile Submitted for Review
         </h1>
 
         <div style="background: linear-gradient(135deg, #f0f1fa, #fef9fb); border-radius: 12px; padding: 24px; margin: 20px 0; text-align: center;">
           <p style="font-size: 16px; color: #1a1a2e; margin: 0 0 8px;">
-            <strong style="color: #283693;">${surrogateName}</strong> has completed and submitted their surrogate profile for review.
+            <strong style="color: #1A3638;">${surrogateName}</strong> has completed and submitted their surrogate profile for review.
           </p>
           ${surrogateEmail ? `<p style="font-size: 14px; color: #78716c; margin: 8px 0 0;">${surrogateEmail}</p>` : ''}
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${reviewUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="${reviewUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             Review Profile
           </a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -78,7 +78,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `🚨 ${surrogateName} submitted their surrogate profile for review`,
         html: htmlBody,

@@ -48,14 +48,14 @@ function SignaturePad({ value, onChange, signerName }) {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
       </div>
       {mode === 'typed' ? (
         <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
           onChange={e => onChange({ type: 'typed', name: e.target.value })}
           placeholder="Type your full name"
-          className="w-full text-xl py-3 px-4 border-b-2 border-[#283693]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
+          className="w-full text-xl py-3 px-4 border-b-2 border-[#1A3638]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
       ) : (
         <div>
           <canvas ref={canvasRef} width={500} height={80} className="w-full border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none" onMouseDown={handleDown} onTouchStart={handleDown} />
@@ -342,7 +342,7 @@ export default function SignFormPage() {
 
         const overlay = document.createElement('div')
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
-        overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Generating PDF...</p>'
+        overlay.innerHTML = '<p style="color:#1A3638;font-size:18px;font-weight:600;">Generating PDF...</p>'
         document.body.appendChild(overlay)
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
@@ -557,13 +557,13 @@ export default function SignFormPage() {
 
   // ── Render ──
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-[#283693]" />
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
+      <Loader2 className="size-8 animate-spin text-[#1A3638]" />
     </div>
   )
 
   if (!doc || !template) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
       <Card className="max-w-md"><CardContent className="p-8 text-center">
         <FileText className="size-12 text-stone-300 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-stone-700">Form Not Found</h2>
@@ -573,7 +573,7 @@ export default function SignFormPage() {
   )
 
   if (done) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
       <Card className="max-w-md"><CardContent className="p-8 text-center">
         <CheckCircle2 className="size-12 text-green-500 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-green-700">Form Submitted</h2>
@@ -584,12 +584,12 @@ export default function SignFormPage() {
 
   // ── Email Verification ──
   if (!verified) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="p-8">
           <div className="text-center mb-6">
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-16 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#283693]">{template.title}</h2>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-[#1A3638]">{template.title}</h2>
             <p className="text-sm text-stone-500 mt-1">Verify your email to continue</p>
           </div>
           <div className="space-y-3">
@@ -603,7 +603,7 @@ export default function SignFormPage() {
                   placeholder="your@email.com"
                   onKeyDown={e => e.key === 'Enter' && handleVerify()}
                 />
-                <Button onClick={handleVerify} className="shrink-0" style={{ backgroundColor: '#283693' }}>
+                <Button onClick={handleVerify} className="shrink-0" style={{ backgroundColor: '#1A3638' }}>
                   <Mail className="size-4 mr-1" /> Verify
                 </Button>
               </div>
@@ -632,11 +632,11 @@ export default function SignFormPage() {
   if (template.layoutMode === 'doc-first') {
     const pages = template.pages || []
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+      <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
         <div className="max-w-3xl mx-auto py-6 px-3 sm:px-6">
           <div className="text-center mb-6">
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
-            <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">{template.title}</h1>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">{template.title}</h1>
             <p className="text-xs sm:text-sm text-stone-500 mt-1">
               Signed in as {mySigner.name} ({mySigner.email}) &middot; {pages.length} page{pages.length !== 1 ? 's' : ''}
             </p>
@@ -646,7 +646,7 @@ export default function SignFormPage() {
           {(template.fields || []).length > 0 && (
             <Card className="mb-5">
               <CardContent className="p-4 sm:p-6">
-                <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-3">Your information</h3>
+                <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider mb-3">Your information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {template.fields.map(f => (
                     <div key={f.id} className={`space-y-1 ${f.type === 'textarea' ? 'sm:col-span-2' : ''}`}>
@@ -681,7 +681,7 @@ export default function SignFormPage() {
               <Card key={page.id} className="mb-5">
                 <CardContent className="p-4 sm:p-6 space-y-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-7 flex items-center justify-center">{i + 1}</span>
+                    <span className="text-xs font-bold text-white bg-[#1A3638] rounded-full size-7 flex items-center justify-center">{i + 1}</span>
                     <div>
                       <p className="font-semibold text-stone-800 text-sm sm:text-base">{page.title}</p>
                       <p className="text-[11px] text-stone-400">Page {i + 1} of {pages.length}</p>
@@ -694,7 +694,7 @@ export default function SignFormPage() {
                   {/* Initials for this page */}
                   {myInits.length > 0 && (
                     <div className="space-y-2 pt-3 border-t">
-                      <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your initials</h4>
+                      <h4 className="text-xs font-bold text-[#D4A853] uppercase tracking-wider">Your initials</h4>
                       {myInits.map(init => (
                         <div key={init.id} className="flex items-center gap-3">
                           <label className="text-xs font-medium text-stone-500 min-w-[120px]">Initials</label>
@@ -713,7 +713,7 @@ export default function SignFormPage() {
                   {/* Signatures for this page */}
                   {mySigs.length > 0 && (
                     <div className="space-y-3 pt-3 border-t">
-                      <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h4>
+                      <h4 className="text-xs font-bold text-[#D4A853] uppercase tracking-wider">Your signature</h4>
                       {mySigs.map(sig => (
                         <div key={sig.id}>
                           {activeSigId === sig.id ? (
@@ -734,12 +734,12 @@ export default function SignFormPage() {
                               {signatures[sig.id].type === 'drawn' && signatures[sig.id].image ? (
                                 <img src={signatures[sig.id].image} alt="signature" style={{ height: 32 }} />
                               ) : (
-                                <span className="text-sm font-serif italic text-[#283693]">{signatures[sig.id].name || 'Signed'}</span>
+                                <span className="text-sm font-serif italic text-[#1A3638]">{signatures[sig.id].name || 'Signed'}</span>
                               )}
                               <button onClick={() => setActiveSigId(sig.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                             </div>
                           ) : (
-                            <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5 transition-colors">
+                            <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#D4A853]/30 rounded-lg text-sm text-[#D4A853] hover:bg-[#D4A853]/5 transition-colors">
                               Click to sign
                             </button>
                           )}
@@ -754,7 +754,7 @@ export default function SignFormPage() {
 
           <div className="flex flex-col items-center gap-3 pt-2 pb-10">
             <label className="flex items-center gap-2 text-sm text-stone-700">
-              <input type="checkbox" id="agree-docfirst" className="size-4 accent-[#283693]" onChange={() => setValidationError(null)} />
+              <input type="checkbox" id="agree-docfirst" className="size-4 accent-[#1A3638]" onChange={() => setValidationError(null)} />
               <span>I agree that my electronic signature is legally binding</span>
             </label>
 
@@ -776,12 +776,12 @@ export default function SignFormPage() {
               disabled={signing}
               size="lg"
               className="gap-2 w-full sm:w-auto sm:px-10"
-              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
             >
               {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
               {signing ? 'Submitting...' : 'Sign & Submit'}
             </Button>
-            <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+            <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
           </div>
         </div>
       </div>
@@ -801,20 +801,20 @@ export default function SignFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
       <div className="max-w-2xl mx-auto py-6 px-3 sm:px-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-8 sm:h-10 mb-2" />
-            <h1 className="text-lg sm:text-xl font-bold text-[#283693]">{template.title}</h1>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-8 sm:h-10 mb-2" />
+            <h1 className="text-lg sm:text-xl font-bold text-[#1A3638]">{template.title}</h1>
             <p className="text-xs sm:text-sm text-stone-500">Signed in as {mySigner.name} ({mySigner.email})</p>
           </div>
           <Button
             onClick={handleSubmit}
             disabled={signing}
             className="gap-2 w-full sm:w-auto shrink-0"
-            style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+            style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
           >
             {signing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
             {signing ? 'Submitting...' : 'Sign & Submit'}
@@ -833,7 +833,7 @@ export default function SignFormPage() {
         {/* Form fields panel */}
         <Card className="mb-6">
           <CardContent className="p-4 sm:p-6">
-            <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-4">Fill in your information</h3>
+            <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider mb-4">Fill in your information</h3>
             <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-4">
               {template.fields.map(f => {
                 if (f.type === 'radio') {
@@ -845,7 +845,7 @@ export default function SignFormPage() {
                           <label key={opt} className="flex items-start gap-2 cursor-pointer text-sm leading-tight">
                             <input type="radio" name={f.id} checked={fieldValues[f.id] === opt}
                               onChange={() => updateField(f.id, opt)}
-                              className="mt-0.5 accent-[#283693]" />
+                              className="mt-0.5 accent-[#1A3638]" />
                             {opt === 'yes' ? 'Yes — receive a copy' : 'No — do not receive a copy'}
                           </label>
                         ))}
@@ -896,7 +896,7 @@ export default function SignFormPage() {
 
             {/* Signatures */}
             <div className="mt-5 pt-5 border-t space-y-5">
-              <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Signatures</h3>
+              <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider">Signatures</h3>
               {template.signatures.map(s => (
                 <div key={s.id} className="space-y-2">
                   <label className="text-xs font-medium text-stone-500">{s.label} <span className="text-red-400">*</span></label>
@@ -920,12 +920,12 @@ export default function SignFormPage() {
                       {signatures[s.id].type === 'drawn' && signatures[s.id].image ? (
                         <img src={signatures[s.id].image} alt="signature" style={{ height: 32 }} />
                       ) : (
-                        <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
+                        <span className="text-sm font-serif italic text-[#1A3638]">{signatures[s.id].name || 'Signed'}</span>
                       )}
                       <button onClick={() => setActiveSigId(s.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                     </div>
                   ) : (
-                    <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5 transition-colors">
+                    <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#D4A853]/30 rounded-lg text-sm text-[#D4A853] hover:bg-[#D4A853]/5 transition-colors">
                       Click to sign
                     </button>
                   )}
@@ -950,12 +950,12 @@ export default function SignFormPage() {
             onClick={handleSubmit}
             disabled={signing}
             className="gap-2 w-full py-3 text-base"
-            style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+            style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
           >
             {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
             {signing ? 'Submitting...' : 'Sign & Submit'}
           </Button>
-          <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+          <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
         </div>
       </div>
     </div>
@@ -1143,17 +1143,17 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
   // populate gcCtx; IP background waiver populates ipCtx.
   if (!gcCtx && !ipCtx) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-[#283693]" />
+      <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-[#1A3638]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
       <div className="text-center pt-6">
-        <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-2" />
-        <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">{template.title}</h1>
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-2" />
+        <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">{template.title}</h1>
         <p className="text-xs sm:text-sm text-stone-500 mt-1">
           Signed in as {mySigner.name} ({mySigner.email})
           {calibrate && <span className="ml-2 text-pink-600 font-semibold">· CALIBRATE MODE</span>}

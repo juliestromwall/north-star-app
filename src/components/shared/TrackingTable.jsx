@@ -247,7 +247,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     if (statusId === 'in_progress') return 'text-blue-600 bg-blue-50 border-blue-200'
     if (statusId === 'note') return 'text-stone-600 bg-stone-50 border-stone-200'
     if (statusId === 'reviewing') return 'text-purple-600 bg-purple-50 border-purple-200'
-    return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
+    return 'text-[#1A3638] bg-[#1A3638]/5 border-[#1A3638]/20'
   }
 
   const pct = totalActive > 0 ? Math.round((completeCount / totalActive) * 100) : 0
@@ -260,11 +260,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
           <h3 className="text-base font-bold text-stone-800">{title}</h3>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-stone-400">{pct}%</span>
-            <span className="text-sm font-bold text-[#283693]">{completeCount}<span className="text-stone-300 font-normal">/{totalActive}</span></span>
+            <span className="text-sm font-bold text-[#1A3638]">{completeCount}<span className="text-stone-300 font-normal">/{totalActive}</span></span>
           </div>
         </div>
         <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
         </div>
       </div>
 
@@ -293,11 +293,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                   if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') }
                   else { openAddLog(step.id) }
                 }}
-                className={`group relative ${rowClickable ? 'cursor-pointer' : ''} ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#283693]/[0.02]' : ''} transition-colors`}
+                className={`group relative ${rowClickable ? 'cursor-pointer' : ''} ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#1A3638]/[0.02]' : ''} transition-colors`}
               >
                 {/* Left accent bar */}
                 {isComplete && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-green-400 rounded-r" />}
-                {!isComplete && !isDeactivated && currentStatus !== 'not_started' && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#283693] rounded-r" />}
+                {!isComplete && !isDeactivated && currentStatus !== 'not_started' && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#1A3638] rounded-r" />}
 
                 <div className={`flex items-center gap-3 px-5 py-3 ${isSubtask ? 'pl-12' : 'pl-6'}`}>
                   {/* Checkbox / icon */}
@@ -307,7 +307,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                   ) : isComplete ? (
                     <div className="size-5 rounded-full bg-green-500 shrink-0 flex items-center justify-center shadow-sm shadow-green-200"><Check className="size-3 text-white" /></div>
                   ) : currentStatus !== 'not_started' ? (
-                    <div className="size-5 rounded-full border-2 border-[#283693] shrink-0 flex items-center justify-center"><div className="size-2 rounded-full bg-[#283693]" /></div>
+                    <div className="size-5 rounded-full border-2 border-[#1A3638] shrink-0 flex items-center justify-center"><div className="size-2 rounded-full bg-[#1A3638]" /></div>
                   ) : (
                     <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 group-hover:border-stone-300 transition-colors" />
                   )}
@@ -316,7 +316,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                   <div className="flex-1 min-w-0">
                     {editingLabel === step.id ? (
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <input className="flex-1 rounded-lg border border-[#283693]/30 px-2.5 py-1 text-sm font-semibold bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" value={labelValue} onChange={e => setLabelValue(e.target.value)} autoFocus
+                        <input className="flex-1 rounded-lg border border-[#1A3638]/30 px-2.5 py-1 text-sm font-semibold bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none" value={labelValue} onChange={e => setLabelValue(e.target.value)} autoFocus
                           onKeyDown={e => { if (e.key === 'Enter') { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) } if (e.key === 'Escape') setEditingLabel(null) }} />
                         <button onClick={() => { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) }} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check className="size-3.5" /></button>
                         <button onClick={() => setEditingLabel(null)} className="p-1 text-stone-400 hover:bg-stone-100 rounded"><X className="size-3.5" /></button>
@@ -333,7 +333,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         {/* + subtask (next to label) */}
                         {!isSubtask && !isDeactivated && (
                           <button onClick={(e) => { e.stopPropagation(); setAddingCaseSubtask(addingCaseSubtask === step.id ? null : step.id); setCaseSubtaskLabel('') }}
-                            className="p-0.5 text-stone-200 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Add subtask">
+                            className="p-0.5 text-stone-200 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Add subtask">
                             <Plus className="size-3.5" />
                           </button>
                         )}
@@ -418,7 +418,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                             </select>
                             <input type="date" className="rounded-lg border border-stone-200 px-2 py-1.5 text-xs bg-white w-[130px]" value={editDate} onChange={e => setEditDate(e.target.value)} />
                             <input className="flex-1 rounded-lg border border-stone-200 px-2 py-1.5 text-xs bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} placeholder="Note..." />
-                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#283693] hover:underline">Save</button>
+                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#1A3638] hover:underline">Save</button>
                             <button onClick={() => setEditingLog(null)} className="text-xs text-stone-400 hover:underline">Cancel</button>
                           </div>
                         </div>
@@ -431,7 +431,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         {entry.note && <span className="text-stone-500 truncate">{entry.note}</span>}
                         <span className="text-stone-300 ml-auto shrink-0">{entry.by}</span>
                         <span className="opacity-0 group-hover/entry:opacity-100 transition-opacity flex gap-1 shrink-0">
-                          <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="p-0.5 text-stone-300 hover:text-[#283693]"><Pencil className="size-3" /></button>
+                          <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="p-0.5 text-stone-300 hover:text-[#1A3638]"><Pencil className="size-3" /></button>
                           <button onClick={() => deleteLog(step.id, i)} className="p-0.5 text-stone-300 hover:text-red-500"><Trash2 className="size-3" /></button>
                         </span>
                       </div>
@@ -442,7 +442,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
 
               {/* ── Add Log Form ── */}
               {isAddingLog && (
-                <div className="bg-[#283693]/[0.03] border-t border-[#283693]/10 px-6 py-3" onClick={e => e.stopPropagation()}>
+                <div className="bg-[#1A3638]/[0.03] border-t border-[#1A3638]/10 px-6 py-3" onClick={e => e.stopPropagation()}>
                   <div className="flex flex-wrap items-end gap-3">
                     {/* Status input */}
                     <div className="flex-1 min-w-[140px]">
@@ -455,14 +455,14 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                           <button onClick={() => submitLog(step.id, 'na')} className="text-[10px] text-stone-400 hover:text-red-500 font-medium">N/A</button>
                         </div>
                       ) : step.logType === 'text' ? (
-                        <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" placeholder="Enter value..." value={logStatus} onChange={e => setLogStatus(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} autoFocus />
+                        <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none" placeholder="Enter value..." value={logStatus} onChange={e => setLogStatus(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} autoFocus />
                       ) : step.logType === 'dropdown' && step.options?.length > 0 ? (
-                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
+                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
                           <option value="">Select...</option>
                           {normalizeOptions(step.options).map(opt => <option key={opt.label} value={opt.label}>{opt.label}</option>)}
                         </select>
                       ) : (
-                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
+                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
                           <option value="">Select...</option>
                           {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
                         </select>
@@ -471,17 +471,17 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     {/* Date */}
                     <div className="w-[130px]">
                       <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mb-1 block">Date</label>
-                      <input type="date" className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                      <input type="date" className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm bg-white focus:border-[#1A3638] outline-none" value={logDate} onChange={e => setLogDate(e.target.value)} />
                     </div>
                     {/* Note */}
                     <div className="flex-1 min-w-[160px]">
                       <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mb-1 block">Note</label>
-                      <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
+                      <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
                     </div>
                     {/* Actions */}
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => submitLog(step.id)} disabled={!logStatus}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#283693] hover:bg-[#1e2a6e] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors shadow-sm">
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#0F2628] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors shadow-sm">
                         <Check className="size-3" /> Save
                       </button>
                       {step.logType === 'text' && currentStatus !== 'na' && (
@@ -500,18 +500,18 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
 
               {/* ── Add case subtask ── */}
               {!isSubtask && addingCaseSubtask === step.id && (
-                <div className="bg-[#283693]/[0.02] border-t border-stone-100 px-6 py-2.5" onClick={e => e.stopPropagation()}>
+                <div className="bg-[#1A3638]/[0.02] border-t border-stone-100 px-6 py-2.5" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-2 pl-6">
                     <CornerDownRight className="size-3 text-stone-300 shrink-0" />
                     <input
-                      className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                      className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none"
                       placeholder="Subtask name..."
                       value={caseSubtaskLabel}
                       onChange={e => setCaseSubtaskLabel(e.target.value)}
                       autoFocus
                       onKeyDown={e => { if (e.key === 'Enter') addCaseSubtask(step.id); if (e.key === 'Escape') { setAddingCaseSubtask(null); setCaseSubtaskLabel('') } }}
                     />
-                    <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#1e2a6e] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors">Add</button>
+                    <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#0F2628] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors">Add</button>
                     <button onClick={() => { setAddingCaseSubtask(null); setCaseSubtaskLabel('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
                   </div>
                 </div>

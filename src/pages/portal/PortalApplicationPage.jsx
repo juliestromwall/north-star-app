@@ -317,12 +317,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
             <FieldLabel>Driver's License — Photo <Req /></FieldLabel>
             {dlGcUrl ? (
               <div className="flex items-center gap-3">
-                <a href={dlGcUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Driver's License</a>
+                <a href={dlGcUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline"><Image className="size-4" /> View Driver's License</a>
                 {!readOnly && <button onClick={() => dlGcRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
               </div>
             ) : !readOnly && (
               <button onClick={() => dlGcRef.current?.click()} disabled={uploading === 'dl-gc'}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                 {uploading === 'dl-gc' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Upload Driver's License
               </button>
@@ -362,12 +362,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
                 <FieldLabel>Insurance Card — Front</FieldLabel>
                 {insFrontUrl ? (
                   <div className="flex items-center gap-3">
-                    <a href={insFrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Front</a>
+                    <a href={insFrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline"><Image className="size-4" /> View Front</a>
                     {!readOnly && <button onClick={() => insFrontRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
                   </div>
                 ) : !readOnly && (
                   <button onClick={() => insFrontRef.current?.click()} disabled={uploading === 'insurance-front'}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                     {uploading === 'insurance-front' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                     Upload Front of Card
                   </button>
@@ -378,12 +378,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
                 <FieldLabel>Insurance Card — Back</FieldLabel>
                 {insBackUrl ? (
                   <div className="flex items-center gap-3">
-                    <a href={insBackUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Back</a>
+                    <a href={insBackUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline"><Image className="size-4" /> View Back</a>
                     {!readOnly && <button onClick={() => insBackRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
                   </div>
                 ) : !readOnly && (
                   <button onClick={() => insBackRef.current?.click()} disabled={uploading === 'insurance-back'}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                     {uploading === 'insurance-back' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                     Upload Back of Card
                   </button>
@@ -417,12 +417,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
               <FieldLabel>Spouse/Partner Driver's License — Photo <Req /></FieldLabel>
               {dlPartnerUrl ? (
                 <div className="flex items-center gap-3">
-                  <a href={dlPartnerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Driver's License</a>
+                  <a href={dlPartnerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline"><Image className="size-4" /> View Driver's License</a>
                   {!readOnly && <button onClick={() => dlPartnerRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
                 </div>
               ) : !readOnly && (
                 <button onClick={() => dlPartnerRef.current?.click()} disabled={uploading === 'dl-partner'}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                   {uploading === 'dl-partner' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                   Upload Spouse/Partner Driver's License
                 </button>
@@ -458,7 +458,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
                   </div>
                 ))}
                 {!readOnly && (form.adultHouseholdMembers || []).length < MAX_ADULT_MEMBERS && (
-                  <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#283693] hover:underline">
+                  <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#1A3638] hover:underline">
                     + Add household member
                   </button>
                 )}
@@ -475,7 +475,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
           </div>
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -541,7 +541,7 @@ function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle 
               </div>
             ))}
           </div>
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_profileFollowUp', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_profileFollowUp', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -624,10 +624,10 @@ function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggl
               <FieldLabel>Screenshot of {form.method} Name (optional)</FieldLabel>
               <Input type="file" accept="image/*" onChange={e => handleScreenshot(e.target.files?.[0])} className="text-xs" disabled={uploading} />
               {uploading && <p className="text-xs text-stone-400 flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Uploading...</p>}
-              {form.screenshotUrl && <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline">View uploaded screenshot →</a>}
+              {form.screenshotUrl && <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline">View uploaded screenshot →</a>}
             </div>
           )}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_paymentPreference', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_paymentPreference', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -720,7 +720,7 @@ function ReferencesForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
             </div>
           ))}
           {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => {
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => {
             const cleaned = { ...form }
             if (data) {
               for (const [k, v] of Object.entries(data)) {
@@ -926,7 +926,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
               <FieldLabel>Your Driver's License <Req /></FieldLabel>
               {gcDlUrl ? (
                 <div className="flex items-center gap-3">
-                  <a href={gcDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline">
+                  <a href={gcDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline">
                     <Image className="size-4" /> View Driver's License
                   </a>
                   {!readOnly && (
@@ -937,7 +937,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
                 <div>
                   {!readOnly && (
                     <button onClick={() => gcFileRef.current?.click()} disabled={uploading === 'gc'}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                       {uploading === 'gc' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                       {uploading === 'gc' ? 'Uploading...' : 'Upload Photo of Driver\'s License'}
                     </button>
@@ -954,7 +954,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
                 <FieldLabel>Spouse/Partner Driver's License <Req /></FieldLabel>
                 {partnerDlUrl ? (
                   <div className="flex items-center gap-3">
-                    <a href={partnerDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline">
+                    <a href={partnerDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#1A3638] hover:underline">
                       <Image className="size-4" /> View Partner's License
                     </a>
                     {!readOnly && (
@@ -965,7 +965,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
                   <div>
                     {!readOnly && (
                       <button onClick={() => partnerFileRef.current?.click()} disabled={uploading === 'partner'}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#1A3638]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
                         {uploading === 'partner' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                         {uploading === 'partner' ? 'Uploading...' : "Upload Partner's Driver's License"}
                       </button>
@@ -978,7 +978,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
           </div>
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1034,8 +1034,8 @@ function SignaturePad({ value, onChange, signerName }) {
     <div className="space-y-2">
       <FieldLabel>Signature</FieldLabel>
       <div className="flex gap-2 mb-1">
-        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
       </div>
       {mode === 'typed' ? (
         <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
@@ -1051,7 +1051,7 @@ function SignaturePad({ value, onChange, signerName }) {
         </div>
       )}
       {value?.type === 'typed' && value?.name && (
-        <p className="text-lg text-[#283693] font-serif italic">{value.name}</p>
+        <p className="text-lg text-[#1A3638] font-serif italic">{value.name}</p>
       )}
     </div>
   )
@@ -1229,7 +1229,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
             const skipRelease = isNonDel && p.receivedPrenatalCare === 'no'
             return (
               <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
-                <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+                <p className="text-sm font-semibold text-[#1A3638]">Pregnancy #{i + 1}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <FieldLabel>Date {isNonDel ? '(MM/YYYY)' : ''} <Req /></FieldLabel>
@@ -1316,7 +1316,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
             )
           })}
           {!readOnly && !canSave && hasPregs && <p className="text-xs text-red-400">Please complete all required fields for each pregnancy.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_clinicHospital', form)} disabled={saving || !canSave}>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_clinicHospital', form)} disabled={saving || !canSave}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1368,11 +1368,11 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly, 
           </div>
           <SignaturePad value={form.signature} onChange={v => setForm(f => ({ ...f, signature: v }))} signerName={form.fullName} />
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.agreed} onChange={e => setForm(f => ({ ...f, agreed: e.target.checked }))} className="size-4 accent-[#283693]" />
+            <input type="checkbox" checked={form.agreed} onChange={e => setForm(f => ({ ...f, agreed: e.target.checked }))} className="size-4 accent-[#1A3638]" />
             <span className="text-sm text-stone-700">I agree to the terms above <Req /></span>
           </label>
           {!readOnly && (!form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate) && <p className="text-xs text-red-400">Please complete all required fields, sign, and agree to the terms.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate}>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1610,7 +1610,7 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
           </div>
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipContact', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_ipContact', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1771,7 +1771,7 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
           </div>
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipClinic', form)} disabled={saving || !allFilled}>
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_ipClinic', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1871,7 +1871,7 @@ export default function PortalApplicationPage() {
     try {
       const { data: fresh } = await supabase.from('intake_submissions').select('answers, assigned_to').eq('id', caseId).single()
       const currentAnswers = fresh?.answers || answers
-      const reviewTaskAssignee = fresh?.assigned_to || assignedTo || (isIP ? '' : 'intake@abcsurrogacy.com')
+      const reviewTaskAssignee = fresh?.assigned_to || assignedTo || (isIP ? '' : 'intake@northstarsurrogacy.com')
 
       // Build checklist update inline (avoids separate read/write + RLS issues)
       const existingTracking = currentAnswers._recordTracking || {}
@@ -2096,7 +2096,7 @@ export default function PortalApplicationPage() {
       {isSubmitted && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
           <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-          <p className="text-sm text-emerald-700 font-medium">Application submitted on {new Date(answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review this soon and get back to you for next steps! You can view your responses below. You are unable to make edits at this time. Please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="underline font-semibold">jenn@abcsurrogacy.com</a> if you need to make a change.</p>
+          <p className="text-sm text-emerald-700 font-medium">Application submitted on {new Date(answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review this soon and get back to you for next steps! You can view your responses below. You are unable to make edits at this time. Please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="underline font-semibold">jenn@northstarsurrogacy.com</a> if you need to make a change.</p>
         </div>
       )}
 
@@ -2105,7 +2105,7 @@ export default function PortalApplicationPage() {
           <div className="flex-1 h-2 rounded-full bg-stone-100">
             <div
               className="h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(completedCount / sections.length) * 100}%`, backgroundColor: '#ed148c' }}
+              style={{ width: `${(completedCount / sections.length) * 100}%`, backgroundColor: '#D4A853' }}
             />
           </div>
           <span className="text-xs text-stone-500 font-medium">{completedCount}/{sections.length}</span>
@@ -2140,7 +2140,7 @@ export default function PortalApplicationPage() {
       {/* Submit button — only when all complete and not yet submitted */}
       {!isSubmitted && allComplete && (
         <div className="flex justify-center pt-4">
-          <Button size="lg" className="gap-2 text-base px-8" style={{ backgroundColor: '#ed148c' }} onClick={() => setSubmitOpen(true)}>
+          <Button size="lg" className="gap-2 text-base px-8" style={{ backgroundColor: '#D4A853' }} onClick={() => setSubmitOpen(true)}>
             <Send className="size-4" /> Submit Application
           </Button>
         </div>
@@ -2157,7 +2157,7 @@ export default function PortalApplicationPage() {
           </p>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-            <Button onClick={handleSubmit} disabled={saving} style={{ backgroundColor: '#ed148c' }} className="gap-1.5">
+            <Button onClick={handleSubmit} disabled={saving} style={{ backgroundColor: '#D4A853' }} className="gap-1.5">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Submit Application
             </Button>
           </DialogFooter>

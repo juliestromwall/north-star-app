@@ -87,7 +87,7 @@ function AdminProfileSection() {
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold text-stone-800 flex items-center gap-2">
-          <UserCog className="size-5 text-[#283693]" /> Admin Settings
+          <UserCog className="size-5 text-[#1A3638]" /> Admin Settings
         </h3>
         <p className="text-sm text-stone-400 mt-0.5">Your personal profile and preferences</p>
       </div>
@@ -100,7 +100,7 @@ function AdminProfileSection() {
             <div className="flex items-center gap-4">
               <ProfileAvatar name={currentUser?.name || ''} avatar={prefs.avatarUrl || currentUser?.avatar} size="xl" />
               <div className="space-y-2">
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#283693] text-white hover:bg-[#1e2a6e] transition-colors">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#1A3638] text-white hover:bg-[#0F2628] transition-colors">
                   {uploading ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                   {uploading ? 'Uploading...' : 'Upload Photo'}
                   <input type="file" accept="image/*" className="hidden" onChange={e => handleAvatarUpload(e.target.files?.[0])} disabled={uploading} />
@@ -136,14 +136,14 @@ function AdminProfileSection() {
             <div className="flex gap-2">
               <button
                 onClick={() => setPrefs(p => ({ ...p, defaultView: 'grid' }))}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'grid' ? 'border-[#283693] bg-[#283693]/5 text-[#283693]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'grid' ? 'border-[#1A3638] bg-[#1A3638]/5 text-[#1A3638]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
                 Card View
               </button>
               <button
                 onClick={() => setPrefs(p => ({ ...p, defaultView: 'list' }))}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'list' ? 'border-[#283693] bg-[#283693]/5 text-[#283693]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'list' ? 'border-[#1A3638] bg-[#1A3638]/5 text-[#1A3638]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
                 List View
@@ -167,7 +167,7 @@ function AdminProfileSection() {
 
           {/* Save */}
           <div className="flex items-center gap-3 pt-2">
-            <Button size="sm" style={{ backgroundColor: '#283693' }} className="gap-1.5" onClick={handleSave} disabled={saving}>
+            <Button size="sm" style={{ backgroundColor: '#1A3638' }} className="gap-1.5" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : saved ? <CheckCircle2 className="size-3" /> : <Check className="size-3" />}
               {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Preferences'}
             </Button>
@@ -298,18 +298,18 @@ export function AdminNotesSection() {
               <div
                 key={note.id}
                 className={`relative rounded-2xl overflow-hidden border-2 ${
-                  note.is_active ? 'border-[#ed148c]/20' : 'border-stone-200 opacity-50'
+                  note.is_active ? 'border-[#D4A853]/20' : 'border-stone-200 opacity-50'
                 }`}
                 style={note.is_active ? { background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' } : { background: '#f5f5f4' }}
               >
-                {note.is_active && <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />}
+                {note.is_active && <div className="absolute top-0 left-0 w-1.5 h-full bg-[#D4A853]" />}
                 <div className="flex items-start gap-3 px-5 py-4 pl-6">
-                  <div className={`flex items-center justify-center size-9 rounded-full shrink-0 mt-0.5 ${note.is_active ? 'bg-[#ed148c]/10' : 'bg-stone-200'}`}>
-                    <Megaphone className={`size-4 ${note.is_active ? 'text-[#ed148c]' : 'text-stone-400'}`} />
+                  <div className={`flex items-center justify-center size-9 rounded-full shrink-0 mt-0.5 ${note.is_active ? 'bg-[#D4A853]/10' : 'bg-stone-200'}`}>
+                    <Megaphone className={`size-4 ${note.is_active ? 'text-[#D4A853]' : 'text-stone-400'}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      {note.title && <span className="font-bold text-[#283693] text-base">{note.title}</span>}
+                      {note.title && <span className="font-bold text-[#1A3638] text-base">{note.title}</span>}
                       {!note.is_active && <span className="text-xs bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded">Inactive</span>}
                     </div>
                     <div className="text-sm text-stone-600 mt-0.5 leading-relaxed admin-note-preview" dangerouslySetInnerHTML={{ __html: note.message }} />
@@ -320,7 +320,7 @@ export function AdminNotesSection() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openEditDialog(note)} className="p-1.5 rounded hover:bg-white/50 text-stone-400 hover:text-[#283693] transition-colors" title="Edit">
+                    <button onClick={() => openEditDialog(note)} className="p-1.5 rounded hover:bg-white/50 text-stone-400 hover:text-[#1A3638] transition-colors" title="Edit">
                       <Pencil className="size-4" />
                     </button>
                     <button onClick={async () => {
@@ -441,7 +441,7 @@ function DropdownOptionsEditor({ options, onChange }) {
           </div>
         )
       })}
-      <button onClick={add} type="button" className="text-[11px] font-semibold text-[#283693] hover:underline">
+      <button onClick={add} type="button" className="text-[11px] font-semibold text-[#1A3638] hover:underline">
         + Add option
       </button>
     </div>
@@ -490,7 +490,7 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
   const isInfoRow = step.type === 'info_row'
 
   return (
-    <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-[#283693]/5 border-[#283693]/20' : 'bg-white'}`}>
+    <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-[#1A3638]/5 border-[#1A3638]/20' : 'bg-white'}`}>
       <div className="flex items-center gap-2">
         {editMode ? (
           <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
@@ -502,8 +502,8 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
         {isInfoRow ? (
           <>
             <div className="flex-1 flex items-center gap-2">
-              <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded">INFO</span>
-              <span className="text-sm font-medium text-[#283693]">{step.label}</span>
+              <span className="text-[9px] font-bold text-[#1A3638] bg-[#1A3638]/10 px-1.5 py-0.5 rounded">INFO</span>
+              <span className="text-sm font-medium text-[#1A3638]">{step.label}</span>
             </div>
             {editMode && (
               <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>
@@ -550,7 +550,7 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
             </div>
             {editMode && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => { setAddingSubtask(true); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693]" title="Add subtask"><CornerDownRight className="size-3.5" /></button>
+                <button onClick={() => { setAddingSubtask(true); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#1A3638]" title="Add subtask"><CornerDownRight className="size-3.5" /></button>
                 {step.locked ? (
                   <span className="text-[9px] text-stone-400 font-medium px-1.5 py-0.5 rounded bg-stone-100">🔒 Locked</span>
                 ) : (
@@ -996,14 +996,14 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
           {/* Info Rows — journey only */}
           {editMode && showInfoRows && (
             <div className="border-t border-stone-100 pt-3 mt-2">
-              <p className="text-[10px] text-[#283693] uppercase tracking-wider font-semibold mb-2">{isJourney ? 'Provider Info Rows' : 'Screening Surrogate Info'}</p>
+              <p className="text-[10px] text-[#1A3638] uppercase tracking-wider font-semibold mb-2">{isJourney ? 'Provider Info Rows' : 'Screening Surrogate Info'}</p>
               <p className="text-[10px] text-stone-400 mb-2">These show data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
               <div className="flex items-center gap-2">
                 <select value={infoRowField} onChange={e => setInfoRowField(e.target.value)} className="h-8 text-sm border rounded px-2 bg-white text-stone-600 flex-1">
                   <option value="">Select provider field...</option>
                   {availableInfoFields.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
                 </select>
-                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-[#283693]/30 text-[#283693] hover:bg-[#283693]/5" onClick={handleAddInfoRow} disabled={!infoRowField}>
+                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-[#1A3638]/30 text-[#1A3638] hover:bg-[#1A3638]/5" onClick={handleAddInfoRow} disabled={!infoRowField}>
                   <Plus className="size-3.5" /> Add Info Row
                 </Button>
               </div>
@@ -1117,7 +1117,7 @@ function ChecklistsSection() {
                 <Check className="size-3.5" /> Done Editing
               </Button>
             ) : (
-              <Button size="sm" className="h-7 text-xs gap-1.5 bg-[#283693] hover:bg-[#283693]/90" onClick={() => setEditMode(true)}>
+              <Button size="sm" className="h-7 text-xs gap-1.5 bg-[#1A3638] hover:bg-[#1A3638]/90" onClick={() => setEditMode(true)}>
                 <Pencil className="size-3.5" /> Edit Checklist
               </Button>
             )}
@@ -1131,7 +1131,7 @@ function ChecklistsSection() {
             ].map(tab => (
               <button
                 key={tab.key}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#1A3638] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
                 onClick={() => switchUserType(tab.key)}
               >
                 {tab.label}
@@ -1356,14 +1356,14 @@ function UserManagementSection() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
-              <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@abcsurrogacy.com" />
+              <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@northstarsurrogacy.com" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
               <div className="space-y-2">
                 {ROLE_OPTIONS.map(opt => (
-                  <label key={opt.value} className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${form.role === opt.value ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:border-stone-300'}`}>
-                    <input type="radio" name="role" value={opt.value} checked={form.role === opt.value} onChange={() => setForm(f => ({ ...f, role: opt.value }))} className="accent-[#283693]" />
+                  <label key={opt.value} className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${form.role === opt.value ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-200 hover:border-stone-300'}`}>
+                    <input type="radio" name="role" value={opt.value} checked={form.role === opt.value} onChange={() => setForm(f => ({ ...f, role: opt.value }))} className="accent-[#1A3638]" />
                     <div>
                       <p className="text-sm font-medium">{opt.label}</p>
                       <p className="text-xs text-stone-400">
@@ -1499,7 +1499,7 @@ function StageStatusesSection() {
             ].map(tab => (
               <button
                 key={tab.key}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#1A3638] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
                 onClick={() => switchUserType(tab.key)}
               >
                 {tab.label}
@@ -1585,12 +1585,12 @@ function StageStatusesSection() {
                           {idx === 0 && <span className="text-[10px] text-stone-300 uppercase tracking-wider">Default</span>}
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleMove(idx, 'up')} disabled={idx === 0}
-                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#1A3638] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                               title={idx === 0 ? 'Already at top' : 'Move up'}>
                               <ChevronUp className="size-3" />
                             </button>
                             <button onClick={() => handleMove(idx, 'down')} disabled={idx === statuses.length - 1}
-                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#1A3638] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                               title={idx === statuses.length - 1 ? 'Already at bottom' : 'Move down'}>
                               <ChevronDown className="size-3" />
                             </button>

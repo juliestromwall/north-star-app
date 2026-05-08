@@ -14,7 +14,7 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@northstarsurrogacy.com'
 
   if (!resendKey) {
     return new Response(JSON.stringify({ error: 'Email not configured' }), {
@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  const caseUrl = caseId ? `https://app.abcsurrogacy.com/surrogates/${caseId}` : 'https://app.abcsurrogacy.com/surrogates'
+  const caseUrl = caseId ? `https://app.northstarsurrogacy.com/surrogates/${caseId}` : 'https://app.northstarsurrogacy.com/surrogates'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -51,10 +51,10 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 180px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h2 style="color: #283693; font-size: 20px; margin: 0 0 8px;">
+        <h2 style="color: #1A3638; font-size: 20px; margin: 0 0 8px;">
           Application Submitted!
         </h2>
         <p style="color: #78716c; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
@@ -77,7 +77,7 @@ export async function onRequestPost(context) {
         </table>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${caseUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="${caseUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
             Review Application
           </a>
         </div>
@@ -91,7 +91,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -102,7 +102,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: Array.from(recipients),
         subject: `📋 ${surrogateName} has submitted their Application!`,
         html: htmlBody,

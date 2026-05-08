@@ -24,8 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getAdminStaff } from '@/data/mock/users'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
+  'julie@northstarsurrogacy.com',
+  'nicole@northstarsurrogacy.com',
 ])
 
 function calcGestationalAge(dueDate) {
@@ -174,7 +174,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
 
   return (
     <>
-      <button onClick={handleOpen} className="inline-flex items-center gap-1 text-[10px] text-stone-400 hover:text-[#283693] transition-colors mt-0.5" title={`${count} appointments`}>
+      <button onClick={handleOpen} className="inline-flex items-center gap-1 text-[10px] text-stone-400 hover:text-[#1A3638] transition-colors mt-0.5" title={`${count} appointments`}>
         <CalendarDays className="size-3" />
         <span>{count}</span>
       </button>
@@ -183,7 +183,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-[#283693]" />
+              <CalendarDays className="size-4 text-[#1A3638]" />
               Appointments — {caseName}
             </DialogTitle>
           </DialogHeader>
@@ -203,11 +203,11 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                 const isFollowedUp = meta.followedUp || /^✅/.test(rawTitle)
                 const noteEntries = normalizeApptNotes(meta)
                 return (
-                  <div key={event.id} className={`rounded-lg border px-3 py-2.5 ${isPast ? 'border-stone-100' : 'border-[#283693]/20 bg-[#283693]/5'}`}>
+                  <div key={event.id} className={`rounded-lg border px-3 py-2.5 ${isPast ? 'border-stone-100' : 'border-[#1A3638]/20 bg-[#1A3638]/5'}`}>
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className={`text-sm font-medium ${isPast ? 'text-stone-600' : 'text-[#283693]'}`}>{title}</p>
+                          <p className={`text-sm font-medium ${isPast ? 'text-stone-600' : 'text-[#1A3638]'}`}>{title}</p>
                           {isFollowedUp && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold border border-emerald-200">
                               <CheckCircle2 className="size-2.5" /> Followed Up
@@ -223,13 +223,13 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                             </span>
                           )}
                           {isPast && <span className="text-stone-300">Past</span>}
-                          {!isPast && eventDate === todayStr && <span className="text-[#283693] font-semibold">Today</span>}
+                          {!isPast && eventDate === todayStr && <span className="text-[#1A3638] font-semibold">Today</span>}
                           {isFollowedUp && meta.followedUpBy && <span className="text-stone-400">by {meta.followedUpBy}</span>}
                         </div>
                         {noteEntries.length > 0 && (
                           <div className="mt-1.5 space-y-1">
                             {noteEntries.map(e => (
-                              <div key={e.id} className="text-xs text-stone-600 bg-stone-50 rounded px-2 py-1.5 border-l-2 border-[#283693]/30">
+                              <div key={e.id} className="text-xs text-stone-600 bg-stone-50 rounded px-2 py-1.5 border-l-2 border-[#1A3638]/30">
                                 <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
                                   <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
                                   <span>{e.by}</span>
@@ -242,7 +242,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                       </div>
                       <button
                         onClick={() => { setNotesModal(event); setNoteText(''); setNoteDate(new Date().toISOString().split('T')[0]) }}
-                        className="text-[9px] text-stone-400 hover:text-[#283693] flex items-center gap-0.5 shrink-0 mt-0.5"
+                        className="text-[9px] text-stone-400 hover:text-[#1A3638] flex items-center gap-0.5 shrink-0 mt-0.5"
                       >
                         <FileText className="size-3" />
                         {noteEntries.length > 0 ? 'Add Another' : 'Add Note'}
@@ -261,7 +261,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="size-4 text-[#283693]" /> Appointment Notes
+              <FileText className="size-4 text-[#1A3638]" /> Appointment Notes
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm font-semibold text-stone-700">
@@ -278,7 +278,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                   const isEditing = editingId === e.id
                   if (isEditing) {
                     return (
-                      <div key={e.id} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 px-3 py-2 space-y-2">
+                      <div key={e.id} className="rounded-lg border border-[#1A3638]/30 bg-[#1A3638]/5 px-3 py-2 space-y-2">
                         <div className="space-y-1">
                           <label className="text-[10px] text-stone-500">Note Date</label>
                           <Input type="date" value={editDate} onChange={ev => setEditDate(ev.target.value)} className="h-8 text-xs" />
@@ -288,7 +288,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                           <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={() => { setEditingId(null); setEditText(''); setEditDate('') }}>
                             <X className="size-3" /> Cancel
                           </Button>
-                          <Button size="sm" className="h-7 text-[11px] gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveEdit} disabled={savingNote || !editText.trim()}>
+                          <Button size="sm" className="h-7 text-[11px] gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSaveEdit} disabled={savingNote || !editText.trim()}>
                             {savingNote ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Save
                           </Button>
                         </div>
@@ -303,7 +303,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                           <span>{e.by}</span>
                           <button
                             onClick={() => { setEditingId(e.id); setEditText(e.body); setEditDate(e.date || (e.at || '').slice(0, 10) || '') }}
-                            className="text-stone-400 hover:text-[#283693]"
+                            className="text-stone-400 hover:text-[#1A3638]"
                             title="Edit note"
                           >
                             <Pencil className="size-3" />
@@ -337,7 +337,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
 
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
               {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save Note
             </Button>
           </DialogFooter>
@@ -358,7 +358,7 @@ function cellStatusColor(status) {
   if (status === 'started') return 'text-cyan-600 bg-cyan-50 border-cyan-200'
   if (status === 'in_progress') return 'text-blue-600 bg-blue-50 border-blue-200'
   if (status === 'reviewing') return 'text-purple-600 bg-purple-50 border-purple-200'
-  return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
+  return 'text-[#1A3638] bg-[#1A3638]/5 border-[#1A3638]/20'
 }
 
 function statusCellBg(status) {
@@ -741,7 +741,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="text-lg font-semibold text-[#283693] mb-1">Surrogate Updates</h3>
+        <h3 className="text-lg font-semibold text-[#1A3638] mb-1">Surrogate Updates</h3>
         <p className="text-sm text-stone-400 mb-4">Click a stage to filter surrogates</p>
 
         <div className="flex flex-wrap gap-2 mb-6">
@@ -775,7 +775,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                     const stageLabel = SURROGATE_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
                     return (
                       <th key={s.id} className="text-center px-3 py-3 min-w-[170px] border-r border-stone-100 last:border-r-0">
-                        <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
+                        <Link to={`/surrogates/${s.id}`} className="text-[#D4A853] hover:underline font-semibold text-xs">{s.name}</Link>
                         <p className="text-[9px] text-stone-400 font-normal">
                           {s.location ? `${s.location.split(', ').pop()}` : ''}
                           {s.age ? ` · ${s.age}` : ''}
@@ -862,7 +862,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             <td key={s.id} className="px-3 py-2 text-center">
                               {value ? (
                                 <div>
-                                  <p className="text-xs font-medium text-[#283693]">{value}</p>
+                                  <p className="text-xs font-medium text-[#1A3638]">{value}</p>
                                   {secondary && <p className="text-[10px] text-stone-400">{secondary}</p>}
                                 </div>
                               ) : (
@@ -1091,7 +1091,7 @@ function IPUpdatesSheet({ ips }) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="text-lg font-semibold text-[#283693] mb-1">Intended Parent Updates</h3>
+        <h3 className="text-lg font-semibold text-[#1A3638] mb-1">Intended Parent Updates</h3>
         <p className="text-sm text-stone-400 mb-4">Click a stage to filter intended parents</p>
 
         <div className="flex flex-wrap gap-2 mb-6">
@@ -1127,7 +1127,7 @@ function IPUpdatesSheet({ ips }) {
                     const stageLabel = IP_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
                     return (
                       <th key={ip.id} className="text-center px-3 py-3 min-w-[140px] border-r border-stone-100 last:border-r-0">
-                        <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
+                        <Link to={`/intended-parents/${ip.id}`} className="text-[#1A3638] hover:underline font-semibold text-xs">{ip.names}</Link>
                         <p className="text-[9px] text-stone-400 font-normal">{ip.location || ''}</p>
                         <div className="flex items-center justify-center gap-2 mt-1">
                           <AISummaryButton
@@ -1283,7 +1283,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="text-lg font-semibold text-[#283693] mb-1">Matched Journey Updates</h3>
+        <h3 className="text-lg font-semibold text-[#1A3638] mb-1">Matched Journey Updates</h3>
         <p className="text-sm text-stone-400 mb-4">Click a stage to filter journeys</p>
 
         <div className="flex flex-wrap gap-2 mb-4">
@@ -1327,7 +1327,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
           </div>
           {(caseManagerFilter !== 'all' || journeyManagerFilter !== 'all') && (
             <button
-              className="text-[10px] text-stone-400 hover:text-[#283693] underline"
+              className="text-[10px] text-stone-400 hover:text-[#1A3638] underline"
               onClick={() => { setCaseManagerFilter('all'); setJourneyManagerFilter('all') }}
             >
               Clear
@@ -1362,9 +1362,9 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                         style={outline ? { borderTop: `4px solid ${outline}` } : undefined}
                       >
                         <Link to={`/journeys/${j.id}`} className="hover:opacity-80 block text-center">
-                          <p className="text-xs font-semibold text-[#283693]">{ip?.names || 'IP'}</p>
+                          <p className="text-xs font-semibold text-[#1A3638]">{ip?.names || 'IP'}</p>
                           <p className="text-[10px] text-stone-800 font-normal leading-tight">+</p>
-                          <p className="text-xs font-semibold text-[#ed148c]">{gc?.name || 'GC'}</p>
+                          <p className="text-xs font-semibold text-[#D4A853]">{gc?.name || 'GC'}</p>
                         </Link>
                         <p className="text-[9px] text-stone-400 font-normal mt-1 text-center">{j.status || ''}</p>
                         {jd.delivered ? (
@@ -1435,7 +1435,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             <td key={j.id} className="px-3 py-2 text-center">
                               {primary ? (
                                 <div>
-                                  <p className="text-xs font-medium text-[#283693]">{primary}</p>
+                                  <p className="text-xs font-medium text-[#1A3638]">{primary}</p>
                                   {secondary && <p className="text-[10px] text-stone-400">{secondary}</p>}
                                 </div>
                               ) : (

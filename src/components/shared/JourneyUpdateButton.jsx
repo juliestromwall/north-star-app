@@ -167,7 +167,7 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
     if (hideIfEmpty && (!loadedOnMount || updates.length === 0)) return null
     return (
       <>
-        <button onClick={() => setOpen(true)} title="Journey Updates" className="text-stone-400 hover:text-[#283693] transition-colors">
+        <button onClick={() => setOpen(true)} title="Journey Updates" className="text-stone-400 hover:text-[#1A3638] transition-colors">
           <Megaphone className="size-3.5" />
         </button>
         <UpdateDialog open={open} onOpenChange={setOpen} updates={updates} newUpdate={newUpdate} setNewUpdate={setNewUpdate} saving={saving} onAdd={handleAdd} onDelete={handleDelete} caseName={displayCaseName} />
@@ -205,7 +205,7 @@ function UpdateDialog({ open, onOpenChange, updates, newUpdate, setNewUpdate, sa
               className="text-sm flex-1 resize-none border-stone-200 focus:border-stone-300 !ring-0 !outline-none !shadow-none"
               style={{ boxShadow: 'none' }}
             />
-            <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#ed148c' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
+            <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#D4A853' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Add
             </Button>
           </div>

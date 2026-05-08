@@ -46,9 +46,9 @@ function YesNoButtons({ value, onChange }) {
   return (
     <div className="flex items-center gap-2 pt-0.5">
       <button type="button" onClick={() => onChange('yes')}
-        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${isYes ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Yes</button>
+        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${isYes ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Yes</button>
       <button type="button" onClick={() => onChange('no')}
-        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${isNo ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>No</button>
+        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${isNo ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>No</button>
     </div>
   )
 }
@@ -192,7 +192,7 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
                 return (
                   <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel>
                     <input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
-                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" />
+                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none" />
                   </div>
                 )
               })}
@@ -267,7 +267,7 @@ function EditHeader({ title, description, editing, saving, startEdit, handleSave
       {editing ? (
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={cancel}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </div>
@@ -519,7 +519,7 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
                     </div>
                   ))}
                   {(form.adultHouseholdMembers || []).length < MAX_ADULT_MEMBERS && (
-                    <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#283693] hover:underline">
+                    <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#1A3638] hover:underline">
                       + Add household member
                     </button>
                   )}
@@ -594,7 +594,7 @@ function InsuranceCardDisplay({ surrogateId }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {docs.map(doc => (
           <a key={doc.id} href={doc.public_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-stone-50 transition-colors">
+            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#1A3638]/30 hover:bg-stone-50 transition-colors">
             {doc.file_type?.startsWith('image/') ? (
               <img src={doc.public_url} alt="" className="w-16 h-10 object-cover rounded border" />
             ) : (
@@ -781,7 +781,7 @@ function PhotoIdDisplay({ surrogateId }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {docs.map(doc => (
           <a key={doc.id} href={doc.public_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-stone-50 transition-colors">
+            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#1A3638]/30 hover:bg-stone-50 transition-colors">
             {doc.file_type?.startsWith('image/') ? (
               <img src={doc.public_url} alt="" className="w-16 h-10 object-cover rounded border" />
             ) : (
@@ -945,7 +945,7 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
               return (
                 <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+                    <p className="text-sm font-semibold text-[#1A3638]">Pregnancy #{i + 1}</p>
                     {outcomeLabel && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isNonDel ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{outcomeLabel}</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1232,7 +1232,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
           const { sendEmail } = await import('@/lib/google')
           const providerListHtml = created.map((d, i) => `
             <div style="padding: 6px 0; border-bottom: 1px solid #f0f0f0;">
-              <span style="color: #283693; font-weight: 600;">${i + 1}.</span>
+              <span style="color: #1A3638; font-weight: 600;">${i + 1}.</span>
               ${d.clinicName}
               <span style="color: #888; font-size: 12px;"> - ${{ ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }[d.type] || 'Medical'}</span>
             </div>
@@ -1244,23 +1244,23 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 180px;" />
+                  <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
                 </div>
-                <h2 style="color: #283693; margin-bottom: 8px;">Medical Records Release Forms</h2>
+                <h2 style="color: #1A3638; margin-bottom: 8px;">Medical Records Release Forms</h2>
                 <p>Hi ${patient.name || ''},</p>
-                <p>${currentUser?.name || 'Your case manager'} at <strong>Abundant Beginnings Co.</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for your signature. You can review and sign all forms on a single page:</p>
+                <p>${currentUser?.name || 'Your case manager'} at <strong>North Star Surrogacy</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for your signature. You can review and sign all forms on a single page:</p>
                 <div style="background: #f8f9fc; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   ${providerListHtml}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
-                  <a href="${batchUrl}" style="display: inline-block; background: #283693; color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                  <a href="${batchUrl}" style="display: inline-block; background: #1A3638; color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
                     Review & Sign All Forms
                   </a>
                 </div>
-                <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to ABC Surrogacy for your surrogacy journey.</p>
+                <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to North Star Surrogacy for your surrogacy journey.</p>
                 <p style="color: #888; font-size: 12px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
-                  These are legally binding electronic signature requests from Abundant Beginnings Company, LLC.
-                  If you have questions, please contact us at info@abcsurrogacy.com.
+                  These are legally binding electronic signature requests from North Star Surrogacy, LLC.
+                  If you have questions, please contact us at info@northstarsurrogacy.com.
                 </p>
               </div>
             `,
@@ -1326,7 +1326,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
               <FileText className="size-3.5" /> Preview Release Forms
             </Button>
             {result?.preview && selectedIndexes.size > 0 && (
-              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#ed148c', color: '#fff' }} onClick={handleGenerate} disabled={generating}>
+              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#D4A853', color: '#fff' }} onClick={handleGenerate} disabled={generating}>
                 {generating ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
                 {generating ? 'Generating...' : `Generate ${selectedIndexes.size} Release Form${selectedIndexes.size === 1 ? '' : 's'}`}
               </Button>
@@ -1335,7 +1335,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
           {result?.preview && result.providers?.length > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 mb-1">
-                <button className="text-[10px] text-[#283693] font-medium hover:underline" onClick={() => setSelectedIndexes(new Set(result.providers.map((_, i) => i)))}>Select All</button>
+                <button className="text-[10px] text-[#1A3638] font-medium hover:underline" onClick={() => setSelectedIndexes(new Set(result.providers.map((_, i) => i)))}>Select All</button>
                 <span className="text-stone-300">|</span>
                 <button className="text-[10px] text-stone-500 font-medium hover:underline" onClick={() => setSelectedIndexes(new Set())}>Deselect All</button>
               </div>
@@ -1343,8 +1343,8 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
                 const typeLabels = { ob: 'Prenatal/OB', hospital: 'L&D Hospital', mfm: 'MFM', ivf: 'IVF/Fertility' }
                 return (
                   <label key={i} className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer hover:bg-stone-50 rounded px-1 py-0.5">
-                    <input type="checkbox" checked={selectedIndexes.has(i)} onChange={() => toggleProvider(i)} className="size-3.5 accent-[#283693]" />
-                    <span className="font-medium text-[#283693]">{typeLabels[p.type]}</span> — {p.clinicName} {p.doctorName && <span className="text-stone-400">({p.doctorName})</span>}
+                    <input type="checkbox" checked={selectedIndexes.has(i)} onChange={() => toggleProvider(i)} className="size-3.5 accent-[#1A3638]" />
+                    <span className="font-medium text-[#1A3638]">{typeLabels[p.type]}</span> — {p.clinicName} {p.doctorName && <span className="text-stone-400">({p.doctorName})</span>}
                   </label>
                 )
               })}
@@ -1499,7 +1499,7 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
                   {uploading && <Loader2 className="size-4 animate-spin text-stone-400" />}
                 </div>
                 {form.screenshotUrl && (
-                  <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline flex items-center gap-1">
+                  <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline flex items-center gap-1">
                     <FileText className="size-3" /> View uploaded screenshot
                   </a>
                 )}
@@ -1515,7 +1515,7 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
             {stored.screenshotUrl && (
               <div>
                 <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Screenshot</p>
-                <a href={stored.screenshotUrl} target="_blank" rel="noreferrer" className="text-sm text-[#283693] hover:underline font-medium flex items-center gap-1 mt-0.5">
+                <a href={stored.screenshotUrl} target="_blank" rel="noreferrer" className="text-sm text-[#1A3638] hover:underline font-medium flex items-center gap-1 mt-0.5">
                   <FileText className="size-3" /> View
                 </a>
               </div>
@@ -1573,7 +1573,7 @@ function FollowUpQuestionsSection({ surrogate, answers, profileData, onSaved, se
   return (
     <Card className="rounded-2xl">
       <EditHeader
-        title={<span className="flex items-center gap-2"><Shield className="size-4 text-[#283693]" /> Profile Follow Up Questions</span>}
+        title={<span className="flex items-center gap-2"><Shield className="size-4 text-[#1A3638]" /> Profile Follow Up Questions</span>}
         description={`Screening and eligibility details (${filled}/${FOLLOW_UP_FIELDS.length} answered)`}
         editing={editing}
         saving={saving}
@@ -1648,7 +1648,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
             <button
               key={sec.id}
               onClick={() => document.getElementById(`app-sec-${sec.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-[#283693]/5 p-2 text-center cursor-pointer transition-colors"
+              className="rounded-lg border border-stone-200 hover:border-[#1A3638]/30 hover:bg-[#1A3638]/5 p-2 text-center cursor-pointer transition-colors"
             >
               <p className="text-[10px] font-medium text-stone-600 truncate">{sec.label}</p>
             </button>

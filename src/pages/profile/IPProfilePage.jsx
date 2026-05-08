@@ -149,7 +149,7 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       {hint && <p className="text-xs text-stone-400">{hint}</p>}
       {photo ? (
         <div className="relative group w-32 h-32">
@@ -160,9 +160,9 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
           </button>
         </div>
       ) : (
-        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="text-center">
-            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#1A3638] animate-spin" /> : (
               <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
             )}
           </div>
@@ -249,14 +249,14 @@ export function PhotoEditor({ photo, onSave, onClose, aspect = 1 }) {
       </div>
       <div className="flex items-center gap-4">
         <label className="text-xs text-stone-500 shrink-0">Zoom</label>
-        <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={e => setZoom(Number(e.target.value))} className="flex-1 accent-[#283693]" />
+        <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={e => setZoom(Number(e.target.value))} className="flex-1 accent-[#1A3638]" />
         <button onClick={() => setRotation(r => (r + 90) % 360)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-stone-200 rounded-lg hover:bg-stone-50">
           <RotateCw className="w-3.5 h-3.5" /> Rotate
         </button>
       </div>
       <div className="flex justify-end gap-2">
         <button onClick={onClose} className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg hover:bg-stone-50">Cancel</button>
-        <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white" style={{ backgroundColor: '#283693' }}>
+        <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white" style={{ backgroundColor: '#1A3638' }}>
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
         </button>
       </div>
@@ -373,9 +373,9 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
             {photos.map(photo => (
               <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
             ))}
-            <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+            <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
-                {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+                {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#1A3638] animate-spin" /> : (
                   <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Add Photo</span></>
                 )}
               </div>
@@ -458,10 +458,10 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
   const IPSection = ({ title, icon: Icon, children }) => (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#1A3638]/5 to-transparent">
         <div className="flex items-center gap-2.5">
-          {Icon && <Icon className="w-4.5 h-4.5 text-[#283693]" />}
-          <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wide">{title}</h3>
+          {Icon && <Icon className="w-4.5 h-4.5 text-[#1A3638]" />}
+          <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wide">{title}</h3>
         </div>
       </div>
       <div className="px-6 py-5">{children}</div>
@@ -515,15 +515,15 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   }
   const NewSection = ({ title, icon: Icon, number, children }) => (
     <div>
-      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#ed148c]/20 print:break-after-avoid">
+      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#D4A853]/20 print:break-after-avoid">
         {number && (
-          <span className="text-4xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums">
+          <span className="text-4xl font-heading font-black text-[#D4A853]/60 leading-none tabular-nums">
             {String(number).padStart(2, '0')}
           </span>
         )}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {Icon && <Icon className="w-4 h-4 text-[#ed148c] shrink-0" />}
-          <h3 className="text-xl font-heading font-black text-[#283693] tracking-tight leading-tight">{title}</h3>
+          {Icon && <Icon className="w-4 h-4 text-[#D4A853] shrink-0" />}
+          <h3 className="text-xl font-heading font-black text-[#1A3638] tracking-tight leading-tight">{title}</h3>
         </div>
       </div>
       <div className="space-y-2">{children}</div>
@@ -561,13 +561,13 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           {coverPhoto ? (
             <img src={coverPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover object-top" />
           ) : (
-            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#ed148c]/20 via-[#fce7f0] to-[#283693]/10 flex items-center justify-center">
+            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#D4A853]/20 via-[#fce7f0] to-[#1A3638]/10 flex items-center justify-center">
               <Camera className="w-12 h-12 text-white/70" />
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#fdf8f3] to-transparent" />
           {lightboxPhotos.length > 1 && (
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#283693] text-xs font-bold px-3 py-1 rounded-full print:hidden">
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#1A3638] text-xs font-bold px-3 py-1 rounded-full print:hidden">
               {lightboxPhotos.length} photos
             </div>
           )}
@@ -578,7 +578,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           <div className="flex flex-col sm:flex-row items-end gap-5">
             {profilePhoto ? (
               <img data-pdf="portrait" src={profilePhoto.url} alt=""
-                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#283693]/15 shrink-0 print:shadow-none"
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#1A3638]/15 shrink-0 print:shadow-none"
               />
             ) : (
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">
@@ -586,14 +586,14 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
               </div>
             )}
 
-            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#283693]/10 border border-stone-100 px-6 py-5 print:shadow-none">
-              <p className="text-xs font-bold text-[#ed148c] uppercase tracking-[0.25em] mb-1">{greetingPrefix}</p>
-              <h1 className="text-2xl sm:text-3xl font-heading font-black text-[#283693] leading-tight tracking-tight">
+            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#1A3638]/10 border border-stone-100 px-6 py-5 print:shadow-none">
+              <p className="text-xs font-bold text-[#D4A853] uppercase tracking-[0.25em] mb-1">{greetingPrefix}</p>
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-[#1A3638] leading-tight tracking-tight">
                 {greetingTitle}
               </h1>
               {location && (
                 <p className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#ed148c]" />
+                  <MapPin className="w-3.5 h-3.5 text-[#D4A853]" />
                   {location}
                 </p>
               )}
@@ -607,7 +607,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           const ip2Qs = hasPartner && !hiddenFields.includes('ip2.history.qualities') && Array.isArray(ip2?.history?.qualities) ? ip2.history.qualities : []
           return (
             <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#1A3638]">
                 {ip1Age && (
                   <div className="flex items-baseline gap-1.5 flex-wrap">
                     <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
@@ -687,11 +687,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
             <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
+                  <p className="text-[11px] font-bold text-[#D4A853] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
                   {renderFields(ip1[secKey] || {}, ip1FieldDefs, `ip1.${secKey}`)}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
+                  <p className="text-[11px] font-bold text-[#D4A853] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
                   {renderFields(ip2[secKey] || {}, ip2FieldDefs, `ip2.${secKey}`)}
                 </div>
               </div>
@@ -709,7 +709,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           if (messages.length === 0) return null
           return (
             <div className="mt-8 print:break-inside-avoid">
-              <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#ed148c]/20 shadow-sm print:shadow-none">
+              <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#D4A853]/20 shadow-sm print:shadow-none">
                 <div className="px-7 pt-6 pb-4">
                   <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Surrogate,</p>
                 </div>
@@ -830,7 +830,7 @@ function countSectionCompletion(profile, section, hasPartner) {
 function TextField({ label, value, onChange, type = 'text', placeholder, disabled }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <Input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="h-9" />
     </div>
   )
@@ -839,7 +839,7 @@ function TextField({ label, value, onChange, type = 'text', placeholder, disable
 function TextAreaField({ label, value, onChange, placeholder }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <Textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} />
     </div>
   )
@@ -848,12 +848,12 @@ function TextAreaField({ label, value, onChange, placeholder }) {
 function YesNoField({ label, value, onChange }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <div className="flex gap-2">
         <button type="button" onClick={() => onChange('yes')}
-          className={`px-4 py-1.5 text-sm rounded-full font-medium transition-colors ${value === 'yes' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>Yes</button>
+          className={`px-4 py-1.5 text-sm rounded-full font-medium transition-colors ${value === 'yes' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>Yes</button>
         <button type="button" onClick={() => onChange('no')}
-          className={`px-4 py-1.5 text-sm rounded-full font-medium transition-colors ${value === 'no' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>No</button>
+          className={`px-4 py-1.5 text-sm rounded-full font-medium transition-colors ${value === 'no' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>No</button>
       </div>
     </div>
   )
@@ -862,7 +862,7 @@ function YesNoField({ label, value, onChange }) {
 function SelectField({ label, value, onChange, options, placeholder = 'Select...' }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <Select value={value || ''} onValueChange={onChange}>
         <SelectTrigger className="h-9"><SelectValue placeholder={placeholder} /></SelectTrigger>
         <SelectContent>
@@ -877,7 +877,7 @@ function CheckboxGroupField({ label, value, onChange, options }) {
   const selected = Array.isArray(value) ? value : []
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {options.map(opt => (
           <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -902,7 +902,7 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
   }
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
       <div className="flex flex-wrap gap-2">
         {options.map(opt => {
@@ -912,10 +912,10 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
             <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
                 isOn
-                  ? 'bg-[#283693] text-white border-[#283693]'
+                  ? 'bg-[#1A3638] text-white border-[#1A3638]'
                   : disabled
                     ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
-                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#1A3638] hover:text-[#1A3638]'
               }`}>
               {opt}
             </button>
@@ -935,7 +935,7 @@ function ProgressRing({ percent, size = 80 }) {
   return (
     <svg width={size} height={size} className="shrink-0">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e7e5e4" strokeWidth={5} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#283693" strokeWidth={5}
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1A3638" strokeWidth={5}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         transform={`rotate(-90 ${size/2} ${size/2})`} className="transition-all duration-700" />
       <text x="50%" y="50%" textAnchor="middle" dy=".35em" className="text-sm font-bold fill-stone-700">{percent}%</text>
@@ -1169,12 +1169,12 @@ export default function IPProfilePage() {
               <p className="text-sm text-stone-500 mt-1">Complete your matching profile so surrogates can get to know you.</p>
               <div className="mt-3 max-w-sm mx-auto sm:mx-0">
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
                 </div>
                 <p className="text-xs text-stone-400 mt-1">{completion}% complete</p>
               </div>
             </div>
-            <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
+            <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#1A3638] text-[#1A3638]">
               <Eye className="size-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
             </Button>
           </div>
@@ -1189,7 +1189,7 @@ export default function IPProfilePage() {
           </div>
           <div>
             <p className="font-bold text-blue-800">Profile Submitted for Review</p>
-            <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted. Our team will review and reach out with any additional questions. If you need to make edits, please contact <a href="mailto:info@abcsurrogacy.com" className="font-semibold underline">info@abcsurrogacy.com</a>.</p>
+            <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted. Our team will review and reach out with any additional questions. If you need to make edits, please contact <a href="mailto:info@northstarsurrogacy.com" className="font-semibold underline">info@northstarsurrogacy.com</a>.</p>
           </div>
         </div>
       )}
@@ -1215,7 +1215,7 @@ export default function IPProfilePage() {
           </div>
           <div>
             <p className="font-bold text-green-800">Profile Approved</p>
-            <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. If you need to make changes, please contact the agency.</p>
+            <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the North Star Surrogacy team. If you need to make changes, please contact the agency.</p>
           </div>
         </div>
       )}
@@ -1241,11 +1241,11 @@ export default function IPProfilePage() {
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer">
               <div className="flex items-center gap-3 flex-1">
-                <div className="size-10 rounded-xl flex items-center justify-center bg-[#283693]/10">
-                  <Camera className="size-5 text-[#283693]" />
+                <div className="size-10 rounded-xl flex items-center justify-center bg-[#1A3638]/10">
+                  <Camera className="size-5 text-[#1A3638]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base text-[#283693]">Basic Information</CardTitle>
+                  <CardTitle className="text-base text-[#1A3638]">Basic Information</CardTitle>
                   <CardDescription>Profile photo and cover photo</CardDescription>
                 </div>
               </div>
@@ -1291,11 +1291,11 @@ export default function IPProfilePage() {
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer">
               <div className="flex items-center gap-3 flex-1">
-                <div className="size-10 rounded-xl flex items-center justify-center bg-[#283693]/10">
-                  <Camera className="size-5 text-[#283693]" />
+                <div className="size-10 rounded-xl flex items-center justify-center bg-[#1A3638]/10">
+                  <Camera className="size-5 text-[#1A3638]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base text-[#283693]">Photo Gallery</CardTitle>
+                  <CardTitle className="text-base text-[#1A3638]">Photo Gallery</CardTitle>
                   <CardDescription>Upload favorite photos to share with surrogates</CardDescription>
                 </div>
               </div>
@@ -1332,11 +1332,11 @@ export default function IPProfilePage() {
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer">
                   <div className="flex items-center gap-3 flex-1">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${complete ? 'bg-emerald-100' : 'bg-[#283693]/10'}`}>
-                      <Icon className={`size-5 ${complete ? 'text-emerald-600' : 'text-[#283693]'}`} />
+                    <div className={`size-10 rounded-xl flex items-center justify-center ${complete ? 'bg-emerald-100' : 'bg-[#1A3638]/10'}`}>
+                      <Icon className={`size-5 ${complete ? 'text-emerald-600' : 'text-[#1A3638]'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base text-[#283693]">{sec.label}</CardTitle>
+                      <CardTitle className="text-base text-[#1A3638]">{sec.label}</CardTitle>
                       <CardDescription>{sec.description}</CardDescription>
                     </div>
                     <span className="text-sm text-stone-400 font-medium shrink-0">{filled}/{total}</span>
@@ -1381,7 +1381,7 @@ export default function IPProfilePage() {
             onClick={() => completion < 100 ? setShowIncompleteWarning(true) : setShowSubmitModal(true)}
             disabled={submitting}
             className="gap-2 px-8 py-3 text-base rounded-xl"
-            style={{ backgroundColor: '#ed148c', color: '#fff' }}
+            style={{ backgroundColor: '#D4A853', color: '#fff' }}
           >
             <Send className="w-4 h-4" /> Submit Profile for Review
           </Button>
@@ -1396,7 +1396,7 @@ export default function IPProfilePage() {
             onClick={() => completion < 100 ? setShowIncompleteWarning(true) : setShowSubmitModal(true)}
             disabled={submitting}
             className="gap-2 px-8 py-3 text-base rounded-xl"
-            style={{ backgroundColor: '#ed148c', color: '#fff' }}
+            style={{ backgroundColor: '#D4A853', color: '#fff' }}
           >
             <Send className="w-4 h-4" /> Re-Submit Profile for Review
           </Button>
@@ -1410,7 +1410,7 @@ export default function IPProfilePage() {
             <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-8 h-8 text-amber-500" />
             </div>
-            <h2 className="text-xl font-bold text-[#283693]">Ready to submit your profile?</h2>
+            <h2 className="text-xl font-bold text-[#1A3638]">Ready to submit your profile?</h2>
             <div className="text-stone-600 text-sm space-y-2">
               <p>Once submitted, <strong>you won't be able to edit your profile</strong> until our team reviews it. If you need to make a correction after submitting, please contact us and we'll reopen it for you.</p>
               <p>Our team will review your profile and reach out with any additional questions and next steps.</p>
@@ -1422,7 +1422,7 @@ export default function IPProfilePage() {
               <Button
                 onClick={handleSubmitForReview}
                 disabled={submitting}
-                style={{ backgroundColor: '#ed148c', color: '#fff' }}
+                style={{ backgroundColor: '#D4A853', color: '#fff' }}
                 className="gap-1.5"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -1454,7 +1454,7 @@ export default function IPProfilePage() {
                 )
               })}
             </div>
-            <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#283693', color: '#fff' }}>
+            <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               Got it — I'll complete my profile
             </Button>
           </div>
@@ -1465,7 +1465,7 @@ export default function IPProfilePage() {
       <Card className="bg-stone-50 border-dashed rounded-2xl">
         <CardContent className="py-6 text-center">
           <p className="text-sm text-stone-500">Need help? Contact us at</p>
-          <a href="mailto:info@abcsurrogacy.com" className="text-sm font-semibold text-[#283693] hover:underline">info@abcsurrogacy.com</a>
+          <a href="mailto:info@northstarsurrogacy.com" className="text-sm font-semibold text-[#1A3638] hover:underline">info@northstarsurrogacy.com</a>
         </CardContent>
       </Card>
     </div>

@@ -175,9 +175,9 @@ export default function SharedProfilePage() {
       {/* Header bar */}
       <div className="bg-white border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 w-auto" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 w-auto" />
           <div>
-            <p className="text-sm font-semibold text-[#283693]">Abundant Beginnings Co.</p>
+            <p className="text-sm font-semibold text-[#1A3638]">North Star Surrogacy</p>
             <p className="text-[10px] text-stone-400">Shared Profile</p>
           </div>
         </div>
@@ -192,12 +192,12 @@ export default function SharedProfilePage() {
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Shared by notice */}
-        <div className="rounded-xl bg-[#283693]/5 border border-[#283693]/20 p-4 flex items-center gap-3">
-          <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center">
-            <Send className="size-5 text-[#283693]" />
+        <div className="rounded-xl bg-[#1A3638]/5 border border-[#1A3638]/20 p-4 flex items-center gap-3">
+          <div className="size-10 rounded-full bg-[#1A3638]/10 flex items-center justify-center">
+            <Send className="size-5 text-[#1A3638]" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#283693]">{share.shared_by} shared this {isGC ? 'surrogate' : 'intended parent'} profile with you</p>
+            <p className="text-sm font-semibold text-[#1A3638]">{share.shared_by} shared this {isGC ? 'surrogate' : 'intended parent'} profile with you</p>
             {share.message && <p className="text-xs text-stone-500 mt-0.5">"{share.message}"</p>}
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function SharedProfilePage() {
         {isGC && profileData ? (
           <div className="rounded-2xl border bg-white overflow-hidden">
             <div className="flex items-center justify-center py-4 border-b bg-white">
-              <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 w-auto" />
+              <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
             </div>
             <ProfilePreview profile={profileData} photos={photos.filter(p => !(profileData?._hiddenPhotos || []).includes(p.path))} hideFooter insuranceStatus={insuranceStatus} />
           </div>
@@ -260,7 +260,7 @@ export default function SharedProfilePage() {
                     </div>
                     <p className="text-sm">{q.question}</p>
                     {q.answer && (
-                      <div className="mt-2 pl-3 border-l-2 border-[#283693]/30">
+                      <div className="mt-2 pl-3 border-l-2 border-[#1A3638]/30">
                         <p className="text-xs text-stone-400 font-semibold">{q.answered_by || 'Agency'}</p>
                         <p className="text-sm text-stone-600">{q.answer}</p>
                       </div>
@@ -283,7 +283,7 @@ export default function SharedProfilePage() {
                   <Input type="email" value={askForm.email} onChange={e => setAskForm(f => ({ ...f, email: e.target.value }))} placeholder="Your email" className="text-sm" />
                 </div>
                 <Textarea value={askForm.question} onChange={e => setAskForm(f => ({ ...f, question: e.target.value }))} placeholder="Type your question..." rows={2} className="text-sm" />
-                <Button onClick={handleAskQuestion} disabled={asking || !askForm.question.trim()} size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                <Button onClick={handleAskQuestion} disabled={asking || !askForm.question.trim()} size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                   {asking ? 'Sending...' : 'Send Question'}
                 </Button>
               </div>
@@ -293,7 +293,7 @@ export default function SharedProfilePage() {
 
         {/* Footer */}
         <div className="text-center text-xs text-stone-400 pt-4">
-          <p>This profile is shared confidentially by Abundant Beginnings Co.</p>
+          <p>This profile is shared confidentially by North Star Surrogacy</p>
           <p>Do not forward or share this link. It expires in {hoursLeft} hours.</p>
         </div>
       </div>

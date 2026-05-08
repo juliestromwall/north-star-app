@@ -189,7 +189,7 @@ export default function TextMessagesPage() {
                       {unread && <UnreadDot />}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${m.direction === 'outbound' ? 'text-stone-400' : 'text-[#283693]'}`}>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${m.direction === 'outbound' ? 'text-stone-400' : 'text-[#1A3638]'}`}>
                         {m.direction === 'outbound' ? 'Sent' : 'Received'}
                       </span>
                     </td>
@@ -201,7 +201,7 @@ export default function TextMessagesPage() {
                         <Link
                           to={caseInfo.path}
                           onClick={e => e.stopPropagation()}
-                          className="text-[#283693] font-medium hover:underline"
+                          className="text-[#1A3638] font-medium hover:underline"
                         >
                           {caseInfo.name}
                         </Link>

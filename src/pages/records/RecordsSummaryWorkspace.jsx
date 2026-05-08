@@ -28,7 +28,7 @@ function SectionHeader({ title, open, onToggle }) {
   return (
     <button onClick={onToggle} className="flex items-center gap-2 w-full text-left py-2 px-1 hover:bg-stone-50 rounded transition-colors">
       {open ? <ChevronDown className="size-3.5 text-stone-400" /> : <ChevronRight className="size-3.5 text-stone-400" />}
-      <span className="text-xs font-bold text-[#283693] uppercase tracking-wider">{title}</span>
+      <span className="text-xs font-bold text-[#1A3638] uppercase tracking-wider">{title}</span>
     </button>
   )
 }
@@ -232,7 +232,7 @@ function DocumentPanel({ documents, surrogateId }) {
         <div className="flex items-center gap-1">
           {!selectedDoc && (
             <button onClick={() => { setMergeMode(!mergeMode); setMergeSelected(new Set()) }}
-              className={`text-[10px] px-2 py-1 rounded font-medium transition-colors ${mergeMode ? 'bg-[#283693] text-white' : 'text-stone-500 hover:bg-stone-200'}`}>
+              className={`text-[10px] px-2 py-1 rounded font-medium transition-colors ${mergeMode ? 'bg-[#1A3638] text-white' : 'text-stone-500 hover:bg-stone-200'}`}>
               <Merge className="size-3 inline mr-1" />{mergeMode ? 'Cancel' : 'Merge'}
             </button>
           )}
@@ -247,8 +247,8 @@ function DocumentPanel({ documents, surrogateId }) {
 
       {/* Merge order — drag to reorder */}
       {mergeMode && mergeOrder.length >= 2 && (
-        <div className="px-3 py-2 border-b bg-[#283693]/5">
-          <p className="text-[10px] font-semibold text-[#283693] uppercase mb-1.5">Merge Order (drag to reorder)</p>
+        <div className="px-3 py-2 border-b bg-[#1A3638]/5">
+          <p className="text-[10px] font-semibold text-[#1A3638] uppercase mb-1.5">Merge Order (drag to reorder)</p>
           <DndContext sensors={mergeSensors} collisionDetection={closestCenter} onDragEnd={e => {
             const { active, over } = e
             if (!over || active.id === over.id) return
@@ -277,14 +277,14 @@ function DocumentPanel({ documents, surrogateId }) {
           {allDocs.map(doc => {
             const isChecked = mergeSelected.has(doc.id)
             return (
-            <div key={doc.id} className={`flex items-center gap-2 rounded-lg ${mergeMode && isChecked ? 'bg-[#283693]/5 border border-[#283693]/20' : ''}`}>
+            <div key={doc.id} className={`flex items-center gap-2 rounded-lg ${mergeMode && isChecked ? 'bg-[#1A3638]/5 border border-[#1A3638]/20' : ''}`}>
               {mergeMode && (
                 <label className="flex items-center shrink-0 ml-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggleMergeDoc(doc.id)}
-                    className="size-4 accent-[#283693] cursor-pointer"
+                    className="size-4 accent-[#1A3638] cursor-pointer"
                   />
                 </label>
               )}
@@ -295,10 +295,10 @@ function DocumentPanel({ documents, surrogateId }) {
                   <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
                   <p className="text-[10px] text-stone-400">{formatDate(doc.created_at)}</p>
                 </div>
-                {mergeMode && isChecked && <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded shrink-0">#{mergeOrder.indexOf(doc.id) + 1}</span>}
+                {mergeMode && isChecked && <span className="text-[9px] font-bold text-[#1A3638] bg-[#1A3638]/10 px-1.5 py-0.5 rounded shrink-0">#{mergeOrder.indexOf(doc.id) + 1}</span>}
                 {!mergeMode && (
                   <span onClick={(e) => { e.stopPropagation(); setRenamingDoc(doc); setRenameValue(doc.file_name) }}
-                    className="text-[9px] text-stone-400 hover:text-[#283693] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Rename">
+                    className="text-[9px] text-stone-400 hover:text-[#1A3638] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Rename">
                     Rename
                   </span>
                 )}
@@ -310,7 +310,7 @@ function DocumentPanel({ documents, surrogateId }) {
       ) : (
         <div className="flex-1 flex flex-col">
           <div className="p-2 border-b flex items-center justify-between">
-            <button onClick={() => { setSelectedDoc(null); setPreviewUrl(null); setPageRemoveMode(false); setRemovedPages(new Set()) }} className="text-xs text-[#283693] hover:underline flex items-center gap-1">
+            <button onClick={() => { setSelectedDoc(null); setPreviewUrl(null); setPageRemoveMode(false); setRemovedPages(new Set()) }} className="text-xs text-[#1A3638] hover:underline flex items-center gap-1">
               <ArrowLeft className="size-3" /> Back to list
             </button>
             <div className="flex items-center gap-1">
@@ -360,7 +360,7 @@ function DocumentPanel({ documents, surrogateId }) {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-stone-400 text-sm">
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-[#283693] hover:underline">Open in new tab</a>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-[#1A3638] hover:underline">Open in new tab</a>
               </div>
             )}
           </div>
@@ -376,7 +376,7 @@ function DocumentPanel({ documents, surrogateId }) {
               onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenamingDoc(null) }} />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setRenamingDoc(null)} className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg hover:bg-stone-50">Cancel</button>
-              <button onClick={handleRename} disabled={!renameValue.trim()} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-40" style={{ backgroundColor: '#283693' }}>Rename</button>
+              <button onClick={handleRename} disabled={!renameValue.trim()} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-40" style={{ backgroundColor: '#1A3638' }}>Rename</button>
             </div>
           </div>
         </div>
@@ -546,7 +546,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
     <div className="flex flex-col h-full">
       <div className="p-3 border-b bg-stone-50 flex items-center justify-between">
         <p className="text-xs font-semibold text-stone-600">GC Medical Records Summary</p>
-        <Button size="sm" className="gap-1.5 h-7 text-xs" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving}>
+        <Button size="sm" className="gap-1.5 h-7 text-xs" style={{ backgroundColor: '#1A3638' }} onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />} Save
         </Button>
       </div>
@@ -603,7 +603,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
               return (
               <div key={i} className="rounded-lg border border-stone-200 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-[#283693]">{preg.label || `G${i + 1}`}</p>
+                  <p className="text-sm font-bold text-[#1A3638]">{preg.label || `G${i + 1}`}</p>
                   {preg.outcome && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${preg.skipDetails ? 'bg-amber-100 text-amber-700' : isNonDel ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>{preg.outcome}</span>}
                 </div>
 
@@ -702,7 +702,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
                 ))}
               </tbody>
             </table>
-            <button onClick={addLabRow} className="text-xs text-[#283693] hover:underline flex items-center gap-1">
+            <button onClick={addLabRow} className="text-xs text-[#1A3638] hover:underline flex items-center gap-1">
               <Plus className="size-3" /> Add Lab
             </button>
           </div>
@@ -732,12 +732,12 @@ function InfoGridRow({ label, value, span, fp }) {
 
 function SectionLabel({ children }) {
   return (
-    <h2 style={{ fontSize: 10, fontWeight: 700, color: '#ed148c', margin: 0, marginTop: 14, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '1px' }}>{children}</h2>
+    <h2 style={{ fontSize: 10, fontWeight: 700, color: '#D4A853', margin: 0, marginTop: 14, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '1px' }}>{children}</h2>
   )
 }
 
 function PregnancyBanner({ label, outcome, skipDetails, preg }) {
-  const color = skipDetails ? '#d97706' : '#283693'
+  const color = skipDetails ? '#d97706' : '#1A3638'
   function fmtDate(d) {
     if (!d) return null
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { const [y, m, day] = d.split('-'); return `${m}/${day}/${y}` }
@@ -752,7 +752,7 @@ function PregnancyBanner({ label, outcome, skipDetails, preg }) {
   if (preg?.typeOfDelivery) infoItems.push(preg.typeOfDelivery)
 
   return (
-    <div style={{ marginTop: 16, marginBottom: 8, padding: '8px 14px', borderRadius: 8, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : '#283693' }}>
+    <div style={{ marginTop: 16, marginBottom: 8, padding: '8px 14px', borderRadius: 8, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : '#1A3638' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', lineHeight: '22px' }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.3px' }}>{label}</span>
         {infoItems.map((item, i) => (
@@ -791,16 +791,16 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style={{ height: 44, marginBottom: 8, display: 'inline-block' }} crossOrigin="anonymous" />
-            <h1 style={{ fontSize: 16, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" style={{ height: 44, marginBottom: 8, display: 'inline-block' }} crossOrigin="anonymous" />
+            <h1 style={{ fontSize: 16, fontWeight: 800, color: '#1A3638', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
           </div>
-          <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 16 }} />
+          <div style={{ height: 1.5, background: '#1A3638', borderRadius: 1, marginBottom: 16 }} />
 
           {/* Patient Header — name + stat cards + pregnancy history */}
           {(() => {
             const dobStr = data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
             const calcAge = data.dob ? (() => { const b = new Date(data.dob); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a > 0 ? a : null })() : null
-            const iconStyle = { width: 14, height: 14, stroke: '#283693', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
+            const iconStyle = { width: 14, height: 14, stroke: '#1A3638', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
             const icons = {
               age: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>,
               height: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>,
@@ -829,7 +829,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
             }
             const hasGtpal = g > 0
             const gtpalChips = [
-              { label: 'Pregnancies', value: g, color: '#283693' },
+              { label: 'Pregnancies', value: g, color: '#1A3638' },
               { label: 'Term', value: term, color: '#10b981' },
               { label: 'Preterm', value: preterm, color: '#f59e0b' },
               { label: 'Losses', value: losses, color: '#ef4444' },
@@ -837,14 +837,14 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
             ]
             return (
               <div style={{ marginBottom: 12 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: '0 0 8px', letterSpacing: '0.3px' }}>{data.name}</h2>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1A3638', margin: '0 0 8px', letterSpacing: '0.3px' }}>{data.name}</h2>
                 {/* Stat cards — full width, horizontal */}
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${statCards.filter(s => s.value).length}, 1fr)`, gap: 6, marginBottom: hasGtpal ? 6 : 0 }}>
                   {statCards.map(s => s.value ? (
                     <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, backgroundColor: '#fff', border: '1px solid #e7e5e4' }}>
                       {s.icon}
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#283693', lineHeight: 1.2 }}>{s.value}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1A3638', lineHeight: 1.2 }}>{s.value}</div>
                         <div style={{ fontSize: 7, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{s.sub || s.label}</div>
                       </div>
                     </div>
@@ -857,7 +857,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                       <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, stroke: '#ec4899', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
                       <span style={{ fontSize: 8, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pregnancy History</span>
                     </div>
-                    <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 14, fontWeight: 800, color: '#283693', letterSpacing: '1px' }}>G{g}P{term}{preterm}{losses}{living}</span>
+                    <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 14, fontWeight: 800, color: '#1A3638', letterSpacing: '1px' }}>G{g}P{term}{preterm}{losses}{living}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 4 }}>
                       {gtpalChips.map(c => (
                         <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -984,11 +984,11 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           </div>
 
           {/* Reviewer */}
-          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1.5px solid #283693', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1.5px solid #1A3638', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 10, color: '#78716c' }}>
               <span style={{ fontWeight: 600 }}>Medical records reviewed by:</span> {data.reviewedBy || '—'}
             </div>
-            <img src="/abc-logo-horz.png" alt="" style={{ height: 20, opacity: 0.3 }} crossOrigin="anonymous" />
+            <img src="/north-star-logo.png" alt="" style={{ height: 20, opacity: 0.3 }} crossOrigin="anonymous" />
           </div>
         </div>
       </div>
@@ -1053,8 +1053,8 @@ export default function RecordsSummaryWorkspace() {
       <style>
         @page { size: letter; margin: 0.4in 0.5in; }
         body { margin: 0; padding: 0; background: white; font-family: system-ui, -apple-system, sans-serif; }
-        .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-        .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+        .print-bar button { background: white; color: #1A3638; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
         .print-content { max-width: 100%; padding: 0; }
         /* Prevent page breaks inside sections */
@@ -1100,7 +1100,7 @@ export default function RecordsSummaryWorkspace() {
         // Generate simple HTML from form data
         const data = formData || {}
         const sections = []
-        sections.push(`<h1 style="color:#283693">GC Medical Records Summary — ${sName}</h1>`)
+        sections.push(`<h1 style="color:#1A3638">GC Medical Records Summary — ${sName}</h1>`)
         sections.push(`<p><strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</p>`)
         if (data.name) sections.push(`<p><strong>Name:</strong> ${data.name}</p>`)
         if (data.dob) sections.push(`<p><strong>DOB:</strong> ${data.dob}</p>`)
@@ -1109,7 +1109,7 @@ export default function RecordsSummaryWorkspace() {
         if (data.pertinentHistory) sections.push(`<h3>Pertinent Medical History</h3><p>${data.pertinentHistory}</p>`)
         if (data.surgicalHistory) sections.push(`<h3>Surgical History</h3><p>${data.surgicalHistory}</p>`)
         htmlContent = `<!DOCTYPE html><html><head><title>Records Summary — ${sName}</title>
-          <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } h1 { color: #283693; } h3 { color: #283693; margin-top: 16px; }</style>
+          <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } h1 { color: #1A3638; } h3 { color: #1A3638; margin-top: 16px; }</style>
           </head><body>${sections.join('\n')}</body></html>`
       }
 
@@ -1131,9 +1131,9 @@ export default function RecordsSummaryWorkspace() {
 
       // Create review tasks for Julie, Nicole, and Desiree
       const reviewers = [
-        { email: 'julie@abcsurrogacy.com', name: 'Julie Allgood' },
-        { email: 'nicole@abcsurrogacy.com', name: 'Nicole Lawson' },
-        { email: 'desiree@abcsurrogacy.com', name: 'Desiree Melchiori' },
+        { email: 'julie@northstarsurrogacy.com', name: 'Julie Allgood' },
+        { email: 'nicole@northstarsurrogacy.com', name: 'Nicole Lawson' },
+        { email: 'desiree@northstarsurrogacy.com', name: 'Desiree Melchiori' },
       ]
       for (const reviewer of reviewers) {
         try {

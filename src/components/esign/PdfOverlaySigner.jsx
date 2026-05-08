@@ -353,7 +353,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
 
   if (loading) return (
     <div className="flex items-center justify-center py-12">
-      <Loader2 className="size-6 animate-spin text-[#283693]" />
+      <Loader2 className="size-6 animate-spin text-[#1A3638]" />
       <span className="ml-2 text-sm text-stone-500">Loading PDF…</span>
     </div>
   )
@@ -372,10 +372,10 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
   // for form-above templates like the IP background waiver).
 
   const yourInformationCard = (formAbove && Array.isArray(template.formAboveFields) && template.formAboveFields.length > 0) ? (
-    <Card className="mt-1 mb-2 border-2 border-[#283693]/30 shadow-sm">
+    <Card className="mt-1 mb-2 border-2 border-[#1A3638]/30 shadow-sm">
       <CardContent className="p-4 sm:p-5 space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Your information</h3>
+          <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider">Your information</h3>
           <p className="text-[11px] text-stone-500 mt-0.5">We've prefilled what we already have. Please fill in the rest.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -391,13 +391,13 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
             return (
               <div key={f.name} className={f.type === 'date' || f.type === 'state' ? '' : 'sm:col-span-1'}>
                 <label className="block text-[11px] font-semibold text-stone-600 uppercase tracking-wide mb-1">
-                  {f.label} {f.required && <span className="text-[#ed148c]">*</span>}
+                  {f.label} {f.required && <span className="text-[#D4A853]">*</span>}
                 </label>
                 {f.type === 'state' ? (
                   <select
                     value={val}
                     onChange={(e) => updateField(f.name, e.target.value)}
-                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A3638]/40"
                   >
                     <option value="">Select…</option>
                     {US_STATE_ABBR.map(s => <option key={s} value={s}>{s}</option>)}
@@ -407,7 +407,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
                     type="date"
                     value={mmddyyyyToIso(val)}
                     onChange={(e) => onChange(e.target.value)}
-                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A3638]/40"
                   />
                 ) : (
                   <input
@@ -416,7 +416,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
                     placeholder={f.type === 'ssn' ? '123-45-6789' : f.type === 'phone' ? '555-555-5555' : ''}
                     value={val}
                     onChange={(e) => onChange(e.target.value)}
-                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A3638]/40"
                   />
                 )}
               </div>
@@ -431,19 +431,19 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
   // based on formMode (above the PDF for formAbove templates; below the
   // PDF for Kaiser-style overlays).
   const wantsCopyCard = hasWantsCopy ? (
-    <Card className="mt-5 mb-2 border-2 border-[#283693]/30 shadow-sm">
+    <Card className="mt-5 mb-2 border-2 border-[#1A3638]/30 shadow-sm">
       <CardContent className="p-4 sm:p-5 space-y-3">
-        <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Would you like a copy of the report?</h3>
+        <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider">Would you like a copy of the report?</h3>
         <p className="text-xs text-stone-500">Required. Pick one.</p>
         <div className="space-y-2">
-          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
-            <input type="radio" name="wantsCopy" value="yes" checked={fieldValues.wantsCopy === 'yes'} onChange={() => updateField('wantsCopy', 'yes')} className="mt-0.5 accent-[#283693]" />
+          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+            <input type="radio" name="wantsCopy" value="yes" checked={fieldValues.wantsCopy === 'yes'} onChange={() => updateField('wantsCopy', 'yes')} className="mt-0.5 accent-[#1A3638]" />
             <span className="text-xs text-stone-700 leading-relaxed">
-              <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.
+              <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy
             </span>
           </label>
-          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
-            <input type="radio" name="wantsCopy" value="no" checked={fieldValues.wantsCopy === 'no'} onChange={() => updateField('wantsCopy', 'no')} className="mt-0.5 accent-[#283693]" />
+          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+            <input type="radio" name="wantsCopy" value="no" checked={fieldValues.wantsCopy === 'no'} onChange={() => updateField('wantsCopy', 'no')} className="mt-0.5 accent-[#1A3638]" />
             <span className="text-xs text-stone-700 leading-relaxed">
               <strong>No</strong> — I do not wish to receive a copy of any report that is prepared, or any public records that may be obtained.
             </span>
@@ -454,10 +454,10 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
   ) : null
 
   const signatureCard = (
-    <Card className="mt-5 mb-2 border-2 border-[#ed148c]/30 shadow-sm">
+    <Card className="mt-5 mb-2 border-2 border-[#D4A853]/30 shadow-sm">
       <CardContent className="p-4 sm:p-5 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h3>
+          <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider">Your signature</h3>
           {signatures.signature && (
             <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
               <CheckCircle2 className="size-3.5" /> Signed
@@ -594,7 +594,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
                   return (
                     <button key={field.id} onClick={() => setActiveSigId(field.id)}
                       style={{ position: 'absolute', left, top: top - h, width: w, height: h, fontSize: fontPx + 2, zIndex: 20 }}
-                      className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-start px-2 font-serif italic text-[#283693]"
+                      className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-start px-2 font-serif italic text-[#1A3638]"
                       title="Click to re-sign"
                     >
                       {sig.name}
@@ -604,7 +604,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
                 return (
                   <button key={field.id} onClick={() => setActiveSigId(field.id)}
                     style={{ position: 'absolute', left, top: top - h, width: w, height: h, zIndex: 20 }}
-                    className="border-2 border-dashed border-[#ed148c] bg-[#ed148c]/10 rounded text-[10px] text-[#ed148c] font-semibold flex items-center justify-center hover:bg-[#ed148c]/20 transition-colors animate-pulse"
+                    className="border-2 border-dashed border-[#D4A853] bg-[#D4A853]/10 rounded text-[10px] text-[#D4A853] font-semibold flex items-center justify-center hover:bg-[#D4A853]/20 transition-colors animate-pulse"
                   >
                     Click to sign
                   </button>
@@ -649,7 +649,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
       {/* Footer */}
       <div className="flex flex-col items-center gap-3 pt-6 pb-10">
         <label className="flex items-center gap-2 text-sm text-stone-700">
-          <input type="checkbox" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setValidationMsg(null) }} className="size-4 accent-[#283693]" />
+          <input type="checkbox" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setValidationMsg(null) }} className="size-4 accent-[#1A3638]" />
           <span>I agree that my electronic signature is legally binding</span>
         </label>
         <Button
@@ -657,12 +657,12 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
           disabled={signing}
           size="lg"
           className="gap-2 sm:px-10"
-          style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+          style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
         >
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Submitting…' : 'Sign & Submit'}
         </Button>
-        <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+        <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
       </div>
     </div>
   )
@@ -723,11 +723,11 @@ function SignaturePad({ value, onChange, signerName }) {
   }
 
   return (
-    <Card className="rounded-xl border-2 border-[#283693]/40 shadow-lg">
+    <Card className="rounded-xl border-2 border-[#1A3638]/40 shadow-lg">
       <CardContent className="p-3 space-y-2">
         <div className="flex gap-2">
-          <button onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-          <button onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+          <button onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+          <button onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
         </div>
         {mode === 'typed' ? (
           <Input value={value?.name || ''} onChange={(e) => onChange({ type: 'typed', name: e.target.value })} placeholder="Type your full name" className="text-lg font-serif italic" autoFocus />

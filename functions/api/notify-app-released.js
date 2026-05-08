@@ -14,7 +14,7 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@northstarsurrogacy.com'
 
   if (!resendKey) {
     return new Response(JSON.stringify({ error: 'Email not configured' }), {
@@ -45,10 +45,10 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 180px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h2 style="color: #283693; font-size: 22px; margin: 0 0 16px; text-align: center;">
+        <h2 style="color: #1A3638; font-size: 22px; margin: 0 0 16px; text-align: center;">
           Your Profile Looks Great! 🎉
         </h2>
         <p style="color: #44403c; font-size: 15px; margin: 0 0 16px; line-height: 1.7;">
@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
         </p>
 
         <div style="text-align: center; margin: 28px 0;">
-          <a href="https://app.abcsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+          <a href="https://app.northstarsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
             Log In &amp; Complete Application
           </a>
         </div>
@@ -77,7 +77,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -88,7 +88,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `${admin} at ABC Surrogacy <${fromEmail}>`,
+        from: `${admin} at North Star Surrogacy <${fromEmail}>`,
         to: [surrogateEmail],
         subject: "🥳 I've reviewed your Profile! You can now complete the Application!",
         html: htmlBody,

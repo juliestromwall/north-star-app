@@ -45,10 +45,10 @@
     --color-sidebar-ring: var(--sidebar-ring);
 
     /* Custom brand colors */
-    --color-abc-indigo: #283693;
-    --color-abc-coral: #ed148c;
+    --color-abc-indigo: #1A3638;
+    --color-abc-coral: #D4A853;
     --color-abc-cream: #FCF8EF;
-    --color-abc-navy: #283693;
+    --color-abc-navy: #1A3638;
 
     /* Fonts */
     --font-sans: 'Open Sans', sans-serif;
@@ -57,38 +57,38 @@
 
 :root {
     --radius: 0.625rem;
-    /* ABC Surrogacy Brand Theme */
+    /* North Star Surrogacy Brand Theme */
     --background: #FCF8EF;
-    --foreground: #283693;
+    --foreground: #1A3638;
     --card: #FFFFFF;
-    --card-foreground: #283693;
+    --card-foreground: #1A3638;
     --popover: #FFFFFF;
-    --popover-foreground: #283693;
-    --primary: #283693;
+    --popover-foreground: #1A3638;
+    --primary: #1A3638;
     --primary-foreground: #FFFFFF;
     --secondary: #F0EDE4;
-    --secondary-foreground: #283693;
+    --secondary-foreground: #1A3638;
     --muted: #F0EDE4;
     --muted-foreground: #666666;
-    --accent: #ed148c;
+    --accent: #D4A853;
     --accent-foreground: #FFFFFF;
     --destructive: #DC2626;
     --border: #E5DFD3;
     --input: #E5DFD3;
-    --ring: #283693;
-    --chart-1: #283693;
-    --chart-2: #ed148c;
-    --chart-3: #283693;
+    --ring: #1A3638;
+    --chart-1: #1A3638;
+    --chart-2: #D4A853;
+    --chart-3: #1A3638;
     --chart-4: #8B8FBF;
     --chart-5: #f9a8d4;
     --sidebar: #FFFFFF;
     --sidebar-foreground: #57534e;
-    --sidebar-primary: #283693;
+    --sidebar-primary: #1A3638;
     --sidebar-primary-foreground: #FFFFFF;
     --sidebar-accent: #f5f5f4;
-    --sidebar-accent-foreground: #283693;
+    --sidebar-accent-foreground: #1A3638;
     --sidebar-border: #e7e5e4;
-    --sidebar-ring: #283693;
+    --sidebar-ring: #1A3638;
 }
 
 /* ===== Dark Mode ===== */
@@ -105,14 +105,14 @@
     --secondary-foreground: #c8c6d4;
     --muted: #22222e;
     --muted-foreground: #8a8898;
-    --accent: #ed148c;
+    --accent: #D4A853;
     --accent-foreground: #FFFFFF;
     --destructive: #ef4444;
     --border: #2a2a38;
     --input: #2a2a38;
     --ring: #c0c8f0;
     --chart-1: #c0c8f0;
-    --chart-2: #ed148c;
+    --chart-2: #D4A853;
     --chart-3: #c0c8f0;
     --chart-4: #8B8FBF;
     --chart-5: #f9a8d4;
@@ -148,15 +148,15 @@
 
     /* Pink-styled dropdowns — replace browser blue */
     select {
-        accent-color: #ed148c;
+        accent-color: #D4A853;
     }
     select:focus {
         outline: 2px solid rgba(237, 20, 140, 0.4);
         outline-offset: -1px;
-        border-color: #ed148c;
+        border-color: #D4A853;
     }
     select option:checked {
-        background: #ed148c;
+        background: #D4A853;
         color: white;
     }
 
@@ -171,7 +171,7 @@
     .dark select:focus,
     .dark input:focus,
     .dark textarea:focus {
-        border-color: #ed148c;
+        border-color: #D4A853;
     }
 }
 
@@ -183,7 +183,7 @@
 }
 .sidebar-nav-item:hover {
     background: rgba(40, 54, 147, 0.04);
-    color: #283693;
+    color: #1A3638;
 }
 .dark .sidebar-nav-item:hover {
     background: rgba(255, 255, 255, 0.06);

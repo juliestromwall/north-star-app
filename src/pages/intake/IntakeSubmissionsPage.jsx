@@ -389,7 +389,7 @@ export default function IntakeSubmissionsPage() {
               {/* Status actions */}
               <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-stone-100 mt-4">
                 {!selected.answers?._reviewedAt && (
-                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => markAsReviewed(selected.id)}>
+                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => markAsReviewed(selected.id)}>
                     <CheckCircle2 className="size-3.5" /> Mark as Reviewed
                   </Button>
                 )}

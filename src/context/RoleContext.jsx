@@ -7,21 +7,21 @@ const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
     id: 'u1',
     name: 'Dev Admin',
-    email: 'dev@abcsurrogacy.com',
+    email: 'dev@northstarsurrogacy.com',
     role: ROLES.SUPER_ADMIN,
     avatar: null,
   },
   [ROLES.MASTER_ADMIN]: {
     id: 'u2',
     name: 'Julie Allgood',
-    email: 'julie@abcsurrogacy.com',
+    email: 'julie@northstarsurrogacy.com',
     role: ROLES.MASTER_ADMIN,
     avatar: null,
   },
   [ROLES.ADMIN]: {
     id: 'u4',
     name: 'Emily Rotter',
-    email: 'emily@abcsurrogacy.com',
+    email: 'emily@northstarsurrogacy.com',
     role: ROLES.ADMIN,
     avatar: null,
   },
@@ -49,7 +49,7 @@ const MOCK_USERS = {
   [ROLES.MARKETING]: {
     id: 'u7',
     name: 'Casey Rivera',
-    email: 'casey@abcsurrogacy.com',
+    email: 'casey@northstarsurrogacy.com',
     role: ROLES.MARKETING,
     avatar: null,
   },

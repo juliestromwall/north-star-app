@@ -94,8 +94,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
-            <h1 className="text-3xl font-heading font-bold" style={{ color: '#283693' }}>Welcome <span style={{ color: '#ed148c' }}>back</span></h1>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
+            <h1 className="text-3xl font-heading font-bold" style={{ color: '#1A3638' }}>Welcome <span style={{ color: '#D4A853' }}>back</span></h1>
             <p className="text-stone-400 text-sm mt-2">Sign in to your portal</p>
             {new URLSearchParams(location.search).get('reason') === 'idle' && (
               <p className="text-amber-600 text-xs mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">You were signed out due to inactivity. Please sign in again.</p>
@@ -104,7 +104,7 @@ export default function LoginPage() {
               <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 text-center">
                 <ShieldX className="size-8 text-red-400 mx-auto mb-2" />
                 <p className="text-sm font-semibold text-red-700">Portal Access Removed</p>
-                <p className="text-xs text-red-500 mt-1">Your portal access is no longer active. If you believe this is an error, please contact <a href="mailto:info@abcsurrogacy.com" className="underline font-medium">info@abcsurrogacy.com</a></p>
+                <p className="text-xs text-red-500 mt-1">Your portal access is no longer active. If you believe this is an error, please contact <a href="mailto:info@northstarsurrogacy.com" className="underline font-medium">info@northstarsurrogacy.com</a></p>
               </div>
             )}
           </div>
@@ -123,7 +123,7 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="text-center mb-2">
-                    <Mail className="size-8 text-[#283693] mx-auto mb-2" />
+                    <Mail className="size-8 text-[#1A3638] mx-auto mb-2" />
                     <h2 className="text-lg font-semibold text-stone-800">Reset your password</h2>
                     <p className="text-sm text-stone-500 mt-1">Enter your email and we'll send you a reset link</p>
                   </div>
@@ -132,7 +132,7 @@ export default function LoginPage() {
                     <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" autoFocus />
                   </div>
                   {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
-                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
+                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
                     {loading ? 'Sending...' : 'Send Reset Link'}
                   </Button>
                   <button type="button" onClick={() => { setForgotMode(false); setError(null) }} className="w-full text-xs text-stone-500 hover:text-stone-700 flex items-center justify-center gap-1 mt-2">
@@ -162,7 +162,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setForgotMode(true); setError(null) }}
-                  className="text-xs text-[#ed148c] hover:underline"
+                  className="text-xs text-[#D4A853] hover:underline"
                 >
                   Forgot password?
                 </button>
@@ -194,7 +194,7 @@ export default function LoginPage() {
               type="submit"
               disabled={!email || !password || loading}
               className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0"
-              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
             >
               {loading ? 'Signing in...' : 'Sign in'}
               {!loading && <ArrowRight className="w-4 h-4" />}
@@ -206,7 +206,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="py-8 text-center text-xs text-stone-300">
-        © {new Date().getFullYear()} Abundant Beginnings Co.
+        © {new Date().getFullYear()} North Star Surrogacy
       </footer>
     </div>
   )

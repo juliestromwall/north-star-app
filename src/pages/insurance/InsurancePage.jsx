@@ -295,7 +295,7 @@ function InsuranceTable({ surrogates, insuranceMap, paymentsMap, currentMonth, o
             return (
               <tr key={s.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
                 <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
-                  <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
+                  <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#1A3638] dark:text-[#c0c8f0] hover:underline text-sm">
                     {s.name}
                   </Link>
                   <div className="text-[10px] text-stone-400 mt-0.5">

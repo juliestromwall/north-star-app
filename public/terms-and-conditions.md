@@ -1,12 +1,12 @@
-# ABC Surrogacy Portal — Terms of Use
+# North Star Surrogacy Portal — Terms of Use
 
 **Last Updated: April 14, 2026**
 
-Welcome to the ABC Surrogacy (Abundant Beginnings Company) Portal. By creating an account, accessing, or using this portal, you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not access or use the portal.
+Welcome to the North Star Surrogacy (North Star Surrogacy) Portal. By creating an account, accessing, or using this portal, you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not access or use the portal.
 
 ## 1. Portal Purpose
 
-The ABC Surrogacy Portal ("Portal") is a private, secure platform designed to facilitate communication, document management, and case tracking between ABC Surrogacy ("Agency," "we," "us," or "our") and its gestational carriers ("Surrogates"), intended parents ("IPs"), and their respective partners. The Portal is not a public website and access is granted by invitation only.
+The North Star Surrogacy Portal ("Portal") is a private, secure platform designed to facilitate communication, document management, and case tracking between North Star Surrogacy ("Agency," "we," "us," or "our") and its gestational carriers ("Surrogates"), intended parents ("IPs"), and their respective partners. The Portal is not a public website and access is granted by invitation only.
 
 ## 2. Account Registration & Security
 
@@ -65,7 +65,7 @@ Breach of confidentiality may result in immediate account termination and may ha
 
 ## 6. Intellectual Property
 
-All content, design, features, and functionality of the Portal are owned by ABC Surrogacy and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works based on the Portal without our express written permission.
+All content, design, features, and functionality of the Portal are owned by North Star Surrogacy and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works based on the Portal without our express written permission.
 
 ## 7. Privacy & Data Protection
 
@@ -85,7 +85,7 @@ The Portal is provided "as is" and "as available" without warranties of any kind
 
 ## 10. Indemnification
 
-You agree to indemnify and hold harmless ABC Surrogacy, its officers, directors, employees, and agents from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising out of your use of the Portal, your violation of these Terms, or your violation of any rights of another party.
+You agree to indemnify and hold harmless North Star Surrogacy, its officers, directors, employees, and agents from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising out of your use of the Portal, your violation of these Terms, or your violation of any rights of another party.
 
 ## 11. Governing Law
 
@@ -99,8 +99,8 @@ We reserve the right to update or modify these Terms at any time. If we make mat
 
 If you have questions about these Terms, please contact us at:
 
-**ABC Surrogacy (Abundant Beginnings Company)**
-Email: info@abcsurrogacy.com
+**North Star Surrogacy (North Star Surrogacy)**
+Email: info@northstarsurrogacy.com
 
 ---
 
@@ -108,7 +108,7 @@ Email: info@abcsurrogacy.com
 
 **Last Updated: April 14, 2026**
 
-ABC Surrogacy ("Agency," "we," "us," or "our") is committed to protecting the privacy and security of your personal information. This Privacy Policy describes how we collect, use, store, and protect information through the ABC Surrogacy Portal ("Portal").
+North Star Surrogacy ("Agency," "we," "us," or "our") is committed to protecting the privacy and security of your personal information. This Privacy Policy describes how we collect, use, store, and protect information through the North Star Surrogacy Portal ("Portal").
 
 ## Information We Collect
 
@@ -178,7 +178,7 @@ Depending on your jurisdiction, you may have the right to:
 - **Object** to certain processing of your information
 - **Request a copy** of your data in a portable format
 
-To exercise these rights, contact us at info@abcsurrogacy.com.
+To exercise these rights, contact us at info@northstarsurrogacy.com.
 
 ## Children's Privacy
 
@@ -192,8 +192,8 @@ We may update this Privacy Policy from time to time. We will notify you of mater
 
 If you have questions about this Privacy Policy or our data practices, please contact:
 
-**ABC Surrogacy (Abundant Beginnings Company)**
-Email: info@abcsurrogacy.com
+**North Star Surrogacy (North Star Surrogacy)**
+Email: info@northstarsurrogacy.com
 
 ---
 

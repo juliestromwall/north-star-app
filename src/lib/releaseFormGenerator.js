@@ -112,9 +112,9 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 <div style="font-family: Arial, Helvetica, sans-serif; max-width: 800px; margin: 0 auto; color: #000; line-height: 1.35; font-size: 11px;">
 
   <!-- Header -->
-  <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #283693;">
-    <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="height: 50px; margin-bottom: 4px;" onerror="this.style.display='none'" />
-    <p style="color: #283693; font-size: 16px; font-weight: 700; margin: 0;">Abundant Beginnings Co.</p>
+  <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #1A3638;">
+    <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="height: 50px; margin-bottom: 4px;" onerror="this.style.display='none'" />
+    <p style="color: #1A3638; font-size: 16px; font-weight: 700; margin: 0;">North Star Surrogacy</p>
     <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 818-321-9329 | F: 323-843-9433</p>
     <p style="font-size: 14px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>
     <p style="font-size: 11px; font-weight: 600; margin-top: 3px;">${typeInfo.label} Records</p>
@@ -137,9 +137,9 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <!-- Authorization + Recipient combined -->
   <p style="margin: 10px 0 6px 0;">I authorize the release of <strong>healthcare information</strong> and <strong>reproductive health records</strong> of the patient named above for the purpose of <u>continuation of medical care</u> and evaluation for a gestational surrogacy arrangement to:</p>
 
-  <div style="text-align: center; margin: 6px 0; padding: 8px; border: 2px solid #283693;">
-    <p style="font-weight: 700; color: #283693; font-size: 13px; margin: 0;">Abundant Beginnings Co. C/O Desiree Melchiori</p>
-    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 818-321-9329 | Fax: 323-843-9433 | records@abcsurrogacy.com</p>
+  <div style="text-align: center; margin: 6px 0; padding: 8px; border: 2px solid #1A3638;">
+    <p style="font-weight: 700; color: #1A3638; font-size: 13px; margin: 0;">North Star Surrogacy C/O Desiree Melchiori</p>
+    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 818-321-9329 | Fax: 323-843-9433 | records@northstarsurrogacy.com</p>
   </div>
 
   <!-- Provider -->
@@ -188,7 +188,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <!-- Legal Terms — condensed -->
   <div style="margin-top: 10px; font-size: 9.5px; line-height: 1.4;">
     <p style="font-weight: 700; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 4px;">Terms and Conditions</p>
-    <p style="margin: 2px 0;"><strong>Purpose:</strong> Evaluation and continuation of care related to a gestational surrogacy arrangement facilitated by Abundant Beginnings Co.</p>
+    <p style="margin: 2px 0;"><strong>Purpose:</strong> Evaluation and continuation of care related to a gestational surrogacy arrangement facilitated by North Star Surrogacy</p>
     <p style="margin: 2px 0;"><strong>Expiration:</strong> This authorization expires on <strong>${expirationDate}</strong> (12 months from signature), or upon completion of the surrogacy arrangement, whichever occurs first.</p>
     <p style="margin: 2px 0;"><strong>Right to Revoke:</strong> I may revoke this authorization at any time in writing to the provider's medical records department. Revocation will not affect disclosures already made.</p>
     <p style="margin: 2px 0;"><strong>Voluntary:</strong> Signing is voluntary. Treatment, payment, enrollment, or eligibility for benefits will not be conditioned on signing.</p>
@@ -217,7 +217,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Footer -->
   <div style="margin-top: 16px; text-align: center; padding-top: 8px; border-top: 1px solid #000;">
-    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 818-321-9329 | F: 323-843-9433 | abcsurrogacy.com</p>
+    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 818-321-9329 | F: 323-843-9433 | northstarsurrogacy.com</p>
     <p style="font-size: 7px; color: #555; margin: 2px 0 0 0;">Compliant with HIPAA (45 CFR 164.508), ESIGN Act, UETA, 42 CFR Part 2, and Cal. Civil Code 56.11.</p>
   </div>
 

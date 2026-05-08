@@ -102,7 +102,7 @@ export default function CaseTasksWidget({ caseId, caseType, caseName, onAttentio
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-stone-700">Tasks ({openTasks.length})</h3>
-        <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+        <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#1A3638' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Task
         </Button>
       </div>
@@ -200,7 +200,7 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
             <div className="space-y-1">
               <Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} className="text-xs" placeholder="Add a note..." />
               <div className="flex gap-1">
-                <Button size="sm" className="h-6 text-[10px]" style={{ backgroundColor: '#283693' }} onClick={() => { onUpdate(task.id, { description: desc }); setEditing(false) }}>Save</Button>
+                <Button size="sm" className="h-6 text-[10px]" style={{ backgroundColor: '#1A3638' }} onClick={() => { onUpdate(task.id, { description: desc }); setEditing(false) }}>Save</Button>
                 <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
             </div>
@@ -218,8 +218,8 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
   )
 }
 
-const JULIE_EMAIL = 'julie@abcsurrogacy.com'
-const NICOLE_EMAIL = 'nicole@abcsurrogacy.com'
+const JULIE_EMAIL = 'julie@northstarsurrogacy.com'
+const NICOLE_EMAIL = 'nicole@northstarsurrogacy.com'
 
 function buildAssignOptions() {
   const staff = getAdminStaff()
@@ -293,7 +293,7 @@ function AddTaskDialog({ open, onOpenChange, onSave, currentUser }) {
           </div>
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving || !form.title.trim()}>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSave} disabled={saving || !form.title.trim()}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
               {saving ? 'Adding...' : 'Add Task'}
             </Button>
@@ -385,7 +385,7 @@ export function DashboardTasksWidget({ userEmail }) {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-stone-800 truncate">{task.title}</p>
-          <a href={getCaseLink(task)} className="text-[10px] text-[#283693] hover:underline">{getCaseName(task)}</a>
+          <a href={getCaseLink(task)} className="text-[10px] text-[#1A3638] hover:underline">{getCaseName(task)}</a>
         </div>
         {priorityBadge(task.priority)}
         {task.due_date && (
@@ -402,7 +402,7 @@ export function DashboardTasksWidget({ userEmail }) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">My Tasks ({openTasks.length})</CardTitle>
-          <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#1A3638' }} onClick={() => setAddOpen(true)}>
             <Plus className="size-3" /> Add Task
           </Button>
         </div>
@@ -478,7 +478,7 @@ function DashboardAddTaskDialog({ open, onOpenChange, onSave, currentUser, cases
                 {filteredCases.map(c => (
                   <button key={`${c.type}-${c.id}`} onClick={() => { setForm(f => ({ ...f, case_id: c.id, case_type: c.type })); setCaseSearch(c.name) }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-stone-50 flex items-center gap-2">
-                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'surrogate' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#283693]' : 'bg-purple-500'}`}>
+                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'surrogate' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
                       {c.type === 'surrogate' ? 'GC' : c.type === 'ip' ? 'IP' : 'J'}
                     </span>
                     {c.name}
@@ -516,7 +516,7 @@ function DashboardAddTaskDialog({ open, onOpenChange, onSave, currentUser, cases
           </div>
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.case_id}>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.case_id}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
               {saving ? 'Adding...' : 'Add Task'}
             </Button>

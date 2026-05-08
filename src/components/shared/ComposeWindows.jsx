@@ -192,16 +192,16 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
         variant="ghost"
         size="icon-sm"
         onClick={() => setOpen(o => !o)}
-        className="size-7 text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10"
+        className="size-7 text-[#1A3638] hover:text-[#1A3638] hover:bg-[#1A3638]/10"
         title="Help me write"
       >
         <Wand2 className="size-3.5" />
       </Button>
       {open && (
         <div className="absolute bottom-9 left-0 z-50 bg-white border border-stone-200 rounded-xl shadow-lg w-[360px] overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#283693]/5 to-[#ed148c]/5 border-b">
-            <Sparkles className="size-4 text-[#283693]" />
-            <p className="text-xs font-semibold text-[#283693]">Help me refine</p>
+          <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#1A3638]/5 to-[#D4A853]/5 border-b">
+            <Sparkles className="size-4 text-[#1A3638]" />
+            <p className="text-xs font-semibold text-[#1A3638]">Help me refine</p>
             <button type="button" onClick={() => { setOpen(false); reset() }} className="ml-auto text-stone-400 hover:text-stone-600">
               <X className="size-3.5" />
             </button>
@@ -220,9 +220,9 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
                   key={mode}
                   type="button"
                   onClick={() => handleQuickAction(mode)}
-                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-xs text-stone-700 hover:bg-white hover:text-[#283693] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-xs text-stone-700 hover:bg-white hover:text-[#1A3638] transition-colors text-left"
                 >
-                  <Icon className="size-3.5 text-[#ed148c]" />
+                  <Icon className="size-3.5 text-[#D4A853]" />
                   <span>{label}</span>
                 </button>
               ))}
@@ -240,12 +240,12 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleGenerate() } }}
                 placeholder="What would you like to write? (e.g. 'polite follow-up about the intake paperwork')"
-                className="w-full h-20 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#283693]/30 focus:border-[#283693]/40 resize-none"
+                className="w-full h-20 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#1A3638]/30 focus:border-[#1A3638]/40 resize-none"
               />
               {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
               <div className="flex items-center justify-between mt-2">
                 <p className="text-[10px] text-stone-400">⌘+Enter to generate</p>
-                <Button size="sm" onClick={handleGenerate} disabled={!prompt.trim()} className="h-7 gap-1.5 text-xs bg-[#283693] hover:bg-[#283693]/90">
+                <Button size="sm" onClick={handleGenerate} disabled={!prompt.trim()} className="h-7 gap-1.5 text-xs bg-[#1A3638] hover:bg-[#1A3638]/90">
                   <Wand2 className="size-3" /> Generate
                 </Button>
               </div>
@@ -254,7 +254,7 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
 
           {stage === 'generating' && (
             <div className="p-6 flex flex-col items-center justify-center gap-2 text-xs text-stone-500">
-              <Loader2 className="size-5 animate-spin text-[#283693]" />
+              <Loader2 className="size-5 animate-spin text-[#1A3638]" />
               Drafting…
             </div>
           )}
@@ -270,7 +270,7 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
                   onChange={e => setRefineText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleRefine() } }}
                   placeholder="Refine: make it shorter, more formal, add a deadline, etc."
-                  className="w-full h-14 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#283693]/30 focus:border-[#283693]/40 resize-none"
+                  className="w-full h-14 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#1A3638]/30 focus:border-[#1A3638]/40 resize-none"
                 />
                 {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
                 <div className="flex items-center gap-1.5 mt-2">
@@ -280,7 +280,7 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
                   <Button size="sm" variant="outline" onClick={handleRefine} disabled={!refineText.trim()} className="h-7 text-xs gap-1">
                     <Sparkles className="size-3" /> Refine
                   </Button>
-                  <Button size="sm" onClick={handleInsert} className="h-7 text-xs gap-1 bg-[#283693] hover:bg-[#283693]/90 ml-auto">
+                  <Button size="sm" onClick={handleInsert} className="h-7 text-xs gap-1 bg-[#1A3638] hover:bg-[#1A3638]/90 ml-auto">
                     Insert
                   </Button>
                 </div>
@@ -297,8 +297,8 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
 
 const TEXT_COLORS = [
   { color: '#000000', label: 'Black' },
-  { color: '#283693', label: 'Indigo' },
-  { color: '#ed148c', label: 'Pink' },
+  { color: '#1A3638', label: 'Indigo' },
+  { color: '#D4A853', label: 'Pink' },
   { color: '#ef4444', label: 'Red' },
   { color: '#f59e0b', label: 'Amber' },
   { color: '#10b981', label: 'Green' },
@@ -497,9 +497,9 @@ function RecipientInput({ value, onChange, placeholder, contacts }) {
               type="button"
               onMouseDown={(e) => { e.preventDefault(); selectContact(c) }}
               onMouseEnter={() => setHighlightedIdx(i)}
-              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${i === highlightedIdx ? 'bg-[#283693]/8' : 'hover:bg-stone-50'}`}
+              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${i === highlightedIdx ? 'bg-[#1A3638]/8' : 'hover:bg-stone-50'}`}
             >
-              <div className="size-7 rounded-full bg-[#283693]/10 flex items-center justify-center text-[10px] font-semibold text-[#283693] shrink-0">
+              <div className="size-7 rounded-full bg-[#1A3638]/10 flex items-center justify-center text-[10px] font-semibold text-[#1A3638] shrink-0">
                 {(c.name || c.email)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -836,7 +836,7 @@ function ComposeWindow({ draft, index }) {
         style={{ right: rightOffset, width: 280 }}
         onClick={() => expandDraft(draft.id)}
       >
-        <div className="flex items-center justify-between px-3 py-2 bg-[#283693] text-white">
+        <div className="flex items-center justify-between px-3 py-2 bg-[#1A3638] text-white">
           <span className="text-sm font-medium truncate flex-1">
             {draft.subject || 'New Message'}
           </span>
@@ -885,12 +885,12 @@ function ComposeWindow({ draft, index }) {
         .compose-editor .tiptap li p { margin: 0; }
         .compose-editor .tiptap p { margin: 0.25em 0; }
         .compose-editor .tiptap mark { border-radius: 2px; padding: 1px 2px; }
-        .compose-editor .tiptap a { color: #283693; text-decoration: underline; }
+        .compose-editor .tiptap a { color: #1A3638; text-decoration: underline; }
         .compose-editor .ProseMirror { height: 100%; }
       `}</style>
 
       {/* Title bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#283693] text-white shrink-0">
+      <div className="flex items-center justify-between px-3 py-2 bg-[#1A3638] text-white shrink-0">
         <span className="text-sm font-medium truncate flex-1">
           {draft.subject || 'New Message'}
         </span>
@@ -1001,7 +1001,7 @@ function ComposeWindow({ draft, index }) {
           <HelpMeWriteButton editor={editor} draft={draft} senderName={currentUser?.name} />
           <EmojiPickerButton editor={editor} />
           {draft.caseId && (
-            <Button variant="ghost" size="sm" onClick={openDocPicker} className="h-7 gap-1 text-[10px] text-stone-500 hover:text-[#283693]" title="Attach from case documents">
+            <Button variant="ghost" size="sm" onClick={openDocPicker} className="h-7 gap-1 text-[10px] text-stone-500 hover:text-[#1A3638]" title="Attach from case documents">
               <FolderOpen className="size-3.5" /> Docs
             </Button>
           )}
@@ -1039,7 +1039,7 @@ function ComposeWindow({ draft, index }) {
                         value={caseSearch}
                         onChange={e => setCaseSearch(e.target.value)}
                         placeholder="Search cases..."
-                        className="w-full h-8 text-xs border border-stone-200 rounded-md pl-7 pr-2 bg-white focus:outline-none focus:border-[#283693]"
+                        className="w-full h-8 text-xs border border-stone-200 rounded-md pl-7 pr-2 bg-white focus:outline-none focus:border-[#1A3638]"
                       />
                     </div>
                   </div>
@@ -1065,17 +1065,17 @@ function ComposeWindow({ draft, index }) {
                               updateDraft(draft.id, { caseId: c.id === '_none' ? '' : String(c.id) })
                               setCasePickerOpen(false)
                             }}
-                            className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 flex items-center justify-between ${isSelected ? 'bg-[#283693]/5 text-[#283693] font-medium' : 'text-stone-700'}`}
+                            className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 flex items-center justify-between ${isSelected ? 'bg-[#1A3638]/5 text-[#1A3638] font-medium' : 'text-stone-700'}`}
                           >
                             <span className="truncate">{c.label}</span>
-                            {isSelected && <Check className="size-3 text-[#283693] shrink-0 ml-2" />}
+                            {isSelected && <Check className="size-3 text-[#1A3638] shrink-0 ml-2" />}
                           </button>
                         )
                       }
                       const noneRow = matches({ label: 'None' }) ? (
                         <button
                           onClick={() => { updateDraft(draft.id, { caseId: '' }); setCasePickerOpen(false) }}
-                          className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 ${(!draft.caseId || draft.caseId === '_none') ? 'bg-[#283693]/5 text-[#283693] font-medium' : 'text-stone-500 italic'}`}
+                          className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 ${(!draft.caseId || draft.caseId === '_none') ? 'bg-[#1A3638]/5 text-[#1A3638] font-medium' : 'text-stone-500 italic'}`}
                         >
                           None
                         </button>
@@ -1131,7 +1131,7 @@ function ComposeWindow({ draft, index }) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[60vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-4 py-3 border-b flex items-center justify-between">
               <h3 className="text-sm font-semibold text-stone-800 flex items-center gap-2">
-                <FolderOpen className="size-4 text-[#283693]" /> Attach from Case Documents
+                <FolderOpen className="size-4 text-[#1A3638]" /> Attach from Case Documents
               </h3>
               <button onClick={() => setDocPickerOpen(false)} className="text-stone-400 hover:text-stone-600"><X className="size-4" /></button>
             </div>
@@ -1164,11 +1164,11 @@ function ComposeWindow({ draft, index }) {
                       return (
                         <label
                           key={doc.id}
-                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : `cursor-pointer ${isSelected ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5'}`}`}
+                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : `cursor-pointer ${isSelected ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-100 hover:border-[#1A3638]/30 hover:bg-[#1A3638]/5'}`}`}
                         >
                           <input
                             type="checkbox"
-                            className="size-4 accent-[#283693] shrink-0"
+                            className="size-4 accent-[#1A3638] shrink-0"
                             checked={isSelected || alreadyAttached}
                             disabled={alreadyAttached}
                             onChange={toggle}
@@ -1177,7 +1177,7 @@ function ComposeWindow({ draft, index }) {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
                             <p className="text-[10px] text-stone-400">
-                              {doc._source && <span className={`inline-block mr-1.5 px-1 py-0 rounded text-white text-[9px] font-bold ${doc._source === 'GC' ? 'bg-pink-500' : doc._source === 'IP' ? 'bg-[#283693]' : 'bg-purple-500'}`}>{doc._source}</span>}
+                              {doc._source && <span className={`inline-block mr-1.5 px-1 py-0 rounded text-white text-[9px] font-bold ${doc._source === 'GC' ? 'bg-pink-500' : doc._source === 'IP' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>{doc._source}</span>}
                               {doc.category?.replace(/_/g, ' ')} {doc.file_size ? `· ${fileSizeLabel(doc.file_size)}` : ''}
                             </p>
                           </div>
@@ -1202,7 +1202,7 @@ function ComposeWindow({ draft, index }) {
                   setPickerSelected(new Set())
                   setDocPickerOpen(false)
                 }}
-                style={{ backgroundColor: pickerSelected.size > 0 ? '#283693' : undefined }}
+                style={{ backgroundColor: pickerSelected.size > 0 ? '#1A3638' : undefined }}
                 className="gap-1.5"
               >
                 {pickerAttaching ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}

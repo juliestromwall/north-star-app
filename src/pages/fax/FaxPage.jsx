@@ -739,9 +739,9 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 function HeroStats({ inbox, outbox, unreadCount, filedCount, filter, setFilter }) {
   const stats = [
     { id: 'all-in', label: 'Received', value: inbox.length, color: '#8b5cf6' },
-    { id: 'unread', label: 'Unread', value: unreadCount, color: '#ed148c' },
+    { id: 'unread', label: 'Unread', value: unreadCount, color: '#D4A853' },
     { id: 'filed', label: 'Filed', value: filedCount, color: '#10b981' },
-    { id: 'all-out', label: 'Sent', value: outbox.length, color: '#283693' },
+    { id: 'all-out', label: 'Sent', value: outbox.length, color: '#1A3638' },
   ]
 
   return (

@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@northstarsurrogacy.com'
 
   if (!supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }), {
@@ -107,14 +107,14 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 200px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 200px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
-          Welcome to your <span style="color: #ed148c;">secure portal</span>
+        <h1 style="color: #1A3638; font-size: 24px; margin: 0 0 8px; text-align: center;">
+          Welcome to your <span style="color: #D4A853;">secure portal</span>
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
-          Abundant Beginnings Co. has set up your intended parent account
+          North Star Surrogacy has set up your intended parent account
         </p>
 
         <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 20px; margin: 0 0 24px;">
@@ -122,13 +122,13 @@ export async function onRequestPost(context) {
             Hi ${displayName},
           </p>
           <p style="margin: 8px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
-            Your account has been created at <strong><a href="https://app.abcsurrogacy.com" style="color: #283693; font-weight: 600;">app.abcsurrogacy.com</a></strong>. Click the button below to set your password and access your portal.
+            Your account has been created at <strong><a href="https://app.northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.northstarsurrogacy.com</a></strong>. Click the button below to set your password and access your portal.
           </p>
         </div>
 
         ${resetLink ? `
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
               Set Your Password
             </a>
           </div>
@@ -141,7 +141,7 @@ export async function onRequestPost(context) {
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; <a href="https://abcsurrogacy.com" style="color: #a8a29e;">abcsurrogacy.com</a>
+          North Star Surrogacy, LLC &middot; <a href="https://northstarsurrogacy.com" style="color: #a8a29e;">northstarsurrogacy.com</a>
         </p>
       </div>
     </div>
@@ -155,9 +155,9 @@ export async function onRequestPost(context) {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: `Abundant Beginnings Co. <${fromEmail}>`,
+            from: `North Star Surrogacy <${fromEmail}>`,
             to: [email],
-            subject: "You're invited to your ABC Surrogacy portal",
+            subject: "You're invited to your North Star Surrogacy portal",
             html: htmlBody,
           }),
         })

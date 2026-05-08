@@ -29,7 +29,7 @@ function row(label, value) {
 export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
   const notifyEmails = (env.IP_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
     .split(',').map(e => e.trim()).filter(Boolean)
 
@@ -57,29 +57,29 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 160px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 20px; margin: 0 0 20px; text-align: center;">
+        <h1 style="color: #1A3638; font-size: 20px; margin: 0 0 20px; text-align: center;">
           New Intended Parent Application
         </h1>
 
         <!-- Primary Parent -->
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em;">Primary Parent</p>
+        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.05em;">Primary Parent</p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${row('Name', applicantName)}
           ${row('Date of Birth', a.primaryDob)}
-          ${row('Email', a.email ? `<a href="mailto:${a.email}" style="color: #283693;">${a.email}</a>` : null)}
+          ${row('Email', a.email ? `<a href="mailto:${a.email}" style="color: #1A3638;">${a.email}</a>` : null)}
           ${row('Phone', a.phone ? `${a.phoneCountry || '+1'} ${a.phone}` : null)}
         </table>
 
         ${hasPartner ? `
         <!-- Partner -->
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #ed148c; text-transform: uppercase; letter-spacing: 0.05em;">Partner</p>
+        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #D4A853; text-transform: uppercase; letter-spacing: 0.05em;">Partner</p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${row('Name', `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim())}
           ${row('Date of Birth', a.ip2Dob)}
-          ${row('Email', a.ip2Email ? `<a href="mailto:${a.ip2Email}" style="color: #283693;">${a.ip2Email}</a>` : null)}
+          ${row('Email', a.ip2Email ? `<a href="mailto:${a.ip2Email}" style="color: #1A3638;">${a.ip2Email}</a>` : null)}
           ${row('Phone', a.ip2Phone ? `${a.ip2PhoneCountry || '+1'} ${a.ip2Phone}` : null)}
         </table>
         ` : `
@@ -87,7 +87,7 @@ export async function onRequestPost(context) {
         `}
 
         <!-- Location -->
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em;">Location</p>
+        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.05em;">Location</p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${row('Country', a.country)}
           ${row('Address', [a.street, a.street2].filter(Boolean).join(', '))}
@@ -97,7 +97,7 @@ export async function onRequestPost(context) {
         </table>
 
         <!-- Fertility -->
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em;">Fertility Information</p>
+        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.05em;">Fertility Information</p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${row('Working with an RE?', a.hasRE)}
           ${a.hasRE ? row('RE Doctor Name', a.reDoctorName) : ''}
@@ -108,7 +108,7 @@ export async function onRequestPost(context) {
         </table>
 
         <!-- Other -->
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em;">Other</p>
+        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.05em;">Other</p>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${row('Wants Consultation?', a.wantsConsultation)}
           ${row('How They Heard About Us', a.hearAboutUs)}
@@ -116,14 +116,14 @@ export async function onRequestPost(context) {
         </table>
 
         <div style="text-align: center; margin: 20px 0;">
-          <a href="https://app.abcsurrogacy.com/intended-parents" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="https://app.northstarsurrogacy.com/intended-parents" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             View in Dashboard
           </a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 20px 0;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -134,7 +134,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `New Intended Parent Application — ${applicantName}`,
         html: htmlBody,

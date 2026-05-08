@@ -51,7 +51,7 @@ export default function MatchNotesDialog({ open, onOpenChange, caseId, answers, 
           />
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
               {saving ? 'Saving...' : 'Save Notes'}
             </Button>

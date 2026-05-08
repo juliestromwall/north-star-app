@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
   const supabaseUrl = env.SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
   const resendKey = env.RESEND_API_KEY // or use Gmail — but we need a no-auth email sender
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'info@northstarsurrogacy.com'
 
   const { email, firstName, lastName } = await context.request.json()
   if (!email || !firstName) {
@@ -57,18 +57,18 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 200px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 200px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
-          Thank you, <span style="color: #ed148c;">${firstName}</span>! 🎉
+        <h1 style="color: #1A3638; font-size: 24px; margin: 0 0 8px; text-align: center;">
+          Thank you, <span style="color: #D4A853;">${firstName}</span>! 🎉
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
           We're so excited to hear from you
         </p>
 
         <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 24px; margin: 0 0 24px;">
-          <p style="margin: 0 0 12px; font-size: 15px; color: #283693; font-weight: 600;">
+          <p style="margin: 0 0 12px; font-size: 15px; color: #1A3638; font-weight: 600;">
             What happens next?
           </p>
           <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 2;">
@@ -79,25 +79,25 @@ export async function onRequestPost(context) {
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${passwordLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
+          <a href="${passwordLink}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
             Set Up Your Portal Password
           </a>
         </div>
 
-        <p style="text-align: center; font-size: 15px; color: #283693; font-weight: 600; margin: 24px 0 8px;">
+        <p style="text-align: center; font-size: 15px; color: #1A3638; font-weight: 600; margin: 24px 0 8px;">
           We are here for you every step of the way!
         </p>
 
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
           <p style="margin: 0; font-size: 13px; color: #78716c;">
             Have questions? Reach out anytime to<br/>
-            <a href="mailto:jenn@abcsurrogacy.com" style="color: #283693; font-weight: 600;">jenn@abcsurrogacy.com</a>
+            <a href="mailto:jenn@northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">jenn@northstarsurrogacy.com</a>
           </p>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; <a href="https://abcsurrogacy.com" style="color: #a8a29e;">abcsurrogacy.com</a>
+          North Star Surrogacy, LLC &middot; <a href="https://northstarsurrogacy.com" style="color: #a8a29e;">northstarsurrogacy.com</a>
         </p>
       </div>
     </div>
@@ -110,7 +110,7 @@ export async function onRequestPost(context) {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: `Abundant Beginnings Co. <${fromEmail}>`,
+          from: `North Star Surrogacy <${fromEmail}>`,
           to: [email],
           subject: `We received your surrogate quiz, ${firstName}!`,
           html: htmlBody,

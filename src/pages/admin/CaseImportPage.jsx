@@ -463,7 +463,7 @@ function ExistingSurrogateApplicationPdfImport({ currentUser }) {
                 {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
                 Preview
               </Button>
-              <Button type="button" onClick={handleImport} disabled={loading || !pdfs.length || !email.trim()} className="gap-2" style={{ backgroundColor: '#283693' }}>
+              <Button type="button" onClick={handleImport} disabled={loading || !pdfs.length || !email.trim()} className="gap-2" style={{ backgroundColor: '#1A3638' }}>
                 {loading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Import PDFs
               </Button>
@@ -620,7 +620,7 @@ function MatchJourneySection({ currentUser, navigate }) {
             {matchResult.hasMatchSheet && <p className="text-xs text-stone-400">Match sheet data imported</p>}
           </div>
           <div className="flex gap-2 justify-center pt-2">
-            <Button onClick={() => navigate(`/journeys/${matchResult.journeyId}`)} style={{ backgroundColor: '#283693' }}>
+            <Button onClick={() => navigate(`/journeys/${matchResult.journeyId}`)} style={{ backgroundColor: '#1A3638' }}>
               View Journey
             </Button>
             <Button variant="outline" onClick={() => { setMatchResult(null); setSelectedGC(''); setSelectedIP(''); setMatchDate(''); setStage('Match Confirmed'); setGcSearch(''); setIpSearch(''); setMatchSheetFile([]); setMatchSheetData({}); setMatchSheetParsed(false) }}>
@@ -751,7 +751,7 @@ function MatchJourneySection({ currentUser, navigate }) {
             onClick={handleCreateJourney}
             disabled={creating || !selectedGC || !selectedIP}
             className="gap-2"
-            style={{ backgroundColor: '#283693' }}
+            style={{ backgroundColor: '#1A3638' }}
           >
             {creating ? <Loader2 className="size-4 animate-spin" /> : <Route className="size-4" />}
             {creating ? 'Creating...' : 'Create Matched Journey'}
@@ -950,7 +950,7 @@ export default function CaseImportPage() {
               </div>
             </div>
             <div className="flex gap-2 justify-center pt-2">
-              <Button onClick={() => navigate(result.caseType === 'ip' ? `/intended-parents/${result.caseId}` : `/surrogates/${result.caseId}`)} style={{ backgroundColor: '#283693' }}>
+              <Button onClick={() => navigate(result.caseType === 'ip' ? `/intended-parents/${result.caseId}` : `/surrogates/${result.caseId}`)} style={{ backgroundColor: '#1A3638' }}>
                 View Case
               </Button>
               <Button variant="outline" onClick={() => { setResult(null); setForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', caseType: 'surrogate', applicationDate: '', ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' }); setProfilePdf([]); setApplicationPdfs([]); setDocumentsZip([]); setNotesFile([]); setPhotos([]) }}>
@@ -1114,7 +1114,7 @@ export default function CaseImportPage() {
           onClick={handleImport}
           disabled={importing || (!form.firstName && !form.lastName)}
           className="gap-2"
-          style={{ backgroundColor: '#283693' }}
+          style={{ backgroundColor: '#1A3638' }}
         >
           {importing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
           {importing ? 'Importing...' : 'Import Case'}

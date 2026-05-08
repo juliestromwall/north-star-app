@@ -124,7 +124,7 @@ function TemplatesTab({ prefillCaseType, prefillCaseId, prefillJourneyId } = {})
 
       {loading ? (
         <div className="text-center py-12">
-          <Loader2 className="size-6 animate-spin text-[#283693] mx-auto mb-2" />
+          <Loader2 className="size-6 animate-spin text-[#1A3638] mx-auto mb-2" />
           <p className="text-sm text-stone-400">Loading templates from Google Drive...</p>
         </div>
       ) : filtered.length === 0 ? (
@@ -138,8 +138,8 @@ function TemplatesTab({ prefillCaseType, prefillCaseId, prefillJourneyId } = {})
             <Card key={doc.id} className="rounded-2xl hover:shadow-md transition-shadow">
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#283693]/10 flex items-center justify-center shrink-0">
-                    <FileText className="size-5 text-[#283693]" />
+                  <div className="w-10 h-10 rounded-xl bg-[#1A3638]/10 flex items-center justify-center shrink-0">
+                    <FileText className="size-5 text-[#1A3638]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">{doc.name}</p>
@@ -149,7 +149,7 @@ function TemplatesTab({ prefillCaseType, prefillCaseId, prefillJourneyId } = {})
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" className="gap-1.5 flex-1 text-xs" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
+                  <Button size="sm" className="gap-1.5 flex-1 text-xs" style={{ backgroundColor: '#1A3638', color: '#fff' }} asChild>
                     <Link to={`/e-signature/edit/${doc.id}${prefillJourneyId ? `?journeyId=${prefillJourneyId}` : prefillCaseType ? `?caseType=${prefillCaseType}&caseId=${prefillCaseId}` : ''}`}>
                       <Pencil className="size-3" /> Edit & Send
                     </Link>
@@ -352,7 +352,7 @@ function DocumentsTab() {
                           const caseLink = getCaseLink(doc)
                           const name = getCaseName(doc)
                           return caseLink ? (
-                            <Link to={caseLink} className="text-[#283693] hover:underline font-medium text-sm">{name}</Link>
+                            <Link to={caseLink} className="text-[#1A3638] hover:underline font-medium text-sm">{name}</Link>
                           ) : (
                             <span className="text-stone-600">{name}</span>
                           )
@@ -463,7 +463,7 @@ function DocumentsTab() {
                       .map(c => (
                         <button key={c.id} type="button" className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 text-left border-b last:border-0"
                           onClick={() => { handleCaseSelect(newDoc.caseType, String(c.id)); setCaseSearch(c.names || c.name || ''); setCaseDropdownOpen(false) }}>
-                          <div className="w-7 h-7 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[11px] font-bold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-[#1A3638]/10 text-[#1A3638] flex items-center justify-center text-[11px] font-bold shrink-0">
                             {(c.names || c.name || '?').charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -520,7 +520,7 @@ function DocumentsTab() {
             </div>
 
             <Button onClick={handleCreate} disabled={creating || !newDoc.title || !newDoc.templateId || newDoc.signers.length === 0}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {creating ? 'Sending...' : 'Send for Signature'}
             </Button>
           </div>
@@ -591,7 +591,7 @@ export default function ESignaturePage() {
       />
 
       {(prefillCaseType || prefillJourneyId) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-[#283693]">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-[#1A3638]">
           <span className="font-semibold">Sending for case:</span> Select a template below to send for signature. {prefillJourneyId ? 'All parties will be pre-populated.' : 'Case will be pre-selected.'}
         </div>
       )}
@@ -603,7 +603,7 @@ export default function ESignaturePage() {
         ].map(t => (
           <button
             key={t.key}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t.key ? 'bg-[#1A3638] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}

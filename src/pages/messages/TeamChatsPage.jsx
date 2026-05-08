@@ -219,7 +219,7 @@ export default function TeamChatsPage() {
           <div className="flex-1 overflow-y-auto">
             {loadingGroups ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full size-6 border-2 border-stone-300 border-t-[#283693]" />
+                <div className="animate-spin rounded-full size-6 border-2 border-stone-300 border-t-[#1A3638]" />
               </div>
             ) : groups.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -237,8 +237,8 @@ export default function TeamChatsPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
-                      <Users className="size-5 text-[#283693]" />
+                    <div className="size-10 rounded-full bg-[#1A3638]/10 flex items-center justify-center shrink-0">
+                      <Users className="size-5 text-[#1A3638]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
@@ -298,7 +298,7 @@ export default function TeamChatsPage() {
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
                 {loadingMessages ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full size-6 border-2 border-stone-300 border-t-[#283693]" />
+                    <div className="animate-spin rounded-full size-6 border-2 border-stone-300 border-t-[#1A3638]" />
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex items-center justify-center py-12">
@@ -332,7 +332,7 @@ export default function TeamChatsPage() {
                               <div
                                 className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                                   isMe
-                                    ? 'bg-[#283693] text-white rounded-br-md'
+                                    ? 'bg-[#1A3638] text-white rounded-br-md'
                                     : 'bg-stone-100 text-stone-800 rounded-bl-md'
                                 }`}
                               >
@@ -367,7 +367,7 @@ export default function TeamChatsPage() {
                     onClick={handleSend}
                     disabled={!composing.trim() || sending}
                     size="icon"
-                    className="shrink-0 rounded-xl bg-[#283693] hover:bg-[#283693]/90 size-10"
+                    className="shrink-0 rounded-xl bg-[#1A3638] hover:bg-[#1A3638]/90 size-10"
                   >
                     <Send className="size-4" />
                   </Button>
@@ -485,7 +485,7 @@ function NewChatDialog({ open, onClose, onCreate, adminPhones, currentUserId }) 
           <Button
             onClick={handleCreate}
             disabled={!name.trim() || selectedIds.size < 1 || creating}
-            className="rounded-xl bg-[#283693] hover:bg-[#283693]/90"
+            className="rounded-xl bg-[#1A3638] hover:bg-[#1A3638]/90"
           >
             {creating ? 'Creating...' : 'Create Chat'}
           </Button>

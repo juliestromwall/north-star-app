@@ -90,7 +90,7 @@ function EditHeader({ title, description, editing, saving, startEdit, handleSave
       {editing ? (
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={cancel}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </div>
@@ -240,7 +240,7 @@ function IntakeAnswersSection({ ip, setIp, search }) {
         {editing ? (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
             </Button>
           </div>
@@ -261,9 +261,9 @@ function IntakeAnswersSection({ ip, setIp, search }) {
                   <FieldLabel>{f.label}</FieldLabel>
                   <div className="flex items-center gap-2 pt-0.5">
                     <button type="button" onClick={() => set(f.key, true)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === true || form[f.key] === 'yes' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Yes</button>
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === true || form[f.key] === 'yes' ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Yes</button>
                     <button type="button" onClick={() => set(f.key, false)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === false || form[f.key] === 'no' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>No</button>
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === false || form[f.key] === 'no' ? 'bg-[#1A3638] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>No</button>
                   </div>
                 </div>
               )
@@ -689,7 +689,7 @@ export default function IPApplicationTab({ ip, setIp }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Shield className="size-4 text-[#283693]" /> Background Waivers
+                <Shield className="size-4 text-[#1A3638]" /> Background Waivers
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">

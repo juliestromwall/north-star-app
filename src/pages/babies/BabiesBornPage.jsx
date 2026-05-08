@@ -9,7 +9,7 @@ import { getAppConfig, setAppConfig } from '@/lib/db'
 const STORAGE_KEY = 'abc_babies_born'
 const SUPABASE_KEY = 'babies_born'
 
-// Historical data from ABC Surrogacy spreadsheet
+// Historical data from North Star Surrogacy spreadsheet
 const DEFAULT_DATA = {
   startDate: '5/2013',
   years: [
@@ -120,14 +120,14 @@ export default function BabiesBornPage() {
     <div className="space-y-6">
       <PageHeader
         title="Babies Born"
-        subtitle={`ABC Surrogacy — started ${data.startDate}`}
+        subtitle={`North Star Surrogacy — started ${data.startDate}`}
       />
 
       {/* Hero stats */}
       <div className="grid grid-cols-2 gap-6">
-        <Card className="rounded-2xl bg-gradient-to-br from-[#ed148c]/5 to-[#283693]/5 border-0">
+        <Card className="rounded-2xl bg-gradient-to-br from-[#D4A853]/5 to-[#1A3638]/5 border-0">
           <CardContent className="flex items-center gap-4 py-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#ed148c] to-[#283693] flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D4A853] to-[#1A3638] flex items-center justify-center shadow-lg">
               <Baby className="size-8 text-white" />
             </div>
             <div>
@@ -194,7 +194,7 @@ export default function BabiesBornPage() {
                   return (
                     <tr key={y.year} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && startEdit(y)}>
                       <td className="py-3 px-5">
-                        <span className="font-bold text-[#283693]">{y.year}</span>
+                        <span className="font-bold text-[#1A3638]">{y.year}</span>
                       </td>
                       {isEditing ? (
                         <>
@@ -236,10 +236,10 @@ export default function BabiesBornPage() {
                   )
                 })}
                 {/* Total row */}
-                <tr className="bg-gradient-to-r from-[#283693]/5 to-[#ed148c]/5 border-t-2 border-[#283693]/20">
-                  <td className="py-4 px-5 font-bold text-[#283693]">Total</td>
+                <tr className="bg-gradient-to-r from-[#1A3638]/5 to-[#D4A853]/5 border-t-2 border-[#1A3638]/20">
+                  <td className="py-4 px-5 font-bold text-[#1A3638]">Total</td>
                   <td className="py-4 px-4 text-center">
-                    <span className="text-2xl font-bold text-[#283693]">{totalBirths}</span>
+                    <span className="text-2xl font-bold text-[#1A3638]">{totalBirths}</span>
                   </td>
                   <td className="py-4 px-4 text-center">
                     <span className="font-bold text-pink-600">{data.years.reduce((s, y) => s + (y.twins || 0), 0)}</span>
@@ -290,16 +290,16 @@ export default function BabiesBornPage() {
                 <svg viewBox={`0 0 1000 ${chartH}`} className="w-full" style={{ height: '280px' }}>
                   <defs>
                     <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ed148c" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#283693" stopOpacity="0.03" />
+                      <stop offset="0%" stopColor="#D4A853" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#1A3638" stopOpacity="0.03" />
                     </linearGradient>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#ed148c" />
-                      <stop offset="100%" stopColor="#283693" />
+                      <stop offset="0%" stopColor="#D4A853" />
+                      <stop offset="100%" stopColor="#1A3638" />
                     </linearGradient>
                     <linearGradient id="cumLineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#ed148c" stopOpacity="0.4" />
-                      <stop offset="100%" stopColor="#283693" stopOpacity="0.4" />
+                      <stop offset="0%" stopColor="#D4A853" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#1A3638" stopOpacity="0.4" />
                     </linearGradient>
                   </defs>
 
@@ -324,9 +324,9 @@ export default function BabiesBornPage() {
                     return (
                       <g key={y.year}>
                         {/* Dot */}
-                        <circle cx={x} cy={yPos} r="5" fill="white" stroke="#ed148c" strokeWidth="2.5" />
+                        <circle cx={x} cy={yPos} r="5" fill="white" stroke="#D4A853" strokeWidth="2.5" />
                         {/* Birth count label */}
-                        <text x={x} y={yPos - 12} textAnchor="middle" className="text-[11px] font-bold" fill="#283693">{y.births}</text>
+                        <text x={x} y={yPos - 12} textAnchor="middle" className="text-[11px] font-bold" fill="#1A3638">{y.births}</text>
                         {/* Year label */}
                         <text x={x} y={chartH - 10} textAnchor="middle" className="text-[10px]" fill="#a8a29e">{y.year}</text>
                       </g>
@@ -335,17 +335,17 @@ export default function BabiesBornPage() {
 
                   {/* Cumulative labels at start and end */}
                   <text x={getX(0) - 5} y={getYCum(cumulativeData[0]) - 8} textAnchor="end" className="text-[10px]" fill="#a8a29e">{cumulativeData[0]}</text>
-                  <text x={getX(years.length - 1) + 5} y={getYCum(cumulativeData[cumulativeData.length - 1]) - 8} textAnchor="start" className="text-[11px] font-bold" fill="#283693">{cumulativeData[cumulativeData.length - 1]} total</text>
+                  <text x={getX(years.length - 1) + 5} y={getYCum(cumulativeData[cumulativeData.length - 1]) - 8} textAnchor="start" className="text-[11px] font-bold" fill="#1A3638">{cumulativeData[cumulativeData.length - 1]} total</text>
                 </svg>
 
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-6 mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-[#ed148c] to-[#283693]" />
+                    <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-[#D4A853] to-[#1A3638]" />
                     <span className="text-xs text-stone-500">Births per year</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-3 rounded-sm bg-gradient-to-b from-[#ed148c]/15 to-[#283693]/5" />
+                    <div className="w-6 h-3 rounded-sm bg-gradient-to-b from-[#D4A853]/15 to-[#1A3638]/5" />
                     <span className="text-xs text-stone-500">Cumulative total</span>
                   </div>
                 </div>

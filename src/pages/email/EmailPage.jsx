@@ -233,7 +233,7 @@ function CreateLabelDialog({ open, onClose, userLabels, onCreate }) {
                 setNestUnder(e.target.checked)
                 if (e.target.checked && !parent) setParent(userLabels[0]?.name || '')
               }}
-              className="size-4 accent-[#283693]"
+              className="size-4 accent-[#1A3638]"
               disabled={userLabels.length === 0}
             />
             Nest label under:
@@ -255,7 +255,7 @@ function CreateLabelDialog({ open, onClose, userLabels, onCreate }) {
           <Button
             onClick={handleSubmit}
             disabled={!name.trim() || creating || (nestUnder && !parent)}
-            style={{ backgroundColor: '#283693', color: '#fff' }}
+            style={{ backgroundColor: '#1A3638', color: '#fff' }}
           >
             {creating ? <Loader2 className="size-3.5 animate-spin" /> : 'Create'}
           </Button>
@@ -275,7 +275,7 @@ function NotConnectedState({ userId }) {
       </div>
       <h3 className="text-lg font-semibold mb-2">Connect your Google account</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
-        Connect your Gmail to send and receive emails directly from ABC Surrogacy.
+        Connect your Gmail to send and receive emails directly from North Star Surrogacy.
       </p>
       <Button onClick={() => connectGoogle(userId)}>
         Connect Google Account
@@ -490,7 +490,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
           </div>
         ) : aiStep === 'extracting' ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Loader2 className="size-8 text-[#283693] animate-spin mb-3" />
+            <Loader2 className="size-8 text-[#1A3638] animate-spin mb-3" />
             <p className="text-sm font-medium">AI is reading the email...</p>
             <p className="text-xs text-muted-foreground mt-1">Extracting {selectedTag === 'expense' ? 'expense details' : 'task information'}</p>
           </div>
@@ -516,8 +516,8 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
                   onClick={() => setAiData(d => ({ ...d, submittedToEscrow: true }))}
                   className={`flex-1 h-8 text-xs font-medium rounded-md border transition-colors ${
                     aiData.submittedToEscrow === true
-                      ? 'bg-[#283693] text-white border-[#283693]'
-                      : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693]'
+                      ? 'bg-[#1A3638] text-white border-[#1A3638]'
+                      : 'bg-white text-stone-600 border-stone-300 hover:border-[#1A3638]'
                   }`}
                 >
                   Yes
@@ -541,7 +541,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
             <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to save the expense.</p>
             <DialogFooter>
               <Button variant="outline" onClick={handleSkipAi}>Skip</Button>
-              <Button onClick={handleConfirmExpense} disabled={saving} style={{ backgroundColor: '#283693' }}>
+              <Button onClick={handleConfirmExpense} disabled={saving} style={{ backgroundColor: '#1A3638' }}>
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
                 Confirm Expense
               </Button>
@@ -572,7 +572,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
             <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to create the task.</p>
             <DialogFooter>
               <Button variant="outline" onClick={handleSkipAi}>Skip</Button>
-              <Button onClick={handleConfirmTask} disabled={saving} style={{ backgroundColor: '#283693' }}>
+              <Button onClick={handleConfirmTask} disabled={saving} style={{ backgroundColor: '#1A3638' }}>
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
                 Confirm Task
               </Button>
@@ -602,7 +602,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
                           {groupCases.map(c => (
                             <button key={`${c.type}-${c.id}`} onClick={() => setSelectedCase(String(c.id) + ':' + c.type)}
                               className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 ${selectedCase === String(c.id) + ':' + c.type ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>
-                              <span className={`text-[8px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'gc' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#283693]' : 'bg-purple-500'}`}>
+                              <span className={`text-[8px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'gc' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
                                 {c.type === 'gc' ? 'GC' : c.type === 'ip' ? 'IP' : 'MJ'}
                               </span>
                               {c.name}
@@ -622,7 +622,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
                   <div className="flex flex-wrap gap-1.5">
                     {EMAIL_TAGS.map(t => (
                       <button key={t.value} onClick={() => setSelectedTag(selectedTag === t.value ? '' : t.value)}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border-2 transition-all ${selectedTag === t.value ? 'bg-[#283693] text-white border-[#283693] ring-2 ring-[#283693]/30 scale-105' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
+                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border-2 transition-all ${selectedTag === t.value ? 'bg-[#1A3638] text-white border-[#1A3638] ring-2 ring-[#1A3638]/30 scale-105' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
                         {t.label}
                       </button>
                     ))}
@@ -886,7 +886,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
               <button
                 onClick={handleMoveCreate}
                 disabled={movingCreating || moveExactMatch}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#1A3638] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {movingCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 {moveSearch.trim() && !moveExactMatch
@@ -936,7 +936,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                       onClick={() => onToggleLabel?.(label.id, !applied)}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-stone-50 text-left"
                     >
-                      <span className={`size-4 rounded border flex items-center justify-center ${applied ? 'bg-[#283693] border-[#283693]' : 'border-stone-300'}`}>
+                      <span className={`size-4 rounded border flex items-center justify-center ${applied ? 'bg-[#1A3638] border-[#1A3638]' : 'border-stone-300'}`}>
                         {applied && <Check className="size-3 text-white" />}
                       </span>
                       <span className="flex-1 truncate">{label.name}</span>
@@ -971,7 +971,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                   }
                 }}
                 disabled={creatingLabel || exactMatch}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#1A3638] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {creatingLabel ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 {canCreate ? <>Create new: <span className="font-semibold">{labelSearch.trim()}</span></> : exactMatch ? 'Label already exists' : 'Create new label'}
@@ -1027,13 +1027,13 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                   return (
                     <span
                       key={labelId}
-                      className="inline-flex items-center gap-1 text-[10px] font-medium pl-2 pr-1 py-0.5 rounded-full bg-[#283693]/10 text-[#283693]"
+                      className="inline-flex items-center gap-1 text-[10px] font-medium pl-2 pr-1 py-0.5 rounded-full bg-[#1A3638]/10 text-[#1A3638]"
                     >
                       {name}
                       <button
                         type="button"
                         onClick={() => onToggleLabel?.(labelId, false)}
-                        className="rounded-full hover:bg-[#283693]/20 p-0.5 transition-colors"
+                        className="rounded-full hover:bg-[#1A3638]/20 p-0.5 transition-colors"
                         title={`Remove "${name}"`}
                       >
                         <X className="size-3" />
@@ -1098,7 +1098,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                 type="checkbox"
                 checked={nestUnder}
                 onChange={e => setNestUnder(e.target.checked)}
-                className="size-4 accent-[#283693]"
+                className="size-4 accent-[#1A3638]"
               />
               Nest label under
             </label>
@@ -1126,7 +1126,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCreateLabelOpen(false); createActionRef.current = null }}>Cancel</Button>
-            <Button onClick={handleCreateLabelConfirm} style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
+            <Button onClick={handleCreateLabelConfirm} style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
               Create
             </Button>
           </DialogFooter>

@@ -55,7 +55,7 @@ export default function AdminCasesSummaryPage() {
   }, [targetEmail, isTeam, isJourneyManagerMode, journeyManagerName, currentUser])
 
   // For team mode: the list of admin emails to summarize. Skips:
-  //   - Jennifer Rose (intake@abcsurrogacy.com) — intake-only, not on team
+  //   - Jennifer Rose (intake@northstarsurrogacy.com) — intake-only, not on team
   //   - The requesting admin's own email (endpoint auto-adds it back)
   //   - OTHER master admins — Julie shouldn't see Nicole's cases in her team
   //     summary and vice versa. Master admins are peers, not reports, so they
@@ -65,7 +65,7 @@ export default function AdminCasesSummaryPage() {
     const myEmail = currentUser?.email?.toLowerCase()
     const myRole = currentUser?.role
     return getAdminStaff()
-      .filter(a => a.email !== 'intake@abcsurrogacy.com')
+      .filter(a => a.email !== 'intake@northstarsurrogacy.com')
       .filter(a => a.email?.toLowerCase() !== myEmail)
       .filter(a => {
         // If the requester is a master admin, drop other master admins.
@@ -174,11 +174,11 @@ export default function AdminCasesSummaryPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-[#283693]">
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-[#1A3638]">
               <ArrowLeft className="size-4" /> Back to dashboard
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#283693] mt-2 flex items-center gap-2">
-              <Sparkles className="size-7 text-[#ed148c]" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#1A3638] mt-2 flex items-center gap-2">
+              <Sparkles className="size-7 text-[#D4A853]" />
               {isJourneyManagerMode ? targetName : isTeam ? 'Team workload summary' : 'Workload summary'}
             </h1>
             <p className="text-sm text-stone-500 mt-1">
@@ -191,7 +191,7 @@ export default function AdminCasesSummaryPage() {
               {generatedAt && <span> · generated {formatRelative(generatedAt)}</span>}
             </p>
           </div>
-          <Button onClick={regenerate} disabled={generating} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+          <Button onClick={regenerate} disabled={generating} className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
             {generating ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             {generating ? 'Generating…' : summary ? 'Regenerate' : 'Generate Summary'}
           </Button>
@@ -280,13 +280,13 @@ export default function AdminCasesSummaryPage() {
                         const isWarning = /overdue|stalled|missing|urgent|critical|⚠|🚨/i.test(trimmed)
                         // Escape HTML, then turn markdown into safe HTML.
                         // Important: the link replacement injects a class attribute
-                        // containing `#283693`, so we must NOT run a generic /#\d+/
+                        // containing `#1A3638`, so we must NOT run a generic /#\d+/
                         // regex afterwards — it would match the color literal inside
                         // the class string and corrupt the HTML.
                         const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                         const html = escape(trimmed)
                           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">$1</a>')
+                          .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#1A3638] underline decoration-[#1A3638]/30 hover:decoration-[#1A3638]">$1</a>')
                           // _italic_ sub-headings used for team-mode admin grouping
                           .replace(/(^|[\s>])_([^_]+)_(?=[\s.,!?:;)\]]|$)/g, '$1<em class="text-stone-500 font-semibold not-italic uppercase tracking-wider text-xs">$2</em>')
                         return (
@@ -331,7 +331,7 @@ function CaseLine({ name, url, note, owner, ownerHidden }) {
       <span className="text-stone-300 mt-0.5 shrink-0">•</span>
       <div className="min-w-0">
         <a href={url} target="_blank" rel="noopener noreferrer"
-          className="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">
+          className="font-semibold text-[#1A3638] underline decoration-[#1A3638]/30 hover:decoration-[#1A3638]">
           {name}
         </a>
         {owner && !ownerHidden && <span className="text-stone-400 text-xs ml-1.5">({owner})</span>}
@@ -358,7 +358,7 @@ function AdminCard({ admin }) {
     <Card className="rounded-2xl border-stone-100">
       <CardContent className="py-5 space-y-4">
         <div className="flex items-baseline justify-between border-b border-stone-100 pb-2">
-          <h3 className="text-base font-bold text-[#283693]">{admin.adminName}</h3>
+          <h3 className="text-base font-bold text-[#1A3638]">{admin.adminName}</h3>
           <div className="text-xs text-stone-500 flex items-center gap-3 shrink-0">
             {totals.cases != null && <span><strong className="text-stone-700">{totals.cases}</strong> cases</span>}
             {totals.overdueTasks > 0 && <span className="text-rose-600"><strong>{totals.overdueTasks}</strong> overdue</span>}

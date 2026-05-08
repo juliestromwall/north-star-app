@@ -118,29 +118,29 @@ function EditableTile({ icon: Icon, label, value, type, onSave, valueColor }) {
 
   if (editing) {
     return (
-      <div className="rounded-xl bg-stone-50/80 border-2 border-[#283693]/30 p-3 text-center space-y-2">
+      <div className="rounded-xl bg-stone-50/80 border-2 border-[#1A3638]/30 p-3 text-center space-y-2">
         <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{label}</p>
         {type === 'yesno' ? (
           <div className="flex gap-1.5 justify-center">
-            <button onClick={() => { onSave('yes'); setEditing(false) }} className={`px-3 py-1 rounded-full text-xs font-medium ${val === 'yes' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
-            <button onClick={() => { onSave('no'); setEditing(false) }} className={`px-3 py-1 rounded-full text-xs font-medium ${val === 'no' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+            <button onClick={() => { onSave('yes'); setEditing(false) }} className={`px-3 py-1 rounded-full text-xs font-medium ${val === 'yes' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+            <button onClick={() => { onSave('no'); setEditing(false) }} className={`px-3 py-1 rounded-full text-xs font-medium ${val === 'no' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
           </div>
         ) : type === 'text' ? (
           <div className="flex gap-1 justify-center">
             <Input value={val || ''} onChange={e => setVal(e.target.value)} className="h-8 text-xs w-full" />
-            <button onClick={save} className="p-1 rounded bg-[#283693] text-white shrink-0"><Save className="size-3" /></button>
+            <button onClick={save} className="p-1 rounded bg-[#1A3638] text-white shrink-0"><Save className="size-3" /></button>
             <button onClick={() => setEditing(false)} className="p-1 rounded bg-stone-200 text-stone-500 shrink-0"><X className="size-3" /></button>
           </div>
         ) : type === 'date' ? (
           <div className="flex gap-1 justify-center">
             <Input type="date" value={val || ''} onChange={e => setVal(e.target.value)} className="h-8 text-xs" />
-            <button onClick={save} className="p-1 rounded bg-[#283693] text-white shrink-0"><Save className="size-3" /></button>
+            <button onClick={save} className="p-1 rounded bg-[#1A3638] text-white shrink-0"><Save className="size-3" /></button>
             <button onClick={() => setEditing(false)} className="p-1 rounded bg-stone-200 text-stone-500 shrink-0"><X className="size-3" /></button>
           </div>
         ) : (
           <div className="flex gap-1 justify-center">
             <CurrencyInput value={val} onChange={setVal} className="w-28" />
-            <button onClick={save} className="p-1 rounded bg-[#283693] text-white shrink-0"><Save className="size-3" /></button>
+            <button onClick={save} className="p-1 rounded bg-[#1A3638] text-white shrink-0"><Save className="size-3" /></button>
             <button onClick={() => setEditing(false)} className="p-1 rounded bg-stone-200 text-stone-500 shrink-0"><X className="size-3" /></button>
           </div>
         )}
@@ -174,7 +174,7 @@ function EditableTileInline({ value, onSave, type = 'text', placeholder = 'Set..
         ) : (
           <Input value={val || ''} onChange={e => setVal(e.target.value)} className="h-6 text-[11px] w-28" placeholder={placeholder} />
         )}
-        <button onClick={() => { onSave(val); setEditing(false) }} className="text-[#283693]"><Check className="size-3" /></button>
+        <button onClick={() => { onSave(val); setEditing(false) }} className="text-[#1A3638]"><Check className="size-3" /></button>
         <button onClick={() => setEditing(false)} className="text-stone-400"><X className="size-3" /></button>
       </span>
     )
@@ -199,7 +199,7 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }
   }
   if (!flipped) {
     return preferred ? (
-      <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={onFlip}>
+      <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={onFlip}>
         <Icon className="size-3.5" /> {label} ★
       </Button>
     ) : (
@@ -253,11 +253,11 @@ function AddressTile({ caseData }) {
     )
   }
   return (
-    <div className="rounded-xl bg-stone-50/80 border-2 border-[#283693]/30 p-3 text-center space-y-1">
+    <div className="rounded-xl bg-stone-50/80 border-2 border-[#1A3638]/30 p-3 text-center space-y-1">
       <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Address</p>
       <p className="text-xs text-stone-700">{addr || '—'}</p>
       <div className="flex gap-1 justify-center">
-        <button onClick={handleCopy} className="text-[10px] text-[#283693] font-medium hover:underline">{copied ? 'Copied!' : 'Copy'}</button>
+        <button onClick={handleCopy} className="text-[10px] text-[#1A3638] font-medium hover:underline">{copied ? 'Copied!' : 'Copy'}</button>
         <button onClick={() => setOpen(false)} className="text-[10px] text-stone-400 hover:underline ml-2">Close</button>
       </div>
     </div>
@@ -289,7 +289,7 @@ function PregnancyIcon({ size = 48, className = '' }) {
         <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#8BC53F" />
           <stop offset="20%" stopColor="#29ABE2" />
-          <stop offset="45%" stopColor="#ed148c" />
+          <stop offset="45%" stopColor="#D4A853" />
           <stop offset="70%" stopColor="#F7941D" />
           <stop offset="100%" stopColor="#FFC107" />
         </linearGradient>
@@ -388,7 +388,7 @@ function JourneyMilestoneTimeline({ journey }) {
   const { milestoneData, completed, total } = getJourneyMilestoneProgress(stageId, tracking)
 
   const getGradientColor = (index) => {
-    if (total <= 1) return '#ed148c'
+    if (total <= 1) return '#D4A853'
     const t = index / (total - 1)
     const r = Math.round(237 + (40 - 237) * t)
     const g = Math.round(20 + (54 - 20) * t)
@@ -399,7 +399,7 @@ function JourneyMilestoneTimeline({ journey }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[#283693]">Milestones</h3>
+        <h3 className="text-lg font-semibold text-[#1A3638]">Milestones</h3>
         <span className="text-sm font-semibold text-stone-400">{completed}/{total}</span>
       </div>
 
@@ -415,7 +415,7 @@ function JourneyMilestoneTimeline({ journey }) {
                 style={{
                   width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
                   maxWidth: 'calc(100% - 28px)',
-                  background: 'linear-gradient(90deg, #ed148c, #283693)',
+                  background: 'linear-gradient(90deg, #D4A853, #1A3638)',
                 }}
               />
             )}
@@ -500,7 +500,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
         stageLabel="Journey Checklist"
         onStatusLog={async ({ stepLabel, status, optionLabel, date, note }) => {
           if (status === 'complete') {
-            const julieEmail = 'julie@abcsurrogacy.com'
+            const julieEmail = 'julie@northstarsurrogacy.com'
             const sName = gcCase?.name || journey.gc_name || 'Surrogate'
             const logDt = date || new Date().toISOString().split('T')[0]
             const lbl = stepLabel.toLowerCase()
@@ -514,7 +514,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
                 try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
               }
               try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-              try { await createCaseTask({ title: `${sName} Medically Cleared - Collect 3rd Agency Payment`, due_date: logDt, priority: 'high', assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com', created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              try { await createCaseTask({ title: `${sName} Medically Cleared - Collect 3rd Agency Payment`, due_date: logDt, priority: 'high', assigned_to: 'julie@northstarsurrogacy.com,nicole@northstarsurrogacy.com', created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
             }
 
             if (lbl.includes('legal clearance')) {
@@ -576,7 +576,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
             const trimmedNote = (note || '').trim()
             const description = trimmedNote ? `${addr}\n\nAdmin note: ${trimmedNote}` : addr
 
-            const emilyEmail = 'emily@abcsurrogacy.com'
+            const emilyEmail = 'emily@northstarsurrogacy.com'
 
             if (lbl.includes('request transfer package')) {
               try {
@@ -807,7 +807,7 @@ export function ExpenseRow({ exp, onUpdate, onDelete, onEdit, fmtCurrency, onPre
         {!exp.reconciled && (
           <div className="flex items-center gap-1.5">
             {typeof onEdit === 'function' && !exp.paid_at && !exp.disbursement_paid_at && (
-              <button onClick={() => onEdit(exp)} className="text-stone-300 hover:text-[#283693] transition-colors" title="Edit expense">
+              <button onClick={() => onEdit(exp)} className="text-stone-300 hover:text-[#1A3638] transition-colors" title="Edit expense">
                 <Pencil className="size-3.5" />
               </button>
             )}
@@ -1078,7 +1078,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
         case_id: journey.id,
         case_type: 'journey',
         title: `🤰 ${surName} - 20wks Check in with IP(s)`,
-        assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com',
+        assigned_to: 'julie@northstarsurrogacy.com,nicole@northstarsurrogacy.com',
         due_date: twentyWeekStr,
         priority: 'normal',
         status: 'open',
@@ -1112,7 +1112,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
         case_id: journey.id,
         case_type: 'journey',
         title: `Confirmation of Heartbeat - Collect 4th Agency Payment`,
-        assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com',
+        assigned_to: 'julie@northstarsurrogacy.com,nicole@northstarsurrogacy.com',
         due_date: heartbeatDate || new Date().toISOString().split('T')[0],
         priority: 'high',
         status: 'open',
@@ -1187,7 +1187,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
           case_id: journey.id,
           case_type: 'journey',
           title: `Reach out to ${surName} about a Testimony`,
-          assigned_to: 'intake@abcsurrogacy.com',
+          assigned_to: 'intake@northstarsurrogacy.com',
           due_date: dueDate,
           priority: 'normal',
           status: 'open',
@@ -1311,7 +1311,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                   setBabyNames(jd.babyNames || Array(numBabies).fill(''))
                   setBabySexOpen(true)
                 }
-              }} className="text-[10px] text-[#283693] hover:underline">
+              }} className="text-[10px] text-[#1A3638] hover:underline">
                 {jd.delivered ? 'Edit Birth Details' : jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
               </button>
               {jd.delivered && (
@@ -1355,7 +1355,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
             ))}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setBabySexOpen(false)}>Cancel</Button>
-              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={async () => {
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={async () => {
                 setSaving(true)
                 const updated = [...transfers]
                 const idx = updated.length - 1
@@ -1449,7 +1449,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                   <div className="flex flex-wrap gap-2 mt-2">
                     {!t.betaResult && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-[#283693] border-[#283693]/30 hover:bg-[#283693]/5 hover:text-[#283693]" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-[#1A3638] border-[#1A3638]/30 hover:bg-[#1A3638]/5 hover:text-[#1A3638]" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
                         <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 hover:bg-amber-100 hover:text-amber-800" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
                         <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-600 border-red-300 hover:bg-red-100 hover:text-red-700" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
                       </>
@@ -1560,7 +1560,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setEditIdx(null) }}>Cancel</Button>
-              <Button size="sm" disabled={saving || !transferForm.date} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={editIdx !== null ? handleEditTransfer : handleAddTransfer}>
+              <Button size="sm" disabled={saving || !transferForm.date} style={{ backgroundColor: '#1A3638' }} className="gap-1" onClick={editIdx !== null ? handleEditTransfer : handleAddTransfer}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : editIdx !== null ? <Save className="size-3" /> : <Plus className="size-3" />}
                 {editIdx !== null ? 'Save Changes' : 'Log Transfer'}
               </Button>
@@ -2051,7 +2051,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
             case_id: journeyId,
             case_type: 'journey',
             title: `Pay Expense for ${journeyLabel || 'Journey'} — ${resolvedPaidTo} $${total.toFixed(2)}`,
-            assigned_to: 'julie@abcsurrogacy.com',
+            assigned_to: 'julie@northstarsurrogacy.com',
             due_date: new Date().toISOString().split('T')[0],
             priority: 'high',
             status: 'open',
@@ -2211,7 +2211,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-stone-700">Expenses</h3>
-        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#1A3638' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Expense
         </Button>
       </div>
@@ -2269,14 +2269,14 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
               ))}
               <button
                 onClick={() => setLineItems(prev => [...prev, emptyLineItem()])}
-                className="text-xs text-[#283693] hover:underline font-medium"
+                className="text-xs text-[#1A3638] hover:underline font-medium"
                 type="button"
               >
                 + Add Line Item
               </button>
               <div className="flex items-center justify-between pt-2 border-t border-stone-100">
                 <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
-                <span className="text-base font-bold text-[#283693]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-base font-bold text-[#1A3638]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             {/* Escrow Opened */}
@@ -2345,7 +2345,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                           {gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername || 'No username on file' : gcPaymentPref.zelleInfo || 'No info on file'}
                         </p>
                         {gcPaymentPref.screenshotUrl && (
-                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline mt-1 inline-block">View screenshot →</a>
+                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline mt-1 inline-block">View screenshot →</a>
                         )}
                       </div>
                     ) : (
@@ -2357,7 +2357,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
-              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
+              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#1A3638' }} className="gap-1">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {saving ? 'Adding...' : 'Add Expense'}
               </Button>
@@ -2420,14 +2420,14 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 ))}
                 <button
                   onClick={() => setEditExpense(p => ({ ...p, lineItems: [...p.lineItems, emptyLineItem()] }))}
-                  className="text-xs text-[#283693] hover:underline font-medium"
+                  className="text-xs text-[#1A3638] hover:underline font-medium"
                   type="button"
                 >
                   + Add Line Item
                 </button>
                 <div className="flex items-center justify-between pt-2 border-t border-stone-100">
                   <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
-                  <span className="text-base font-bold text-[#283693]">${editTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-base font-bold text-[#1A3638]">${editTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
               {/* Existing attachments */}
@@ -2438,7 +2438,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                     {editExpense.existingAttachments.map((url, i) => (
                       <div key={url + i} className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-stone-200 bg-stone-50/40">
                         <Paperclip className="size-3 text-stone-400 shrink-0" />
-                        <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-[#283693] hover:underline truncate flex-1">
+                        <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-[#1A3638] hover:underline truncate flex-1">
                           {url.split('/').pop() || `Attachment ${i + 1}`}
                         </a>
                         <button
@@ -2507,7 +2507,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
               )}
               <div className="flex gap-2 justify-end pt-2 border-t border-stone-100">
                 <Button variant="outline" size="sm" onClick={() => setEditExpense(null)}>Cancel</Button>
-                <Button size="sm" onClick={handleEditSave} disabled={editSaving || editTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
+                <Button size="sm" onClick={handleEditSave} disabled={editSaving || editTotal <= 0} style={{ backgroundColor: '#1A3638' }} className="gap-1">
                   {editSaving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
                   {editSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -2652,9 +2652,9 @@ function NotesTab({ journeyId, currentUser }) {
   }
 
   const NOTE_TYPES = [
-    { key: 'shared', label: 'Shared Notes', color: 'bg-[#283693]' },
+    { key: 'shared', label: 'Shared Notes', color: 'bg-[#1A3638]' },
     { key: 'gc', label: 'GC Notes', color: 'bg-pink-500' },
-    { key: 'ip', label: 'IP Notes', color: 'bg-[#283693]' },
+    { key: 'ip', label: 'IP Notes', color: 'bg-[#1A3638]' },
     { key: 'all', label: 'All Notes', color: 'bg-stone-500' },
   ]
 
@@ -2672,7 +2672,7 @@ function NotesTab({ journeyId, currentUser }) {
         <Suspense fallback={<TabFallback />}>
           <RichTextEditor content={newContent} onChange={setNewContent} placeholder="Add a note..." />
         </Suspense>
-        <Button size="sm" onClick={handleAdd} disabled={saving || !newContent.trim()} style={{ backgroundColor: '#283693', color: '#fff' }}>{saving ? 'Saving...' : 'Add Note'}</Button>
+        <Button size="sm" onClick={handleAdd} disabled={saving || !newContent.trim()} style={{ backgroundColor: '#1A3638', color: '#fff' }}>{saving ? 'Saving...' : 'Add Note'}</Button>
       </CardContent></Card>
       {loading ? <p className="text-center py-8 text-stone-400">Loading...</p> : notes.length === 0 ? (
         <EmptyState title="No notes yet" description={`Add a note above.`} />
@@ -2684,7 +2684,7 @@ function NotesTab({ journeyId, currentUser }) {
             return (
               <Card key={note.id} className="rounded-2xl"><CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#283693]' : 'bg-[#283693]'}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#1A3638]' : 'bg-[#1A3638]'}`}>
                     {note.note_type === 'gc' ? 'GC' : note.note_type === 'ip' ? 'IP' : 'SHARED'}
                   </span>
                   <span className="text-xs text-stone-400">{note.created_by}</span>
@@ -2692,7 +2692,7 @@ function NotesTab({ journeyId, currentUser }) {
                   {wasEdited && <span className="text-[10px] text-stone-300 italic">(edited)</span>}
                   {!isEditing && (
                     <div className="ml-auto flex items-center gap-2">
-                      <button onClick={() => startEdit(note)} className="text-xs text-stone-300 hover:text-[#283693]">Edit</button>
+                      <button onClick={() => startEdit(note)} className="text-xs text-stone-300 hover:text-[#1A3638]">Edit</button>
                       <button onClick={() => handleDelete(note.id)} className="text-xs text-stone-300 hover:text-red-500">Delete</button>
                     </div>
                   )}
@@ -2704,7 +2704,7 @@ function NotesTab({ journeyId, currentUser }) {
                     </Suspense>
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={saving}>Cancel</Button>
-                      <Button size="sm" onClick={handleSaveEdit} disabled={saving || !editContent || editContent === '<p></p>'} style={{ backgroundColor: '#283693', color: '#fff' }}>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={saving || !editContent || editContent === '<p></p>'} style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                         {saving ? 'Saving...' : 'Save'}
                       </Button>
                     </div>
@@ -2759,7 +2759,7 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
           <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" className="h-7 text-xs" />
         </div>
         <div className="flex gap-1.5">
-          <Button size="sm" className="gap-1 h-6 text-[11px] rounded-full px-3" style={{ backgroundColor: '#283693' }} onClick={save}>
+          <Button size="sm" className="gap-1 h-6 text-[11px] rounded-full px-3" style={{ backgroundColor: '#1A3638' }} onClick={save}>
             <Save className="size-3" /> Save
           </Button>
           <Button variant="outline" size="sm" className="h-6 text-[11px] rounded-full px-3" onClick={() => setEditing(false)}>Cancel</Button>
@@ -2779,11 +2779,11 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
   return (
     <div className="mt-1.5 flex items-center gap-2 text-xs text-stone-500">
       <Scale className="size-3.5 text-stone-400" />
-      <button onClick={startEdit} className="font-semibold text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
+      <button onClick={startEdit} className="font-semibold text-stone-700 hover:text-[#1A3638] hover:underline cursor-pointer">{name}</button>
       {firm && <><span className="text-stone-300">·</span> <span className="font-medium">{firm}</span></>}
       {email && (
         <button
-          className={`inline-flex items-center gap-1 rounded-full text-[10px] h-5 px-2 ml-1 border border-stone-200 text-stone-500 transition-all cursor-pointer ${color === 'indigo' ? 'hover:bg-[#283693] hover:border-[#283693] hover:text-white' : 'hover:bg-[#ed148c] hover:border-[#ed148c] hover:text-white'}`}
+          className={`inline-flex items-center gap-1 rounded-full text-[10px] h-5 px-2 ml-1 border border-stone-200 text-stone-500 transition-all cursor-pointer ${color === 'indigo' ? 'hover:bg-[#1A3638] hover:border-[#1A3638] hover:text-white' : 'hover:bg-[#D4A853] hover:border-[#D4A853] hover:text-white'}`}
           onClick={() => onEmail(email, name)}>
           <Mail className="size-2.5" /> Email Attorney
         </button>
@@ -3279,10 +3279,10 @@ export default function JourneyDetailPage() {
       <Dialog open={startCaseOpen} onOpenChange={setStartCaseOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[#ed148c]">Start New Case for {gcCase?.name?.split(' ')[0] || 'Surrogate'}</DialogTitle>
+            <DialogTitle className="text-[#D4A853]">Start New Case for {gcCase?.name?.split(' ')[0] || 'Surrogate'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 text-sm text-[#283693]">
+            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 text-sm text-[#1A3638]">
               <p className="font-semibold">Create a fresh case while this journey stays open?</p>
               <p className="mt-1 text-xs text-stone-600">
                 Use this after delivery when the current journey must remain active (escrow, post-partum payments, etc.).
@@ -3298,7 +3298,7 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => setStartCaseOpen(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleStartNewCase} disabled={startingCase} className="gap-1" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+              <Button size="sm" onClick={handleStartNewCase} disabled={startingCase} className="gap-1" style={{ backgroundColor: '#D4A853', color: '#fff' }}>
                 {startingCase ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {startingCase ? 'Creating...' : 'Start New Case'}
               </Button>
@@ -3370,10 +3370,10 @@ export default function JourneyDetailPage() {
       <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[#283693]">Archive Journey</DialogTitle>
+            <DialogTitle className="text-[#1A3638]">Archive Journey</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#283693]">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#1A3638]">
               <p className="font-semibold">This journey is complete — archive it?</p>
               <p className="mt-1 text-xs text-stone-600">
                 All journey data (checklist, expenses, notes, emails, documents) will be preserved.
@@ -3388,7 +3388,7 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => setArchiveOpen(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleArchiveJourney} disabled={archiving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Button size="sm" onClick={handleArchiveJourney} disabled={archiving} className="gap-1" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                 {archiving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
                 {archiving ? 'Archiving...' : 'Archive Journey'}
               </Button>
@@ -3401,10 +3401,10 @@ export default function JourneyDetailPage() {
       <Dialog open={unarchiveOpen} onOpenChange={(v) => !unarchiving && setUnarchiveOpen(v)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[#283693]">Unarchive Journey</DialogTitle>
+            <DialogTitle className="text-[#1A3638]">Unarchive Journey</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#283693]">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#1A3638]">
               <p className="font-semibold">Restore this journey to the active Matched Journeys list?</p>
               <p className="mt-1 text-xs text-stone-600">
                 {jd._archivedAt && (
@@ -3418,7 +3418,7 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => setUnarchiveOpen(false)} disabled={unarchiving}>Cancel</Button>
-              <Button size="sm" onClick={handleUnarchiveJourney} disabled={unarchiving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Button size="sm" onClick={handleUnarchiveJourney} disabled={unarchiving} className="gap-1" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                 {unarchiving ? <Loader2 className="size-3 animate-spin" /> : <ArrowLeft className="size-3" />}
                 {unarchiving ? 'Unarchiving...' : 'Unarchive Journey'}
               </Button>
@@ -3482,14 +3482,14 @@ export default function JourneyDetailPage() {
               ))}
               <button
                 onClick={() => setExpenseLineItems(prev => [...prev, emptyLineItem()])}
-                className="text-xs text-[#283693] hover:underline font-medium"
+                className="text-xs text-[#1A3638] hover:underline font-medium"
                 type="button"
               >
                 + Add Line Item
               </button>
               <div className="flex items-center justify-between pt-2 border-t border-stone-100">
                 <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
-                <span className="text-base font-bold text-[#283693]">${expenseTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-base font-bold text-[#1A3638]">${expenseTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             {/* Escrow Opened */}
@@ -3558,7 +3558,7 @@ export default function JourneyDetailPage() {
                           {gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername || 'No username on file' : gcPaymentPref.zelleInfo || 'No info on file'}
                         </p>
                         {gcPaymentPref.screenshotUrl && (
-                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline mt-1 inline-block">View screenshot →</a>
+                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline mt-1 inline-block">View screenshot →</a>
                         )}
                       </div>
                     ) : (
@@ -3570,7 +3570,7 @@ export default function JourneyDetailPage() {
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseLineItems([emptyLineItem()]) }}>Cancel</Button>
-              <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
+              <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#1A3638' }} className="gap-1" onClick={async () => {
                 setSavingExpense(true)
                 try {
                   // Upload each line item's file and collect all URLs into a
@@ -3635,7 +3635,7 @@ export default function JourneyDetailPage() {
                         case_id: journey.id,
                         case_type: 'journey',
                         title: `Pay Expense for ${journeyLabel} — ${resolvedPaidTo} $${expenseTotal.toFixed(2)}`,
-                        assigned_to: 'julie@abcsurrogacy.com',
+                        assigned_to: 'julie@northstarsurrogacy.com',
                         due_date: new Date().toISOString().split('T')[0],
                         priority: 'high',
                         status: 'open',
@@ -3771,7 +3771,7 @@ export default function JourneyDetailPage() {
                         {jd._archivedAt ? (
                           <button
                             onClick={() => { setUnarchiveOpen(true); setActionsOpen(false) }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-[#283693]"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-[#1A3638]"
                           >
                             <ArrowLeft className="size-3.5" /> Unarchive Journey
                           </button>
@@ -3977,7 +3977,7 @@ export default function JourneyDetailPage() {
                   const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
                   if (updated) setJourney(updated)
                 }}>
-                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#1A3638]"><SelectValueUI /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
                     {getAdminStaff().map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
@@ -3990,7 +3990,7 @@ export default function JourneyDetailPage() {
                 <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
                   updateField('journeyManager', val === '_unassigned' ? '' : val)
                 }}>
-                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#1A3638]"><SelectValueUI /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
                     {JOURNEY_MANAGERS.map(name => <SelectItemUI key={name} value={name}>{name}</SelectItemUI>)}
@@ -4018,19 +4018,19 @@ export default function JourneyDetailPage() {
                   <div className="flex gap-1.5">
                     {gcCase.phone && (
                       <Button size="icon" title={gcCase.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
-                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => setSmsConfirm({ phone: gcCase.phone, name: gcCase.name, party: 'gc' })}>
                         <MessageSquare className="size-3" />
                       </Button>
                     )}
                     <Button size="icon" title={gcCase.preferredContact === 'Email' ? 'Email (preferred)' : 'Email'}
-                      className={`size-7 rounded-full ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                      className={`size-7 rounded-full ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                       onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id, party: 'gc' })}>
                       <Mail className="size-3" />
                     </Button>
                     {gcCase.phone && (
                       <Button size="icon" title={gcCase.preferredContact === 'Phone' ? 'Call (preferred)' : 'Call'}
-                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => toggleGcFlip('phone')}>
                         <Phone className="size-3" />
                       </Button>
@@ -4069,7 +4069,7 @@ export default function JourneyDetailPage() {
                     {jd._newCaseStartedId ? (
                       <Link
                         to={`/surrogates/${jd._newCaseStartedId}`}
-                        className="inline-flex items-center gap-1.5 text-xs text-[#283693] hover:text-[#ed148c] hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs text-[#1A3638] hover:text-[#D4A853] hover:underline"
                       >
                         <ArrowRight className="size-3" /> New case started {jd._newCaseStartedAt ? `${fmtDate(jd._newCaseStartedAt)}` : ''} — open it
                       </Link>
@@ -4077,7 +4077,7 @@ export default function JourneyDetailPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1.5 text-xs border-[#ed148c]/40 text-[#ed148c] hover:bg-[#ed148c]/10 hover:text-[#ed148c]"
+                        className="gap-1.5 text-xs border-[#D4A853]/40 text-[#D4A853] hover:bg-[#D4A853]/10 hover:text-[#D4A853]"
                         onClick={() => setStartCaseOpen(true)}
                       >
                         <Plus className="size-3" /> Start New Case for {gcCase.name?.split(' ')[0] || 'Surrogate'}
@@ -4107,7 +4107,7 @@ export default function JourneyDetailPage() {
               return (<>
                 {/* Header: label + contact buttons */}
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
+                  <p className="text-xs font-semibold text-[#1A3638]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
                   <div className="flex gap-1.5">
                     {ipCase.phone && (
                       <Button size="icon" title="Text" className="size-7 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
@@ -4249,7 +4249,7 @@ export default function JourneyDetailPage() {
               GC Application
             </button>
             <button onClick={() => setAppView('ip')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'ip' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'ip' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
               IP Application
             </button>
           </div>
@@ -4274,7 +4274,7 @@ export default function JourneyDetailPage() {
               Surrogate Profile
             </button>
             <button onClick={() => setProfileView('ip')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'ip' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'ip' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
               IP Profile
             </button>
           </div>
@@ -4342,8 +4342,8 @@ export default function JourneyDetailPage() {
       {emailConfirm && (
         <div className={`fixed z-50 animate-in fade-in duration-200 ${emailConfirm.party === 'ip' ? 'top-[340px] right-8' : 'top-[140px] right-8'}`}>
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-5 py-3 flex items-center gap-3 max-w-md">
-            <div className="size-9 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
-              <Mail className="size-4 text-[#283693]" />
+            <div className="size-9 rounded-full bg-[#1A3638]/10 flex items-center justify-center shrink-0">
+              <Mail className="size-4 text-[#1A3638]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-stone-800">Email {emailConfirm.name}?</p>
@@ -4351,7 +4351,7 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex gap-2 shrink-0">
               <Button variant="outline" size="sm" className="rounded-full text-xs h-7" onClick={() => setEmailConfirm(null)}>Cancel</Button>
-              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#283693' }}
+              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#1A3638' }}
                 onClick={(e) => {
                   e.preventDefault(); e.stopPropagation()
                   const conf = emailConfirm
@@ -4379,7 +4379,7 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex gap-2 shrink-0">
               <Button variant="outline" size="sm" className="rounded-full text-xs h-7" onClick={() => setSmsConfirm(null)}>Cancel</Button>
-              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#ed148c' }}
+              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#D4A853' }}
                 onClick={() => {
                   const conf = smsConfirm
                   setSmsConfirm(null)
@@ -4405,7 +4405,7 @@ export default function JourneyDetailPage() {
             {smsResult === 'error' && <p className="text-sm text-red-600 font-medium">Failed to send</p>}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => setSmsOpen(null)}>Cancel</Button>
-              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSendSMS} disabled={smsSending || !smsMessage.trim()}>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSendSMS} disabled={smsSending || !smsMessage.trim()}>
                 {smsSending ? <Loader2 className="size-3 animate-spin" /> : <MessageSquare className="size-3" />}
                 {smsSending ? 'Sending...' : 'Send'}
               </Button>
@@ -4415,13 +4415,13 @@ export default function JourneyDetailPage() {
       </Dialog>
 
       {/* Confetti */}
-      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc="/abc-favicon.png" zIndex={40} />}
+      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc="/favicon.png" zIndex={40} />}
 
       {/* Insurance Dialog */}
       <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {gcCase?.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#1A3638" /> Insurance — {gcCase?.name}</DialogTitle>
           </DialogHeader>
           {insuranceOpen && (
             <Suspense fallback={<TabFallback />}>
@@ -4436,10 +4436,10 @@ export default function JourneyDetailPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {providerEdit === 'ivf' && <><EmbryoIcon size={18} color="#283693" /> IVF Clinic</>}
-              {providerEdit === 'monitoring' && <><Stethoscope className="size-5 text-[#283693]" /> Monitoring Clinic</>}
-              {providerEdit === 'ob' && <><Stethoscope className="size-5 text-[#283693]" /> OB Clinic</>}
-              {providerEdit === 'hospital' && <><Hospital className="size-5 text-[#283693]" /> Delivery Hospital</>}
+              {providerEdit === 'ivf' && <><EmbryoIcon size={18} color="#1A3638" /> IVF Clinic</>}
+              {providerEdit === 'monitoring' && <><Stethoscope className="size-5 text-[#1A3638]" /> Monitoring Clinic</>}
+              {providerEdit === 'ob' && <><Stethoscope className="size-5 text-[#1A3638]" /> OB Clinic</>}
+              {providerEdit === 'hospital' && <><Hospital className="size-5 text-[#1A3638]" /> Delivery Hospital</>}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -4495,7 +4495,7 @@ export default function JourneyDetailPage() {
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setProviderEdit(null)}>Cancel</Button>
-              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={saveProvider}>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={saveProvider}>
                 <Save className="size-3" /> Save
               </Button>
             </div>

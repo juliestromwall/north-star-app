@@ -316,11 +316,11 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
     const latestNote = noteEntries[noteEntries.length - 1]
 
     return (
-      <div className={`rounded-lg border px-3 py-2 ${isPast ? 'opacity-60' : today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
+      <div className={`rounded-lg border px-3 py-2 ${isPast ? 'opacity-60' : today ? 'border-[#1A3638]/30 bg-[#1A3638]/5' : 'border-stone-100'}`}>
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>{title}</p>
+              <p className={`text-sm ${today ? 'font-semibold text-[#1A3638]' : 'text-stone-800'}`}>{title}</p>
               {isFollowedUp && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-semibold border border-emerald-200">
                   <CheckCircle2 className="size-2.5" /> Followed Up
@@ -336,7 +336,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
                   {event.end?.dateTime ? ` – ${formatTime(event.end.dateTime)}` : ''}
                 </span>
               )}
-              {today && <span className="text-[#283693] font-semibold">Today</span>}
+              {today && <span className="text-[#1A3638] font-semibold">Today</span>}
               {noteEntries.length > 1 && <span className="text-stone-400">{noteEntries.length} notes</span>}
             </div>
             {latestNote && (
@@ -362,7 +362,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
             )}
             <button
               onClick={() => { setNotesModal(event); setNoteText(''); setNoteDate(new Date().toISOString().split('T')[0]) }}
-              className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
+              className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#1A3638] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
             >
               <FileText className="size-2.5" />
               {noteEntries.length > 0 ? 'Add Another Note' : 'Add Note'}
@@ -379,7 +379,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
         <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
           <CalendarDays className="size-4 text-stone-400" /> Appointments
         </h3>
-        <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+        <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#1A3638' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Appointment
         </Button>
       </div>
@@ -432,7 +432,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="size-4 text-[#283693]" />
+              <FileText className="size-4 text-[#1A3638]" />
               Appointment Notes
             </DialogTitle>
           </DialogHeader>
@@ -457,7 +457,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
                   const isEditing = editingId === e.id
                   if (isEditing) {
                     return (
-                      <div key={e.id} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 px-3 py-2 space-y-2">
+                      <div key={e.id} className="rounded-lg border border-[#1A3638]/30 bg-[#1A3638]/5 px-3 py-2 space-y-2">
                         <div className="space-y-1">
                           <label className="text-[10px] text-stone-500">Note Date</label>
                           <Input type="date" value={editDate} onChange={ev => setEditDate(ev.target.value)} className="h-8 text-xs" />
@@ -467,7 +467,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
                           <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={() => { setEditingId(null); setEditText(''); setEditDate('') }}>
                             <X className="size-3" /> Cancel
                           </Button>
-                          <Button size="sm" className="h-7 text-[11px] gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveEdit} disabled={savingNote || !editText.trim()}>
+                          <Button size="sm" className="h-7 text-[11px] gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSaveEdit} disabled={savingNote || !editText.trim()}>
                             {savingNote ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Save
                           </Button>
                         </div>
@@ -482,7 +482,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
                           <span>{e.by}</span>
                           <button
                             onClick={() => { setEditingId(e.id); setEditText(e.body); setEditDate(e.date || (e.at || '').slice(0, 10) || '') }}
-                            className="text-stone-400 hover:text-[#283693]"
+                            className="text-stone-400 hover:text-[#1A3638]"
                             title="Edit note"
                           >
                             <Pencil className="size-3" />
@@ -522,7 +522,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName, onAtten
 
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
               {savingNote ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Save Note
             </Button>
           </DialogFooter>
@@ -623,7 +623,7 @@ function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMod
           )}
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.date}>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.date}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <CalendarDays className="size-3" />}
               {saving ? 'Saving...' : editMode ? 'Save Changes' : 'Add Appointment'}
             </Button>

@@ -161,18 +161,18 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       }
       * { box-sizing: border-box; }
       body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.5; font-size: 12px; background: white; }
-      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-      .print-bar button { background: white; color: #283693; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+      .print-bar button { background: white; color: #1A3638; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
       .content { max-width: 760px; margin: 0 auto; padding: 28px 32px; }
-      .title { font-size: 22px; font-weight: 700; color: #283693; margin: 0 0 4px 0; text-align: center; }
+      .title { font-size: 22px; font-weight: 700; color: #1A3638; margin: 0 0 4px 0; text-align: center; }
       .subtitle { font-size: 11px; color: #78716c; text-align: center; margin: 0 0 14px 0; letter-spacing: 0.04em; text-transform: uppercase; }
-      .top-divider { border: none; border-top: 2px solid #283693; margin: 0 0 18px 0; }
+      .top-divider { border: none; border-top: 2px solid #1A3638; margin: 0 0 18px 0; }
       .header-card { background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 10px; padding: 12px 16px; margin: 0 0 14px 0; }
       .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 12px; }
       .header-grid .item { display: flex; flex-direction: column; }
       .header-grid .label { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
       .header-grid .value { font-size: 12px; color: #1c1917; font-weight: 500; margin-top: 1px; }
-      .section-title { font-size: 11px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 6px 0; }
+      .section-title { font-size: 11px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 6px 0; }
       .info-card { border: 1px solid #e7e5e4; border-radius: 8px; overflow: hidden; margin: 0 0 10px 0; }
       .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; }
       .info-row > div { padding: 8px 12px; border-right: 1px solid #f5f4f3; }
@@ -197,7 +197,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       .details-box mark { border-radius: 2px; padding: 1px 3px; }
       .details-box img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
       .signature { margin-top: 18px; padding: 12px 16px; background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 8px; font-size: 11px; color: #57534e; line-height: 1.6; }
-      .signature strong { color: #283693; }
+      .signature strong { color: #1A3638; }
     </style>
   </head><body>
     <div class="print-bar">
@@ -234,7 +234,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       <div class="info-card">
         <div class="info-row">
           <div><div class="lbl">Case Manager</div><div class="val">${report.caseManagerName || '—'}</div></div>
-          <div><div class="lbl">Company</div><div class="val">Abundant Beginnings Co.</div></div>
+          <div><div class="lbl">Company</div><div class="val">North Star Surrogacy</div></div>
           <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${report.caseManagerEmail || '—'}</div></div>
         </div>
       </div>
@@ -307,17 +307,17 @@ function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
       }
       * { box-sizing: border-box; }
       body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.5; font-size: 12px; background: white; }
-      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-      .print-bar button { background: white; color: #283693; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+      .print-bar button { background: white; color: #1A3638; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
       .content { max-width: 760px; margin: 0 auto; padding: 28px 32px; }
       .header { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 0 24px 0; }
       .brand { font-size: 11px; color: #78716c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-      .brand .name { font-size: 16px; color: #283693; font-weight: 700; letter-spacing: 0; text-transform: none; margin-top: 2px; }
+      .brand .name { font-size: 16px; color: #1A3638; font-weight: 700; letter-spacing: 0; text-transform: none; margin-top: 2px; }
       .doc-title { text-align: right; }
-      .doc-title h1 { font-size: 28px; font-weight: 700; color: #283693; margin: 0 0 6px 0; letter-spacing: 0.04em; }
+      .doc-title h1 { font-size: 28px; font-weight: 700; color: #1A3638; margin: 0 0 6px 0; letter-spacing: 0.04em; }
       .doc-title .meta { font-size: 11px; color: #57534e; line-height: 1.6; }
       .doc-title .meta strong { color: #1c1917; font-weight: 600; }
-      .top-divider { border: none; border-top: 2px solid #283693; margin: 0 0 20px 0; }
+      .top-divider { border: none; border-top: 2px solid #1A3638; margin: 0 0 20px 0; }
       .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0 0 22px 0; }
       .party-card { border: 1px solid #e7e5e4; border-radius: 10px; padding: 14px 16px; background: #fafaf9; }
       .party-card .label { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
@@ -328,14 +328,14 @@ function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
       .patient-bar .lbl { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
       .patient-bar .val { font-size: 13px; color: #1c1917; font-weight: 600; margin-top: 2px; }
       table.lines { width: 100%; border-collapse: collapse; margin: 0 0 6px 0; }
-      table.lines thead th { font-size: 10px; color: #78716c; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; text-align: left; padding: 10px 12px; border-bottom: 2px solid #283693; }
+      table.lines thead th { font-size: 10px; color: #78716c; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; text-align: left; padding: 10px 12px; border-bottom: 2px solid #1A3638; }
       table.lines thead th.amount { text-align: right; }
       table.lines tbody td { padding: 14px 12px; border-bottom: 1px solid #e7e5e4; font-size: 12px; vertical-align: top; }
       table.lines tbody td.amount { text-align: right; font-variant-numeric: tabular-nums; }
       table.lines tbody td .svc-title { font-weight: 600; color: #1c1917; }
       table.lines tbody td .svc-sub { color: #78716c; font-size: 11px; margin-top: 2px; }
       table.lines tfoot td { padding: 12px; font-size: 13px; }
-      table.lines tfoot td.label { text-align: right; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: #283693; }
+      table.lines tfoot td.label { text-align: right; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: #1A3638; }
       table.lines tfoot td.amount { text-align: right; font-weight: 700; font-size: 15px; color: #1c1917; font-variant-numeric: tabular-nums; }
       .footer-note { margin-top: 24px; font-size: 10.5px; color: #a8a29e; text-align: center; letter-spacing: 0.04em; }
     </style>
@@ -362,7 +362,7 @@ function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
       <div class="parties">
         <div class="party-card">
           <div class="label">Bill To</div>
-          <div class="name">ABC Surrogacy</div>
+          <div class="name">North Star Surrogacy</div>
           <div class="line">Accounts Payable</div>
         </div>
         <div class="party-card">
@@ -409,7 +409,7 @@ function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
           </tr>
         </tfoot>
       </table>
-      <div class="footer-note">Generated by ABC Surrogacy on ${escapeHtml(issuedDateStr)}</div>
+      <div class="footer-note">Generated by North Star Surrogacy on ${escapeHtml(issuedDateStr)}</div>
     </div>
   </body></html>`
 }
@@ -1034,7 +1034,7 @@ export default function SharedPsychTrackingPage() {
                 />
               </div>
               {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
-              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={handleSetPassword} disabled={passwordSaving}>
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={handleSetPassword} disabled={passwordSaving}>
                 {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
                 {passwordSaving ? 'Setting up...' : 'Set Password & Continue'}
               </Button>
@@ -1078,7 +1078,7 @@ export default function SharedPsychTrackingPage() {
               </div>
               {idleLoggedOut && <p className="text-xs text-amber-600 font-medium">You were logged out due to inactivity. Please enter your password again.</p>}
               {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
-              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={handleLogin} disabled={passwordSaving}>
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={handleLogin} disabled={passwordSaving}>
                 {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
                 {passwordSaving ? 'Verifying...' : 'Unlock'}
               </Button>
@@ -1102,7 +1102,7 @@ export default function SharedPsychTrackingPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-stone-800">Therapist Check-Ins</h1>
-            <p className="text-sm text-stone-500">ABC Surrogacy · {rows.length} surrogates</p>
+            <p className="text-sm text-stone-500">North Star Surrogacy · {rows.length} surrogates</p>
           </div>
         </div>
 
@@ -1111,13 +1111,13 @@ export default function SharedPsychTrackingPage() {
           <div className="flex gap-1 border-b border-stone-200">
             <button
               onClick={() => setTab('active')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'active' ? 'border-[#ed148c] text-[#283693]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'active' ? 'border-[#D4A853] text-[#1A3638]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
             >
               Active <span className="text-stone-400 text-xs ml-1">{counts.active}</span>
             </button>
             <button
               onClick={() => setTab('completed')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'completed' ? 'border-[#ed148c] text-[#283693]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'completed' ? 'border-[#D4A853] text-[#1A3638]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
             >
               Completed Cases <span className="text-stone-400 text-xs ml-1">{counts.completed}</span>
             </button>
@@ -1159,17 +1159,17 @@ export default function SharedPsychTrackingPage() {
         />
 
         <p className="text-[10px] text-stone-400 text-center pt-4">
-          ABC Surrogacy · Shared view · Click "Check In" to complete a milestone
+          North Star Surrogacy · Shared view · Click "Check In" to complete a milestone
         </p>
       </div>
 
       {/* Check-In Report Builder Dialog */}
       <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
         <DialogContent className="!max-w-[95vw] sm:!max-w-[1400px] !w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-3 border-b-2 border-[#283693]/20">
+          <DialogHeader className="pb-3 border-b-2 border-[#1A3638]/20">
             <DialogTitle asChild>
-              <h2 className="text-2xl font-bold text-[#283693] flex items-center gap-2">
-                <ClipboardCheck className="size-6 text-[#283693]" />
+              <h2 className="text-2xl font-bold text-[#1A3638] flex items-center gap-2">
+                <ClipboardCheck className="size-6 text-[#1A3638]" />
                 {checkinRow ? `${checkinRow.name} - ${milestoneName} Check-In` : `${milestoneName} Check-In`}
               </h2>
             </DialogTitle>
@@ -1204,7 +1204,7 @@ export default function SharedPsychTrackingPage() {
                   value={checkinForm.communicationMethod || 'Phone'}
                   onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
                   disabled={checkinReadOnly}
-                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#1A3638]/20 focus:border-[#1A3638] disabled:bg-stone-50 disabled:text-stone-500"
                 >
                   <option value="Phone">Phone</option>
                   <option value="Video Call">Video Call</option>
@@ -1215,8 +1215,8 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Requested By */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <User className="size-4" /> Requested By
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -1231,7 +1231,7 @@ export default function SharedPsychTrackingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-stone-600">Company</label>
-                  <Input value="Abundant Beginnings Co." disabled className="bg-white" />
+                  <Input value="North Star Surrogacy" disabled className="bg-white" />
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-medium text-stone-600">Email</label>
@@ -1247,8 +1247,8 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Reason for Communication */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <ClipboardList className="size-4" /> Reason for Communication
               </h3>
               <Input
@@ -1259,8 +1259,8 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Billing Information */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <DollarSign className="size-4" /> Billing Information
               </h3>
               <div className="space-y-1.5">
@@ -1277,8 +1277,8 @@ export default function SharedPsychTrackingPage() {
 
             {/* Birth Plan Sections — only shown for Birth Guidelines milestones */}
             {isBirthGuidelinesMilestone && (
-              <div className="rounded-lg bg-[#ed148c]/[0.04] border border-[#ed148c]/20 p-4 space-y-4">
-                <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider flex items-center gap-2">
+              <div className="rounded-lg bg-[#D4A853]/[0.04] border border-[#D4A853]/20 p-4 space-y-4">
+                <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider flex items-center gap-2">
                   <ClipboardList className="size-4" /> Birth Plan
                 </h3>
                 {checkinRow?.ipNames && checkinMilestone === 'birthGuidelinesIp' && (
@@ -1309,8 +1309,8 @@ export default function SharedPsychTrackingPage() {
             )}
 
             {/* Communication Details */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="size-4" /> Communication Details
               </h3>
               {checkinReadOnly ? (
@@ -1392,7 +1392,7 @@ export default function SharedPsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
@@ -1407,7 +1407,7 @@ export default function SharedPsychTrackingPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck className="size-5 text-[#283693]" />
+              <ClipboardCheck className="size-5 text-[#1A3638]" />
               Submit Check-In Report?
             </DialogTitle>
           </DialogHeader>
@@ -1425,7 +1425,7 @@ export default function SharedPsychTrackingPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
               {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Yes, Submit Report
             </Button>
@@ -1494,7 +1494,7 @@ export default function SharedPsychTrackingPage() {
           })()}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSkipDetailOpen(false)} disabled={withdrawSaving}>Close</Button>
-            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleWithdrawSkip} disabled={withdrawSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleWithdrawSkip} disabled={withdrawSaving}>
               {withdrawSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Withdraw Skip & Check In
             </Button>
@@ -1525,18 +1525,18 @@ export default function SharedPsychTrackingPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setCustomDuration(30)}
-                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 30 ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 30 ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
                 >30 min</button>
                 <button
                   onClick={() => setCustomDuration(60)}
-                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 60 ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 60 ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
                 >60 min</button>
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setCustomOpen(false)} disabled={customSaving}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleAddCustomCheckin} disabled={customSaving || !customLabel.trim()}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleAddCustomCheckin} disabled={customSaving || !customLabel.trim()}>
               {customSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
               Add Check-In
             </Button>
@@ -1571,8 +1571,8 @@ function getInitials(name) {
 
 function GradientAvatar({ name, accent = 'pink' }) {
   const bg = accent === 'indigo'
-    ? 'linear-gradient(135deg, #6366f1, #283693)'
-    : 'linear-gradient(135deg, #ed148c, #283693)'
+    ? 'linear-gradient(135deg, #6366f1, #1A3638)'
+    : 'linear-gradient(135deg, #D4A853, #1A3638)'
   return (
     <div className="size-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: bg }}>
       {getInitials(name)}
@@ -1627,10 +1627,10 @@ function MilestoneStation({ row, milestoneKey, label, plannedDate, checkins, onC
     statusText = 'Draft'
     statusClass = 'text-amber-600 font-medium'
   } else {
-    bubbleClass = 'bg-white text-[#283693] border-[#283693]/30 group-hover:bg-[#283693] group-hover:text-white group-hover:border-[#283693]'
+    bubbleClass = 'bg-white text-[#1A3638] border-[#1A3638]/30 group-hover:bg-[#1A3638] group-hover:text-white group-hover:border-[#1A3638]'
     bubbleIcon = <ChevronRight className="size-4" strokeWidth={2.5} />
     statusText = 'Check In'
-    statusClass = 'text-[#283693] font-semibold group-hover:underline'
+    statusClass = 'text-[#1A3638] font-semibold group-hover:underline'
   }
 
   const showSkipLink = !isComplete && !isSkipped && typeof onSkip === 'function'
@@ -1708,7 +1708,7 @@ function CustomCheckInChip({ row, custom, checkins, onCheckin, onViewReport, onS
     statusEl = <span className="font-medium">Draft</span>
     handleClick = () => onCheckin(row, custom.id)
   } else {
-    chipClass = 'bg-white border-[#283693]/30 text-[#283693] hover:bg-[#283693]/5'
+    chipClass = 'bg-white border-[#1A3638]/30 text-[#1A3638] hover:bg-[#1A3638]/5'
     statusEl = <span className="font-semibold">Check In</span>
     handleClick = () => onCheckin(row, custom.id)
   }
@@ -1744,7 +1744,7 @@ function CustomCheckInChip({ row, custom, checkins, onCheckin, onViewReport, onS
 }
 
 function ContactLine({ label, name, email, phone, accent = 'violet' }) {
-  const accentClass = accent === 'indigo' ? 'text-[#283693] bg-[#283693]/10 border-[#283693]/20' : 'text-pink-600 bg-pink-50 border-pink-200'
+  const accentClass = accent === 'indigo' ? 'text-[#1A3638] bg-[#1A3638]/10 border-[#1A3638]/20' : 'text-pink-600 bg-pink-50 border-pink-200'
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
       <span className={`inline-flex shrink-0 px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border ${accentClass}`}>{label}</span>
@@ -1862,7 +1862,7 @@ function TodoRow({ item, onCheckin, onSkip }) {
       )}
       <button
         onClick={() => onCheckin(row, milestoneKey)}
-        className="text-[#283693] hover:text-white hover:bg-[#283693] border border-[#283693]/30 hover:border-[#283693] text-xs font-semibold whitespace-nowrap px-3 py-1 rounded-full transition-colors"
+        className="text-[#1A3638] hover:text-white hover:bg-[#1A3638] border border-[#1A3638]/30 hover:border-[#1A3638] text-xs font-semibold whitespace-nowrap px-3 py-1 rounded-full transition-colors"
       >
         {isDraft ? 'Resume' : 'Check In'}
       </button>
@@ -1901,7 +1901,7 @@ function CheckInTodoPanel({ rows, checkins, onCheckin, onSkip }) {
     <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gradient-to-r from-violet-50/60 to-pink-50/60 border-b border-stone-100">
         <div className="flex items-center gap-2 flex-wrap">
-          <ClipboardCheck className="size-4 text-[#283693]" />
+          <ClipboardCheck className="size-4 text-[#1A3638]" />
           <h2 className="text-sm font-semibold text-stone-800">Check-In To-Do</h2>
           <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white border border-stone-200 text-stone-600 font-semibold">{items.length} pending</span>
           {overdueCount > 0 && (
@@ -1920,7 +1920,7 @@ function CheckInTodoPanel({ rows, checkins, onCheckin, onSkip }) {
       {hiddenCount > 0 && (
         <button
           onClick={() => setShowAll(true)}
-          className="w-full py-2.5 text-xs font-semibold text-[#283693] hover:bg-stone-50 border-t border-stone-100 transition-colors"
+          className="w-full py-2.5 text-xs font-semibold text-[#1A3638] hover:bg-stone-50 border-t border-stone-100 transition-colors"
         >
           Show {hiddenCount} more
         </button>
@@ -2002,7 +2002,7 @@ function CaseCard({ row, checkins, onCheckin, onViewReport, onSkip, onAddCustom,
               {typeof onAddCustom === 'function' && (
                 <button
                   onClick={() => onAddCustom(row)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#283693] bg-[#283693]/10 hover:bg-[#283693]/15 border border-[#283693]/20 rounded-full transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1A3638] bg-[#1A3638]/10 hover:bg-[#1A3638]/15 border border-[#1A3638]/20 rounded-full transition-colors"
                 >
                   <Plus className="size-3.5" /> Add Check-In
                 </button>

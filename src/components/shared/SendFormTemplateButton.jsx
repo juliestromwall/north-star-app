@@ -127,7 +127,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
             }
           }}
           disabled={resending}
-          className="inline-flex items-center gap-1 text-[10px] font-medium text-[#283693] hover:underline ml-1"
+          className="inline-flex items-center gap-1 text-[10px] font-medium text-[#1A3638] hover:underline ml-1"
         >
           {resending ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
           {resending ? 'Sending...' : 'Resend'}
@@ -271,7 +271,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
     return (
       <div className="flex flex-col gap-1 text-xs py-1">
         <span className="text-red-600 font-medium">⚠ {result.error}</span>
-        <button onClick={() => setResult(null)} className="text-[#283693] hover:underline text-[10px] self-start">Try again</button>
+        <button onClick={() => setResult(null)} className="text-[#1A3638] hover:underline text-[10px] self-start">Try again</button>
       </div>
     )
   }
@@ -336,7 +336,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
               }}
               disabled={sending}
               className="gap-1.5"
-              style={{ backgroundColor: '#283693' }}
+              style={{ backgroundColor: '#1A3638' }}
             >
               {sending ? <Loader2 className="size-3 animate-spin" /> : <FileSignature className="size-3" />}
               {sending ? 'Sending…' : 'Send'}

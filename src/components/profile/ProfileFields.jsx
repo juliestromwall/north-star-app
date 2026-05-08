@@ -86,7 +86,7 @@ function YesNoField({ label, value, onChange, className = '', wrapper, fieldPath
           onClick={() => onChange('yes')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
             value === 'yes'
-              ? 'bg-[#283693] text-white shadow-md'
+              ? 'bg-[#1A3638] text-white shadow-md'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           }`}
         >
@@ -97,7 +97,7 @@ function YesNoField({ label, value, onChange, className = '', wrapper, fieldPath
           onClick={() => onChange('no')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
             value === 'no'
-              ? 'bg-[#283693] text-white shadow-md'
+              ? 'bg-[#1A3638] text-white shadow-md'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           }`}
         >

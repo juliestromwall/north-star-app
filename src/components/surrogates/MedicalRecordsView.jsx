@@ -125,7 +125,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
           progress bar below. */}
       <div className="px-1">
         <div className="flex items-baseline justify-between gap-4 mb-2">
-          <h2 className="font-heading font-black text-2xl text-[#283693] tracking-tight">
+          <h2 className="font-heading font-black text-2xl text-[#1A3638] tracking-tight">
             Medical Records to Collect
           </h2>
           <p className="text-sm font-bold text-stone-600 tabular-nums shrink-0">
@@ -137,7 +137,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${counts.total > 0 ? (counts.complete / counts.total) * 100 : 0}%`,
-              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
+              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)',
             }}
           />
         </div>
@@ -152,7 +152,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
           <div className="space-y-6">
             {groups.years.map(g => (
               <section key={g.year}>
-                <h3 className="text-2xl font-heading font-black text-[#ed148c]/60 tracking-tight mb-2 px-1">
+                <h3 className="text-2xl font-heading font-black text-[#D4A853]/60 tracking-tight mb-2 px-1">
                   {g.year}
                 </h3>
                 <div className="space-y-3">
@@ -171,7 +171,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
             ))}
             {groups.other.length > 0 && (
               <section>
-                <h3 className="text-2xl font-heading font-black text-[#ed148c]/60 tracking-tight mb-2 px-1">
+                <h3 className="text-2xl font-heading font-black text-[#D4A853]/60 tracking-tight mb-2 px-1">
                   Other Records
                 </h3>
                 <div className="space-y-3">
@@ -343,7 +343,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
         }}
       >
         <button
-          className="mt-1 text-stone-400 hover:text-[#283693] shrink-0"
+          className="mt-1 text-stone-400 hover:text-[#1A3638] shrink-0"
           onClick={(e) => { e.stopPropagation(); setManualExpanded(!expanded) }}
           aria-label={expanded ? 'Collapse' : 'Expand'}
         >
@@ -356,13 +356,13 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
               onChange={setDraft}
               onCommit={commitInlineEdit}
               onCancel={cancelInlineEdit}
-              className="text-base font-heading font-black text-[#283693] tracking-tight"
+              className="text-base font-heading font-black text-[#1A3638] tracking-tight"
               autoFocus
             />
           ) : (
             <div className="flex items-baseline gap-3 flex-wrap">
               <h3
-                className="text-base font-heading font-black text-[#283693] tracking-tight leading-tight cursor-text hover:underline decoration-dotted decoration-stone-300 underline-offset-4"
+                className="text-base font-heading font-black text-[#1A3638] tracking-tight leading-tight cursor-text hover:underline decoration-dotted decoration-stone-300 underline-offset-4"
                 title="Click to rename"
                 onClick={(e) => { e.stopPropagation(); startInlineEdit('label', entry.customLabel || step.label) }}
               >
@@ -428,14 +428,14 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
                 const isEditing = editingLogId === stableId
                 if (isEditing) {
                   return (
-                    <li key={stableId} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 p-2 space-y-1.5">
-                      <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Editing · {statusLabel(l.status)}</p>
+                    <li key={stableId} className="rounded-lg border border-[#1A3638]/30 bg-[#1A3638]/5 p-2 space-y-1.5">
+                      <p className="text-[10px] font-bold text-[#1A3638] uppercase tracking-wider">Editing · {statusLabel(l.status)}</p>
                       <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center">
-                        <input type="date" value={editLogDate} onChange={e => setEditLogDate(e.target.value)} className="text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
-                        <input type="text" value={editLogNote} onChange={e => setEditLogNote(e.target.value)} placeholder="Note…" className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
+                        <input type="date" value={editLogDate} onChange={e => setEditLogDate(e.target.value)} className="text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#1A3638]" />
+                        <input type="text" value={editLogNote} onChange={e => setEditLogNote(e.target.value)} placeholder="Note…" className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#1A3638]" />
                         <div className="flex gap-1">
                           <button onClick={cancelEditLog} className="text-[11px] text-stone-500 hover:text-stone-700 px-2 py-1">Cancel</button>
-                          <button onClick={saveEditLog} className="text-[11px] font-semibold text-white bg-[#283693] rounded px-2.5 py-1">Save</button>
+                          <button onClick={saveEditLog} className="text-[11px] font-semibold text-white bg-[#1A3638] rounded px-2.5 py-1">Save</button>
                         </div>
                       </div>
                     </li>
@@ -449,7 +449,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
                         {formatLogDate(l.changed_at)}
                         {' · '}<span title={l.changed_by || 'Unknown'}>{initialsOf(l.changed_by)}</span>
                       </span>
-                      {l.note && <span className="ml-2 font-medium text-[#283693]">{l.note}</span>}
+                      {l.note && <span className="ml-2 font-medium text-[#1A3638]">{l.note}</span>}
                     </span>
                     <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       {pendingDeleteId === stableId ? (
@@ -460,7 +460,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
                         </>
                       ) : (
                         <>
-                          <button onClick={() => startEditLog(withIdx)} className="p-0.5 text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 rounded" title="Edit log">
+                          <button onClick={() => startEditLog(withIdx)} className="p-0.5 text-stone-400 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded" title="Edit log">
                             <Pencil className="size-3" />
                           </button>
                           <button onClick={() => setPendingDeleteId(stableId)} className="p-0.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded" title="Delete log">
@@ -475,11 +475,11 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
 
               {/* INLINE NEW-LOG ROW — always present, becomes a real log on submit */}
               <li className="pt-1.5">
-                <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center rounded-lg border-2 border-dashed border-stone-200 bg-stone-50/40 p-2 hover:border-[#283693]/30 hover:bg-[#283693]/5 transition-colors focus-within:border-[#283693] focus-within:bg-[#283693]/5">
+                <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center rounded-lg border-2 border-dashed border-stone-200 bg-stone-50/40 p-2 hover:border-[#1A3638]/30 hover:bg-[#1A3638]/5 transition-colors focus-within:border-[#1A3638] focus-within:bg-[#1A3638]/5">
                   <select
                     value={newLogStatus}
                     onChange={e => setNewLogStatus(e.target.value)}
-                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693] min-w-[160px]"
+                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638] min-w-[160px]"
                   >
                     <option value="">Choose status…</option>
                     {STATUS_PILLS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
@@ -488,7 +488,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
                     type="date"
                     value={newLogDate}
                     onChange={e => setNewLogDate(e.target.value)}
-                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638]"
                     title="Log date"
                   />
                   <input
@@ -497,12 +497,12 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
                     onChange={e => setNewLogNote(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && newLogStatus) addNewLog() }}
                     placeholder="Optional note…"
-                    className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                    className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#1A3638]"
                   />
                   <button
                     onClick={addNewLog}
                     disabled={!newLogStatus}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#283693] hover:bg-[#1f2a73] disabled:bg-stone-300 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#1f2a73] disabled:bg-stone-300 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors shrink-0"
                   >
                     <Plus className="size-3.5" /> Log
                   </button>
@@ -543,7 +543,7 @@ function HeaderNote({ entry, stepId, onUpdate }) {
         onBlur={save}
         autoFocus
         placeholder="Note…"
-        className="w-full text-xs rounded-md border border-stone-300 bg-white px-2 py-1 outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+        className="w-full text-xs rounded-md border border-stone-300 bg-white px-2 py-1 outline-none focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20"
       />
     )
   }
@@ -551,7 +551,7 @@ function HeaderNote({ entry, stepId, onUpdate }) {
     return (
       <button
         onClick={() => { setOpen(true); setDraft(entry.note) }}
-        className="block text-left text-xs text-stone-600 hover:text-[#283693] hover:underline decoration-dotted decoration-stone-300 underline-offset-4 w-full"
+        className="block text-left text-xs text-stone-600 hover:text-[#1A3638] hover:underline decoration-dotted decoration-stone-300 underline-offset-4 w-full"
         title="Click to edit"
       >
         {entry.note}
@@ -561,7 +561,7 @@ function HeaderNote({ entry, stepId, onUpdate }) {
   return (
     <button
       onClick={() => { setOpen(true); setDraft('') }}
-      className="text-[11px] text-stone-300 hover:text-[#283693] italic"
+      className="text-[11px] text-stone-300 hover:text-[#1A3638] italic"
     >
       + Add note
     </button>
@@ -581,7 +581,7 @@ function ContactInline({ icon: Icon, label, value, editing, draft, setDraft, sta
           onBlur={commit}
           onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel() }}
           placeholder={label}
-          className="text-xs rounded border border-[#283693]/30 px-1.5 py-0.5 bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none min-w-[140px]"
+          className="text-xs rounded border border-[#1A3638]/30 px-1.5 py-0.5 bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none min-w-[140px]"
         />
       ) : (
         <button
@@ -604,7 +604,7 @@ function InlineEditInput({ value, onChange, onCommit, onCancel, className, autoF
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') onCommit(); if (e.key === 'Escape') onCancel() }}
         placeholder={placeholder}
-        className={`flex-1 rounded-lg border-2 border-[#283693]/30 px-2 py-0.5 bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none ${className}`}
+        className={`flex-1 rounded-lg border-2 border-[#1A3638]/30 px-2 py-0.5 bg-white focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20 outline-none ${className}`}
       />
       <button onClick={onCommit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check className="size-3.5" /></button>
       <button onClick={onCancel} className="p-1 text-stone-400 hover:bg-stone-100 rounded"><X className="size-3.5" /></button>

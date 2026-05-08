@@ -74,10 +74,10 @@ export default function FollowUpReviewPage() {
     <div className="min-h-screen bg-[#fdf8f3]">
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
-          <h1 className="text-lg font-bold text-[#283693]">Profile Follow Up Review</h1>
+          <h1 className="text-lg font-bold text-[#1A3638]">Profile Follow Up Review</h1>
           <p className="text-sm text-stone-500">{surrogate?.name || 'Unknown'}</p>
         </div>
-        <img src="/abc-logo.png" alt="" className="h-8 opacity-40" />
+        <img src="/north-star-logo.png" alt="" className="h-8 opacity-40" />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
@@ -112,7 +112,7 @@ export default function FollowUpReviewPage() {
                         value={notes[field.key] || ''}
                         onChange={e => saveNotes({ ...notes, [field.key]: e.target.value })}
                         placeholder="Add note..."
-                        className="w-full text-xs border border-stone-200 rounded-md px-2 py-1.5 resize-none focus:border-[#283693]/40 focus:ring-0 outline-none bg-transparent"
+                        className="w-full text-xs border border-stone-200 rounded-md px-2 py-1.5 resize-none focus:border-[#1A3638]/40 focus:ring-0 outline-none bg-transparent"
                         rows={1}
                       />
                     </td>

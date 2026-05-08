@@ -37,7 +37,7 @@
   - `src/pages/surrogates/SurrogateListPage.jsx` + `src/pages/intended-parents/IPListPage.jsx` — both load `fetchCompletedJourneys()` alongside existing data; default views hide completed-journey cases. Search-by-name surfaces them with a green "Completed Journey" badge. Stage-count chips and "X of Y shown" header now exclude the hidden cases so totals match what's actually rendered.
   - `src/pages/intended-parents/IPDetailPage.jsx` — "Start Sibling Journey" button surfaces in the hero next to the stage badge when the IP has a completed journey; second entry point besides the journey page.
 
-- **Master Admin default = All Cases** (a512034): Both list pages already defaulted Super Admins to "All Cases" plus a hardcoded email allowlist (`julie@abcsurrogacy.com`, `nicole@abcsurrogacy.com`). On staging Julie's account is `juliestromwall@gmail.com` (not on the list) and her role is Master Admin, so she defaulted to "My Cases" and couldn't find surrogates owned by `intake@`. Fix: include `isMasterAdmin` in the default-all check. Master Admins oversee everyone's caseload by definition. Email allowlist kept as a fallback for any non-master admin who needs the wider view.
+- **Master Admin default = All Cases** (a512034): Both list pages already defaulted Super Admins to "All Cases" plus a hardcoded email allowlist (`julie@northstarsurrogacy.com`, `nicole@northstarsurrogacy.com`). On staging Julie's account is `juliestromwall@gmail.com` (not on the list) and her role is Master Admin, so she defaulted to "My Cases" and couldn't find surrogates owned by `intake@`. Fix: include `isMasterAdmin` in the default-all check. Master Admins oversee everyone's caseload by definition. Email allowlist kept as a fallback for any non-master admin who needs the wider view.
 
 - **Duplicate "Escrow Closed" step gate fix** (f945e31 on staging, 8a5b07d on main): User on prod marked their existing custom "Escrow Closed" step (id `close_escrow_1776050267241` — originally labeled "Close Escrow", later renamed to match) complete on journey #60, but Mark Complete stayed disabled. Root cause: `Array.find` returned the locked-default step (id `escrow_closed`) we seeded, then checked tracking on its id and missed the admin's complete status on the *other* step. Fix: `filter` all label-matching steps and return true if ANY of them is complete. Robust against duplicate-label situations and future renames.
 
@@ -165,14 +165,14 @@ ALTER TABLE journey_expenses ALTER COLUMN journey_id DROP NOT NULL;
 
 **Worked on:** Recovered after Warp terminal froze with 3 parallel sessions — all prior work was already committed on `staging`. Ran several production data operations, then fixed several UI/UX issues on matched journeys, fixed a leaking SMS notification indicator, fixed email body links, added an emoji picker to compose. Everything shipped through `staging` → `main`.
 
-**Production data ops (all against db.abcsurrogacy.com):**
+**Production data ops (all against db.northstarsurrogacy.com):**
 - Imported 2 new GCs from `/Users/juliestromwall/Downloads/GCs in intake - Sheet1.csv` via `scripts/import-surrogates.js` — 13 of 15 were already in `intake_submissions`, 2 new rows inserted (Mariah Master, Marissa Hawkins).
-- Reassigned **72 pre-qualification GCs** to `info@abcsurrogacy.com` (Jennifer Rose) via new `scripts/assign-prequal-to-jennifer.js` — overwrote 10 existing admin assignments, filled 62 nulls, 23 already matched. Stage lookup via `app_config.surrogate_stages` with the default-when-missing rule. Skipped withdrawn/holding.
+- Reassigned **72 pre-qualification GCs** to `info@northstarsurrogacy.com` (Jennifer Rose) via new `scripts/assign-prequal-to-jennifer.js` — overwrote 10 existing admin assignments, filled 62 nulls, 23 already matched. Stage lookup via `app_config.surrogate_stages` with the default-when-missing rule. Skipped withdrawn/holding.
 - Marked **98 qualified GCs as Reviewed** (by Jennifer Rose) via new `scripts/mark-qualified-as-reviewed.js` — sets `intake_submissions.status='reviewed'` and stamps `answers._reviewedAt` / `answers._reviewedBy`. Surrogate dashboard card flips from "Our team is reviewing…" (pink) to "We've reviewed your quiz results!" (emerald).
 - Imported Raquel Rodriguez's old profile from `raquelirodriguez@yahoo.com` xlsx via `scripts/import-old-surrogate-profile.js --apply`. New `surrogate_profiles` row `b2ebb324-bd9c-4bd2-a2ff-8ab9f300a84c`, linked to intake id=52 (applicant name mismatch is fine — keyed by email).
 
-**Email migration (juliestromwall@gmail.com → info@abcsurrogacy.com):**
-- Provided SQL covering 17 attribution columns across `intake_submissions`, `case_tasks`, `matched_journeys`, `journey_notes`, `profile_shares`, `case_notes`, `case_documents`, `esign_*`, `insurance_payments`, `team_chat_*`. User ran it — verified 0 traces of old email remain in application tables; `info@abcsurrogacy.com` now owns the data.
+**Email migration (juliestromwall@gmail.com → info@northstarsurrogacy.com):**
+- Provided SQL covering 17 attribution columns across `intake_submissions`, `case_tasks`, `matched_journeys`, `journey_notes`, `profile_shares`, `case_notes`, `case_documents`, `esign_*`, `insurance_payments`, `team_chat_*`. User ran it — verified 0 traces of old email remain in application tables; `info@northstarsurrogacy.com` now owns the data.
 - `auth.users.email` was NOT touched by the attribution SQL (different subsystem) — which is why the forgot-password email to `info@...` silently failed. Provided SQL to update `auth.users` + `auth.identities` directly in the Supabase SQL editor (`UPDATE auth.users SET email=..., email_change='', email_change_token_new='', email_change_confirm_status=0 WHERE ...` + matching `auth.identities` update for provider=email). **User said Supabase dashboard "edit user" wasn't visible to them — provided SQL route as the fallback, unclear whether they ran it.**
 
 **Commits shipped to staging + main (all UI):**
@@ -204,7 +204,7 @@ ALTER TABLE journey_expenses ALTER COLUMN journey_id DROP NOT NULL;
 - `991918a` — **Journey hero: 2 new count pills** in ESCROW row. `{n} to submit` (orange) — expenses escrow-opened but not yet submitted. `{n} awaiting disbursement` (blue) — submitted but not yet paid. Live-counts from `journeyExpenses` state.
 - `43239b3` / `f8a81e0` / `9d4dc30` — Card-layout iterations (abandoned per user feedback "too thick").
 - `0f489a3` — **Back to tables, cleaner**: no vertical cell borders, row dividers only, stacked metadata (name / manager · date / Paid badge).
-- `60c2d6e` — **Final layout polish**: new `CaseCell` component mirrors `/case-updates` styling (IP name indigo `#283693`, GC name pink `#ed148c`, stacked with `+` between). CC Last 4 promoted to its own column (was crammed under Paid To). `handleSetEscrowStatus` surfaces save errors via `alert()` instead of swallowing them.
+- `60c2d6e` — **Final layout polish**: new `CaseCell` component mirrors `/case-updates` styling (IP name indigo `#1A3638`, GC name pink `#D4A853`, stacked with `+` between). CC Last 4 promoted to its own column (was crammed under Paid To). `handleSetEscrowStatus` surfaces save errors via `alert()` instead of swallowing them.
 
 **Prod-data cleanup (journey 38):**
 - Cleared `disbursement_paid_at/_by` and `disbursement_requested_at/_by` on `journey_expenses.id=30` ($1,000 Brittney Everett bonus) per user request. User manually deleted ids 30, 31 duplicates after my read-only investigation confirmed they were from Add-Expense re-entries, not a code bug.
@@ -398,10 +398,10 @@ New Auto-Tasks:
 - Heartbeat confirmed → "🤰 {GC Name} - 20wks Check in with IP(s)" for Julie & Nicole (121 days post-transfer)
 - Heartbeat confirmed → "Confirmation of Heartbeat - Collect 4th Agency Payment" for Julie & Nicole
 - Medical Clearance complete (journey) → "{GC Name} Medically Cleared - Collect 3rd Agency Payment" for Julie & Nicole
-- Reference Check requested → "Complete Reference Checks for {GC Name}" for intake@abcsurrogacy.com
+- Reference Check requested → "Complete Reference Checks for {GC Name}" for intake@northstarsurrogacy.com
 
 Email Fix:
-- All Jennifer Rose auto-tasks updated from jennifer@ → intake@abcsurrogacy.com (testimony, reference check)
+- All Jennifer Rose auto-tasks updated from jennifer@ → intake@northstarsurrogacy.com (testimony, reference check)
 
 Documentation:
 - docs/AUTO_TASKS.csv — 26 auto-task triggers with title, assignee, priority, due date, source file
@@ -553,7 +553,7 @@ Other Fixes:
 - Profile Follow Up Questions field review with agency
 
 **Open questions:**
-- Jennifer Rose's email — using jennifer@abcsurrogacy.com (confirm correct)
+- Jennifer Rose's email — using jennifer@northstarsurrogacy.com (confirm correct)
 
 ## 2026-04-14 (Gmail Inbox Integration, Journey Updates, Provider Info, Profile Label Alignment, Quick Notes)
 
@@ -1045,7 +1045,7 @@ Bot Protection:
 Intake Form Updates:
 - Added "6+ deliveries" and "2+ C-sections" DQ questions
 - "Friend or family" referral requires name
-- Default assignment to intake@abcsurrogacy.com for qualified surrogates
+- Default assignment to intake@northstarsurrogacy.com for qualified surrogates
 
 Application Flow:
 - Reopen application for updates (admin button, in-app dialog)
@@ -1170,7 +1170,7 @@ Resend Transactional Emails:
 - Reinvite email: "Welcome to your secure portal" (for existing users)
 - Reset password email: branded with gradient button
 - New application notification: sends to configurable admin list (GC_APPLICATION_NOTIFY_EMAIL)
-- All from noreply@abcsurrogacy.com via Resend
+- All from noreply@northstarsurrogacy.com via Resend
 
 Application Review Workflow:
 - "Mark as Reviewed" button on intake applications page
@@ -1185,7 +1185,7 @@ Other:
 - Admin notes connected to Supabase (was in-memory only)
 - ZenQuotes proxied through Cloudflare Function (CORS fix)
 - AI Summary button added to all case/journey hero sections
-- Auto-assign qualified surrogates to intake@abcsurrogacy.com
+- Auto-assign qualified surrogates to intake@northstarsurrogacy.com
 - Referral & Bonus tracker: $4,000 defaults, split payments at medical/legal clearance
 - "Date Completed" checklist step type with one-click Complete button
 - Appointments hidden from portal (temporarily)
@@ -1288,7 +1288,7 @@ Dashboard Appointments Fix:
 - Shows case name as clickable link on each appointment
 
 **Next steps:**
-- Set up Resend: add RESEND_API_KEY to Cloudflare, verify abcsurrogacy.com domain
+- Set up Resend: add RESEND_API_KEY to Cloudflare, verify northstarsurrogacy.com domain
 - Add email preview page for testing templates
 - More email templates as needed
 - Consider adding "Preview" button to Send Template dialog
@@ -1433,7 +1433,7 @@ Bug Fixes:
 - AI extraction: full email body via Gmail API, improved dollar detection prompt, error surfacing
 - Email CSS: sandboxed iframe prevents style leaking (Amazon dark theme fix)
 - Expense email viewer: 90vw modal, mail icon links to full email
-- Admin setup: desiree@abcsurrogacy.com user created + role fixed via user_metadata
+- Admin setup: desiree@northstarsurrogacy.com user created + role fixed via user_metadata
 - Removed surrogate quiz link from login
 
 **Next steps:**
@@ -1566,7 +1566,7 @@ Journeys List Page Redesign:
 - Cards unchanged
 
 Admin User Setup:
-- Created Supabase auth user for desiree@abcsurrogacy.com
+- Created Supabase auth user for desiree@northstarsurrogacy.com
 - Fixed role assignment via user_metadata (defaults to surrogate without it)
 
 **Next steps:**
@@ -1856,7 +1856,7 @@ Icon Updates:
 - Dashboard stat cards updated to match sidebar icons
 
 New Files:
-- public/abc-buggy.png — collapsed sidebar logo
+- public/north-star-mark.png — collapsed sidebar logo
 - public/icons/matching.png, surrogate.png — unused ChatGPT-generated icons (kept for reference)
 - src/components/layout/NavIcons.jsx — custom icon map (currently empty, all using lucide)
 
@@ -1889,7 +1889,7 @@ Match Sheets (src/components/journeys/MatchSheetsTab.jsx):
 - "Save to Documents" + "Send Match Sheet" buttons replacing "Download PDF"
 - Send Match Sheet: generates PDF, attaches to email compose, auto-logs to journey
 - Email subject format: "Attorney Match Sheet - IP(s) Name(s) with GC Name"
-- Branded footer with abcsurrogacy.com banner image, address, phone numbers
+- Branded footer with northstarsurrogacy.com banner image, address, phone numbers
 - Date format: MM/DD/YYYY with support for MM/DD/YYYY, MM-DD-YYYY, YYYY-MM-DD input
 - Custom EmbryoIcon SVG component
 - PartyBanner component for major section dividers (IP vs Surrogate vs Journey)
@@ -2116,7 +2116,7 @@ Journey Hero (multiple iterations):
 Matching Pipeline:
 - Matched cases hidden from /matching (only on /journeys)
 - MATCHED badges removed
-- IP color changed to ABC indigo (#283693)
+- IP color changed to ABC indigo (#1A3638)
 
 Matched Journeys (/journeys):
 - Cards: subtle SURROGATE/INTENDED PARENTS labels, tinted backgrounds, no arrow
@@ -2307,7 +2307,7 @@ Journey Detail Page (/journeys/:id):
 - Click-to-edit journey tiles (Lost Wages, Pumping, Escrow Min, Balance)
 - Stage/Status as clickable tiles (last two on right)
 - Case Manager + Journey Manager (Julie/Nicole only) dropdowns
-- IP color: ABC indigo (#283693) throughout
+- IP color: ABC indigo (#1A3638) throughout
 - Profiles tab: GC/IP toggle
 - Notes tab: Shared/GC/IP/All filter with colored labels
 - Rich GC section: avatar, name, location, age, phone, email, preferred contact, Text/Email buttons, stat tiles

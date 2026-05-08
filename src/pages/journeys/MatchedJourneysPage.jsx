@@ -18,8 +18,8 @@ import { getAdminStaff } from '@/data/mock/users'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
+  'julie@northstarsurrogacy.com',
+  'nicole@northstarsurrogacy.com',
 ])
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
@@ -61,8 +61,8 @@ function getJourneyMilestoneProgress(stageId, tracking = {}) {
 // Outline color by Journey Manager: Julie → indigo, Nicole → coral
 export function journeyManagerOutlineColor(j) {
   const name = (j?.journey_data?.journeyManager || '').toLowerCase()
-  if (name.includes('julie')) return '#283693'
-  if (name.includes('nicole')) return '#ed148c'
+  if (name.includes('julie')) return '#1A3638'
+  if (name.includes('nicole')) return '#D4A853'
   return null
 }
 
@@ -81,8 +81,8 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
           </div>
         )}
         {/* IP */}
-        <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
-          <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
+        <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#1A363808' }}>
+          <p className="text-[9px] font-semibold text-[#1A3638]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
           <div className="flex items-center gap-2">
             <ProfileAvatar name={j.ip?.names || '?'} avatar={ipAvatar} size="sm" />
             <div className="flex-1 min-w-0">
@@ -92,7 +92,7 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
           </div>
         </div>
         {/* GC */}
-        <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
+        <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#D4A85308' }}>
           <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
           <div className="flex items-center gap-2">
             <ProfileAvatar name={j.gc?.name || '?'} avatar={gcAvatar} size="sm" />
@@ -114,7 +114,7 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
                 <span>{completed}/{total}</span>
               </div>
               <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
               </div>
               <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
                 {milestoneData.map(ms => (
@@ -339,10 +339,10 @@ export default function MatchedJourneysPage() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setStatusFilter('all')}
-          className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#1A3638] border-[#1A3638]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{allCasesCount}</p>
+          <p className="text-2xl font-bold" style={{ color: '#1A3638' }}>{allCasesCount}</p>
           <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
         {orderedStatuses.map(status => (
@@ -392,7 +392,7 @@ export default function MatchedJourneysPage() {
         {archivedCount > 0 && (
           <button
             onClick={() => setStatusFilter(statusFilter === 'archived' ? 'all' : 'archived')}
-            className={`text-xs font-medium px-2 self-center whitespace-nowrap transition-colors ${statusFilter === 'archived' ? 'text-[#283693] underline' : 'text-stone-400 hover:text-stone-600'}`}
+            className={`text-xs font-medium px-2 self-center whitespace-nowrap transition-colors ${statusFilter === 'archived' ? 'text-[#1A3638] underline' : 'text-stone-400 hover:text-stone-600'}`}
           >
             {statusFilter === 'archived' ? '← Back to active' : `View archived (${archivedCount})`}
           </button>

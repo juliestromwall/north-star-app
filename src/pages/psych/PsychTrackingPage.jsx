@@ -137,14 +137,14 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       }
       * { box-sizing: border-box; }
       body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.5; font-size: 12px; background: white; }
-      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-      .print-bar button { background: white; color: #283693; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+      .print-bar button { background: white; color: #1A3638; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
       .content { max-width: 760px; margin: 0 auto; padding: 28px 32px; }
 
       /* Title */
-      .title { font-size: 22px; font-weight: 700; color: #283693; margin: 0 0 4px 0; text-align: center; }
+      .title { font-size: 22px; font-weight: 700; color: #1A3638; margin: 0 0 4px 0; text-align: center; }
       .subtitle { font-size: 11px; color: #78716c; text-align: center; margin: 0 0 14px 0; letter-spacing: 0.04em; text-transform: uppercase; }
-      .top-divider { border: none; border-top: 2px solid #283693; margin: 0 0 18px 0; }
+      .top-divider { border: none; border-top: 2px solid #1A3638; margin: 0 0 18px 0; }
 
       /* Header info card — 2 columns */
       .header-card { background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 10px; padding: 12px 16px; margin: 0 0 14px 0; }
@@ -154,7 +154,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       .header-grid .value { font-size: 12px; color: #1c1917; font-weight: 500; margin-top: 1px; }
 
       /* Section headers */
-      .section-title { font-size: 11px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 6px 0; }
+      .section-title { font-size: 11px; font-weight: 700; color: #1A3638; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 6px 0; }
 
       /* Compact 3-column info section */
       .info-card { border: 1px solid #e7e5e4; border-radius: 8px; overflow: hidden; margin: 0 0 10px 0; }
@@ -187,7 +187,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
 
       /* Signature */
       .signature { margin-top: 18px; padding: 12px 16px; background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 8px; font-size: 11px; color: #57534e; line-height: 1.6; }
-      .signature strong { color: #283693; }
+      .signature strong { color: #1A3638; }
     </style>
   </head><body>
     <div class="print-bar">
@@ -224,7 +224,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       <div class="info-card">
         <div class="info-row">
           <div><div class="lbl">Case Manager</div><div class="val">${report.caseManagerName || '—'}</div></div>
-          <div><div class="lbl">Company</div><div class="val">Abundant Beginnings Co.</div></div>
+          <div><div class="lbl">Company</div><div class="val">North Star Surrogacy</div></div>
           <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${report.caseManagerEmail || '—'}</div></div>
         </div>
       </div>
@@ -647,10 +647,10 @@ export default function PsychTrackingPage() {
       {/* Check-In Report Builder Dialog */}
       <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
         <DialogContent className="!max-w-[95vw] sm:!max-w-[1400px] !w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-3 border-b-2 border-[#283693]/20">
+          <DialogHeader className="pb-3 border-b-2 border-[#1A3638]/20">
             <DialogTitle asChild>
-              <h2 className="text-2xl font-bold text-[#283693] flex items-center gap-2">
-                <ClipboardCheck className="size-6 text-[#283693]" />
+              <h2 className="text-2xl font-bold text-[#1A3638] flex items-center gap-2">
+                <ClipboardCheck className="size-6 text-[#1A3638]" />
                 {checkinRow ? `${checkinRow.name} - ${milestoneName} Check-In` : `${milestoneName} Check-In`}
               </h2>
             </DialogTitle>
@@ -685,7 +685,7 @@ export default function PsychTrackingPage() {
                   value={checkinForm.communicationMethod || 'Phone'}
                   onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
                   disabled={checkinReadOnly}
-                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#1A3638]/20 focus:border-[#1A3638] disabled:bg-stone-50 disabled:text-stone-500"
                 >
                   <option value="Phone">Phone</option>
                   <option value="Video Call">Video Call</option>
@@ -696,8 +696,8 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Requested By */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <User className="size-4" /> Requested By
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -712,7 +712,7 @@ export default function PsychTrackingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-stone-600">Company</label>
-                  <Input value="Abundant Beginnings Co." disabled className="bg-white" />
+                  <Input value="North Star Surrogacy" disabled className="bg-white" />
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-medium text-stone-600">Email</label>
@@ -728,8 +728,8 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Reason for Communication */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <ClipboardList className="size-4" /> Reason for Communication
               </h3>
               <Input
@@ -740,8 +740,8 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Billing Information */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <DollarSign className="size-4" /> Billing Information
               </h3>
               <div className="space-y-1.5">
@@ -758,8 +758,8 @@ export default function PsychTrackingPage() {
 
             {/* Birth Plan Sections — only shown for Birth Guidelines milestones */}
             {isBirthGuidelinesMilestoneAdmin && (
-              <div className="rounded-lg bg-[#ed148c]/[0.04] border border-[#ed148c]/20 p-4 space-y-4">
-                <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider flex items-center gap-2">
+              <div className="rounded-lg bg-[#D4A853]/[0.04] border border-[#D4A853]/20 p-4 space-y-4">
+                <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider flex items-center gap-2">
                   <ClipboardList className="size-4" /> Birth Plan
                 </h3>
                 {checkinMilestone === 'birthGuidelinesIp' && checkinRow?.ipNames && (
@@ -797,8 +797,8 @@ export default function PsychTrackingPage() {
             )}
 
             {/* Communication Details */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="size-4" /> Communication Details
               </h3>
               {checkinReadOnly ? (
@@ -869,7 +869,7 @@ export default function PsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
@@ -884,7 +884,7 @@ export default function PsychTrackingPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck className="size-5 text-[#283693]" />
+              <ClipboardCheck className="size-5 text-[#1A3638]" />
               Submit Check-In Report?
             </DialogTitle>
           </DialogHeader>
@@ -902,7 +902,7 @@ export default function PsychTrackingPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
               {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Yes, Submit Report
             </Button>
@@ -967,7 +967,7 @@ export default function PsychTrackingPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-            <Button size="sm" onClick={saveManualEntry} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+            <Button size="sm" onClick={saveManualEntry} disabled={!manualForm.name.trim()} className="bg-[#D4A853] hover:bg-[#d4127d] text-white gap-1">
               <Plus className="size-3.5" /> Add
             </Button>
           </DialogFooter>
@@ -1002,7 +1002,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
         <span className="text-emerald-600 font-medium text-xs">{value ? formatDate(value) : 'Complete'}</span>
         <button
           onClick={() => onViewReport(row, milestoneKey)}
-          className="text-[#283693] hover:text-[#1e2a6e] transition-colors"
+          className="text-[#1A3638] hover:text-[#0F2628] transition-colors"
           title="View Report"
         >
           <Eye className="size-3" />
@@ -1026,7 +1026,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
   return (
     <button
       onClick={() => onCheckin(row, milestoneKey)}
-      className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors"
+      className="text-[#1A3638] hover:text-[#0F2628] text-xs font-medium transition-colors"
     >
       Check In
     </button>
@@ -1122,7 +1122,7 @@ export function PsychTable({ rows, checkins = {}, onDateChange, onCheckin, onVie
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
                     {!isSharedView && row.casePath ? (
-                      <Link to={row.casePath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
+                      <Link to={row.casePath} className="text-[#D4A853] hover:underline font-semibold text-xs">{row.name}</Link>
                     ) : (
                       <span className="font-semibold text-xs text-stone-800">{row.name}</span>
                     )}
@@ -1207,7 +1207,7 @@ export function PsychTable({ rows, checkins = {}, onDateChange, onCheckin, onVie
                               <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{c.label} <span className="text-stone-400">· {c.duration}m</span></span>
                               {status === 'complete' && r?.completedAt && onCheckin && (
                                 <button onClick={() => onViewReport(row, c.id)} className="text-emerald-600 text-xs font-medium flex items-center gap-1">
-                                  {formatDate(r.completedAt)}<Eye className="size-3 text-[#283693]" />
+                                  {formatDate(r.completedAt)}<Eye className="size-3 text-[#1A3638]" />
                                 </button>
                               )}
                               {status === 'skipped' && (
@@ -1217,7 +1217,7 @@ export function PsychTable({ rows, checkins = {}, onDateChange, onCheckin, onVie
                                 <button onClick={() => onCheckin(row, c.id)} className="text-amber-500 text-xs font-medium">Draft</button>
                               )}
                               {!status && onCheckin && (
-                                <button onClick={() => onCheckin(row, c.id)} className="text-[#283693] text-xs font-medium">Check In</button>
+                                <button onClick={() => onCheckin(row, c.id)} className="text-[#1A3638] text-xs font-medium">Check In</button>
                               )}
                             </div>
                           )

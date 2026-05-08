@@ -70,7 +70,7 @@ function PhoneWithCountryCode({ value, onChange, countryCode, onCountryChange, p
       <select
         value={countryCode}
         onChange={e => onCountryChange(e.target.value)}
-        className="rounded-xl h-11 border border-stone-200 bg-white px-2 text-sm min-w-[90px] outline-none focus:border-[#283693]"
+        className="rounded-xl h-11 border border-stone-200 bg-white px-2 text-sm min-w-[90px] outline-none focus:border-[#1A3638]"
       >
         {COUNTRY_CODES.map(c => (
           <option key={c.label} value={c.code}>{c.flag} {c.code}</option>
@@ -313,7 +313,7 @@ export default function IPIntakeForm() {
         {emailError && (
           <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">
             {emailError}{' '}
-            <a href="/login" className="text-[#283693] underline font-medium">Log in here</a>
+            <a href="/login" className="text-[#1A3638] underline font-medium">Log in here</a>
           </div>
         )}
       </div>
@@ -495,7 +495,7 @@ export default function IPIntakeForm() {
         <YesNoGrid value={form.wantsConsultation} onChange={v => set('wantsConsultation', v)} yesLabel="Yes, please" noLabel="Not right now" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">How did you hear about Abundant Beginnings Co.?</Label>
+        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">How did you hear about North Star Surrogacy?</Label>
         <Textarea
           value={form.hearAboutUs}
           onChange={e => set('hearAboutUs', e.target.value)}

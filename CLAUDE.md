@@ -1,6 +1,6 @@
-# ABC Surrogacy
+# North Star Surrogacy
 
-Live SaaS at **app.abcsurrogacy.com** with a working Supabase backend. Sensitive production system.
+Live SaaS at **app.northstarsurrogacy.com** with a working Supabase backend. Sensitive production system.
 
 ## Domain Context
 
@@ -25,8 +25,8 @@ See `docs/PRODUCT.md` for terminology, user roles, and flows.
 
 | Env | URL | Branch | Supabase project |
 |-----|-----|--------|------------------|
-| Production | app.abcsurrogacy.com | `main` | `db.abcsurrogacy.com` (`ertvelqlskevksgaanwd`) |
-| Staging | staging.app.abcsurrogacy.com (or `staging.abc-surrogacy.pages.dev` until subdomain split is finished) | `staging` | `hdnavfdmadciihsgscmq.supabase.co` |
+| Production | app.northstarsurrogacy.com | `main` | `db.northstarsurrogacy.com` (`ertvelqlskevksgaanwd`) |
+| Staging | staging.app.northstarsurrogacy.com (or `staging.north-star-app.pages.dev` until subdomain split is finished) | `staging` | `hdnavfdmadciihsgscmq.supabase.co` |
 
 ## Deploy Workflow — IMPORTANT
 

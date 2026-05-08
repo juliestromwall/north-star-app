@@ -76,7 +76,7 @@ export default function ProviderInfoButton({ journeyData = {}, gcInsurance, comp
   if (compact) {
     return (
       <>
-        <button onClick={() => setOpen(true)} title="Provider Information" className="text-stone-400 hover:text-[#283693] transition-colors">
+        <button onClick={() => setOpen(true)} title="Provider Information" className="text-stone-400 hover:text-[#1A3638] transition-colors">
           <Building2 className="size-3.5" />
         </button>
         <ProviderDialog open={open} onOpenChange={setOpen} providers={providers} />
@@ -86,7 +86,7 @@ export default function ProviderInfoButton({ journeyData = {}, gcInsurance, comp
 
   return (
     <>
-      <button onClick={() => setOpen(true)} title="Provider Information" className="text-stone-400 hover:text-[#283693] transition-colors">
+      <button onClick={() => setOpen(true)} title="Provider Information" className="text-stone-400 hover:text-[#1A3638] transition-colors">
         <Building2 className="size-3.5" />
       </button>
       <ProviderDialog open={open} onOpenChange={setOpen} providers={providers} />

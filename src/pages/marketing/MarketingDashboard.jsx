@@ -97,7 +97,7 @@ function VolumeChart({ data }) {
               {/* DQ portion (full bar) */}
               <rect x={x} y={y} width={barW} height={h} rx={3} fill="#e7e5e4" />
               {/* Qualified portion (overlaid from bottom) */}
-              <rect x={x} y={chartH - qualH} width={barW} height={qualH} rx={3} fill="#283693" opacity={0.8} />
+              <rect x={x} y={chartH - qualH} width={barW} height={qualH} rx={3} fill="#1A3638" opacity={0.8} />
               <title>{d.label}: {d.count} submissions, {d.qualifiedCount} qualified</title>
               {/* Count label above bar */}
               {d.count > 0 && (
@@ -116,7 +116,7 @@ function VolumeChart({ data }) {
         <line x1={0} y1={chartH} x2={Math.max(svgW, 300)} y2={chartH} stroke="#e7e5e4" strokeWidth={1} />
       </svg>
       <div className="flex items-center gap-4 mt-2 justify-end">
-        <span className="flex items-center gap-1.5 text-[10px] text-stone-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#283693] opacity-80" /> Qualified</span>
+        <span className="flex items-center gap-1.5 text-[10px] text-stone-400"><span className="w-2.5 h-2.5 rounded-sm bg-[#1A3638] opacity-80" /> Qualified</span>
         <span className="flex items-center gap-1.5 text-[10px] text-stone-400"><span className="w-2.5 h-2.5 rounded-sm bg-stone-300" /> Disqualified</span>
       </div>
     </div>
@@ -441,7 +441,7 @@ export default function MarketingDashboard() {
                     <span className="text-sm text-stone-600">{name}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-2 bg-stone-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#283693] rounded-full" style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }} />
+                        <div className="h-full bg-[#1A3638] rounded-full" style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }} />
                       </div>
                       <span className="text-xs text-stone-500 w-8 text-right">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
                     </div>
@@ -531,7 +531,7 @@ export default function MarketingDashboard() {
                       <div key={state} className="flex items-center gap-3">
                         <span className="text-sm font-medium text-stone-700 w-8 shrink-0">{state}</span>
                         <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#283693] rounded-full transition-all" style={{ width: `${pct}%`, minWidth: data.count > 0 ? '8px' : '0' }} />
+                          <div className="h-full bg-[#1A3638] rounded-full transition-all" style={{ width: `${pct}%`, minWidth: data.count > 0 ? '8px' : '0' }} />
                         </div>
                         <span className="text-xs text-stone-500 w-20 text-right shrink-0">{data.count} · {convRate}%</span>
                       </div>

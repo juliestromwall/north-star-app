@@ -347,23 +347,23 @@ export default function EditDocumentPage() {
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 180px;" />
+                  <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
                 </div>
-                <h2 style="color: #283693; margin-bottom: 8px;">Document Ready for Signature</h2>
+                <h2 style="color: #1A3638; margin-bottom: 8px;">Document Ready for Signature</h2>
                 <p>Hi ${signer.name || ''},</p>
-                <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a document to sign:</p>
+                <p><strong>${currentUser?.name || 'North Star Surrogacy'}</strong> has sent you a document to sign:</p>
                 <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   <p style="font-weight: 600; margin: 0;">${recipientTitle}</p>
                   ${sendForm.note ? `<p style="color: #444; font-size: 13px; margin: 8px 0 0; white-space: pre-line;">${sendForm.note}</p>` : ''}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
-                  <a href="${signUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                  <a href="${signUrl}" style="display: inline-block; background: #1A3638; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
                     Review & Sign Document
                   </a>
                 </div>
                 <p style="color: #888; font-size: 12px; margin-top: 24px;">
-                  This is a legally binding electronic signature request from Abundant Beginnings Company, LLC.
-                  If you have questions, please contact us at info@abcsurrogacy.com.
+                  This is a legally binding electronic signature request from North Star Surrogacy, LLC.
+                  If you have questions, please contact us at info@northstarsurrogacy.com.
                 </p>
               </div>
             `,
@@ -385,7 +385,7 @@ export default function EditDocumentPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <Loader2 className="size-8 animate-spin text-[#283693] mx-auto mb-3" />
+        <Loader2 className="size-8 animate-spin text-[#1A3638] mx-auto mb-3" />
         <p className="text-stone-400">Preparing document...</p>
       </div>
     )
@@ -403,7 +403,7 @@ export default function EditDocumentPage() {
           </Link>
           <div className="w-px h-6 bg-stone-200" />
           <div className="flex items-center gap-2">
-            <FileText className="size-5 text-[#283693]" />
+            <FileText className="size-5 text-[#1A3638]" />
             <span className="text-lg font-semibold">{docTitle}</span>
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function EditDocumentPage() {
             {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Download PDF
           </Button>
-          <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={async () => {
+          <Button className="gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }} onClick={async () => {
             setShowSend(true)
             if (requiredRoles.length === 0 && (workingDocId || googleDocId) && userId) {
               setLoadingRoles(true)
@@ -441,7 +441,7 @@ export default function EditDocumentPage() {
           </div>
         ) : !iframeReady ? (
           <div className="flex items-center justify-center flex-1">
-            <Loader2 className="size-6 animate-spin text-[#283693]" />
+            <Loader2 className="size-6 animate-spin text-[#1A3638]" />
           </div>
         ) : (
           <iframe
@@ -506,7 +506,7 @@ export default function EditDocumentPage() {
                       .map(c => (
                         <button key={c.id} type="button" className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 text-left border-b last:border-0"
                           onClick={() => { handleCaseSelect(sendForm.caseType, String(c.id)); setCaseSearch(c.names || c.name || ''); setCaseDropdownOpen(false) }}>
-                          <div className="w-7 h-7 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[11px] font-bold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-[#1A3638]/10 text-[#1A3638] flex items-center justify-center text-[11px] font-bold shrink-0">
                             {(c.names || c.name || '?').charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -629,7 +629,7 @@ export default function EditDocumentPage() {
             })()}
 
             <Button onClick={handleSend} disabled={sending || sendForm.signers.length === 0 || requiredRoles.some(role => !sendForm.signers.some(s => s.role === role)) || sendForm.signers.some(s => !s.email?.trim())}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               {sending ? 'Sending...' : 'Send for Signature'}
             </Button>

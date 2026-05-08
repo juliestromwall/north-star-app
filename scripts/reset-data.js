@@ -150,7 +150,7 @@ async function resetSequence() {
 }
 
 async function main() {
-  console.log('\n🗑  Resetting ABC Surrogacy data...\n')
+  console.log('\n🗑  Resetting North Star Surrogacy data...\n')
   console.log(`Keeping: ${KEEP_EMAIL}`)
   console.log(`Keeping: app_config table (checklists, statuses, settings)\n`)
 

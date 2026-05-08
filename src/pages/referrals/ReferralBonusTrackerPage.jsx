@@ -456,7 +456,7 @@ export default function ReferralBonusTrackerPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-            <Button size="sm" onClick={saveManualReferral} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+            <Button size="sm" onClick={saveManualReferral} disabled={!manualForm.name.trim()} className="bg-[#D4A853] hover:bg-[#d4127d] text-white gap-1">
               <Plus className="size-3.5" /> Add Referral
             </Button>
           </DialogFooter>
@@ -491,7 +491,7 @@ export default function ReferralBonusTrackerPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-            <Button size="sm" onClick={saveManualBonus} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+            <Button size="sm" onClick={saveManualBonus} disabled={!manualForm.name.trim()} className="bg-[#D4A853] hover:bg-[#d4127d] text-white gap-1">
               <Plus className="size-3.5" /> Add Bonus
             </Button>
           </DialogFooter>
@@ -542,7 +542,7 @@ function ReferralTable({ rows, onMarkHalfPaid, onMarkPaid, onDateChange, showPai
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
                     {row.journeyPath ? (
-                      <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
+                      <Link to={row.journeyPath} className="text-[#D4A853] hover:underline font-semibold text-xs">{row.name}</Link>
                     ) : (
                       <span className="font-semibold text-xs text-stone-800">{row.name}</span>
                     )}
@@ -637,7 +637,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
                     {row.journeyPath ? (
-                      <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
+                      <Link to={row.journeyPath} className="text-[#D4A853] hover:underline font-semibold text-xs">{row.name}</Link>
                     ) : (
                       <span className="font-semibold text-xs text-stone-800">{row.name}</span>
                     )}
@@ -652,7 +652,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                           {row.paymentInfo && <p className="text-[10px] text-stone-500">{row.paymentInfo}</p>}
                         </div>
                         {row.paymentScreenshot && (
-                          <button onClick={() => setPreviewUrl(row.paymentScreenshot)} className="p-1 text-stone-300 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0" title="View screenshot">
+                          <button onClick={() => setPreviewUrl(row.paymentScreenshot)} className="p-1 text-stone-300 hover:text-[#1A3638] hover:bg-[#1A3638]/5 rounded transition-colors shrink-0" title="View screenshot">
                             <Eye className="size-3.5" />
                           </button>
                         )}

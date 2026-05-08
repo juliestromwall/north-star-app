@@ -183,7 +183,7 @@ const nav = [
         icon: Upload,
         path: '/case-import',
         roles: [ROLES.SUPER_ADMIN],
-        emails: ['intake@abcsurrogacy.com'],
+        emails: ['intake@northstarsurrogacy.com'],
       },
       {
         label: 'System',

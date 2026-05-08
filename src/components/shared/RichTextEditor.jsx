@@ -14,8 +14,8 @@ import { useState, useRef, useEffect } from 'react'
 
 const TEXT_COLORS = [
   { color: '#000000', label: 'Black' },
-  { color: '#283693', label: 'Indigo' },
-  { color: '#ed148c', label: 'Pink' },
+  { color: '#1A3638', label: 'Indigo' },
+  { color: '#D4A853', label: 'Pink' },
   { color: '#ef4444', label: 'Red' },
   { color: '#f59e0b', label: 'Amber' },
   { color: '#10b981', label: 'Green' },
@@ -131,7 +131,7 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
         .tiptap p { margin: 0.25em 0; }
         .tiptap mark { border-radius: 2px; padding: 1px 2px; }
         .tiptap img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; cursor: pointer; }
-        .tiptap img.ProseMirror-selectednode { outline: 2px solid #283693; outline-offset: 2px; }
+        .tiptap img.ProseMirror-selectednode { outline: 2px solid #1A3638; outline-offset: 2px; }
         .tiptap::after { content: ''; display: table; clear: both; }
       `}</style>
 

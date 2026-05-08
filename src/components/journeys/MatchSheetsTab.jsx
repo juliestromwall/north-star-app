@@ -34,7 +34,7 @@ import { supabase } from '@/lib/supabase'
 const SHEET_TYPES = [
   { id: 'clinic', label: 'Clinic Match Sheet', icon: Stethoscope, color: '#9b2ea7', description: 'For RE / IVF clinic — surrogate snapshot, pregnancy history, and IVF logistics.' },
   { id: 'escrow', label: 'Escrow Match Sheet', icon: DollarSign, color: '#10b981', description: 'For escrow company — compensation, payment terms, escrow funding, and employment details.' },
-  { id: 'attorney', label: 'Attorney Match Sheet', icon: Scale, color: '#283693', description: 'For legal counsel — IP & GC contact info, demographics, embryo creation, attorney details, and journey terms.' },
+  { id: 'attorney', label: 'Attorney Match Sheet', icon: Scale, color: '#1A3638', description: 'For legal counsel — IP & GC contact info, demographics, embryo creation, attorney details, and journey terms.' },
 ]
 
 function parseDate(dateStr) {
@@ -99,7 +99,7 @@ function EditableValue({ value, field, msData, onChange, placeholder, displayPre
         onChange={e => onChange(field, e.target.value)}
         onBlur={() => setEditing(false)}
         onKeyDown={e => { if (e.key === 'Enter') setEditing(false); if (e.key === 'Escape') setEditing(false) }}
-        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: 'none', borderBottom: '2px solid #283693', outline: 'none', padding: '0 0 1px 0', width: '100%', backgroundColor: 'transparent', fontFamily: 'inherit' }}
+        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: 'none', borderBottom: '2px solid #1A3638', outline: 'none', padding: '0 0 1px 0', width: '100%', backgroundColor: 'transparent', fontFamily: 'inherit' }}
         placeholder={placeholder || 'Click to enter...'}
         className="no-print-border"
       />
@@ -161,9 +161,9 @@ function EditableSelect({ value, field, msData, onChange, options, placeholder }
         <div ref={dropRef} style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999, background: 'white', border: '1px solid #e7e5e4', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: coords.minWidth, overflow: 'hidden' }}>
           {opts.map(o => (
             <div key={o} onClick={() => { onChange(field, o); setOpen(false) }}
-              style={{ padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: val === o ? 600 : 400, color: val === o ? '#ed148c' : '#1c1917', backgroundColor: val === o ? '#ed148c10' : 'white' }}
+              style={{ padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: val === o ? 600 : 400, color: val === o ? '#D4A853' : '#1c1917', backgroundColor: val === o ? '#D4A85310' : 'white' }}
               onMouseEnter={e => { if (val !== o) e.target.style.backgroundColor = '#fdf2f8' }}
-              onMouseLeave={e => { e.target.style.backgroundColor = val === o ? '#ed148c10' : 'white' }}
+              onMouseLeave={e => { e.target.style.backgroundColor = val === o ? '#D4A85310' : 'white' }}
             >{val === o ? '✓ ' : ''}{o}</div>
           ))}
         </div>,
@@ -178,16 +178,16 @@ function EditableSelect({ value, field, msData, onChange, options, placeholder }
 function SheetHeader({ title, journey, color }) {
   // Find case manager from assigned_to email
   const cmEmail = journey.assigned_to
-  const caseManager = mockUsers.find(u => u.email === cmEmail) || { name: 'ABC Surrogacy', email: 'info@abcsurrogacy.com', phone: '(818) 321-9329' }
+  const caseManager = mockUsers.find(u => u.email === cmEmail) || { name: 'North Star Surrogacy', email: 'info@northstarsurrogacy.com', phone: '(818) 321-9329' }
 
   return (
     <div style={{ marginBottom: 28 }}>
       {/* Top row: logo left, title center, case manager right */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         {/* Logo — left */}
-        <img src="/abc-logo.png" alt="ABC Surrogacy" style={{ height: 56, flexShrink: 0 }} crossOrigin="anonymous" />
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" style={{ height: 56, flexShrink: 0 }} crossOrigin="anonymous" />
         {/* Title — center */}
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px', textAlign: 'center', flex: 1 }}>{title}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1A3638', margin: 0, letterSpacing: '0.3px', textAlign: 'center', flex: 1 }}>{title}</h1>
         {/* Case Manager — right */}
         <div style={{ textAlign: 'right', flexShrink: 0, fontSize: 11, lineHeight: 1.7 }}>
           <div><span style={{ color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', fontSize: 9, letterSpacing: '0.5px' }}>Case Manager: </span><span style={{ color: '#44403c', fontWeight: 600 }}>{caseManager.name}</span></div>
@@ -196,7 +196,7 @@ function SheetHeader({ title, journey, color }) {
         </div>
       </div>
       {/* Divider */}
-      <div style={{ height: 1.5, background: '#283693', borderRadius: 1 }} />
+      <div style={{ height: 1.5, background: '#1A3638', borderRadius: 1 }} />
     </div>
   )
 }
@@ -347,9 +347,9 @@ function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
       marginBottom: 14,
       flexWrap: 'wrap',
     }}>
-      <Baby size={14} color="#ed148c" strokeWidth={2} />
-      <span style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 14, fontWeight: 700, color: '#283693', letterSpacing: '0.4px' }}>{code}</span>
-      <GtpalDot count={g}        color="#283693" label="Pregnancies" />
+      <Baby size={14} color="#D4A853" strokeWidth={2} />
+      <span style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 14, fontWeight: 700, color: '#1A3638', letterSpacing: '0.4px' }}>{code}</span>
+      <GtpalDot count={g}        color="#1A3638" label="Pregnancies" />
       <GtpalDot count={term}     color="#10b981" label="Term" />
       <GtpalDot count={preterm}  color="#f59e0b" label="Preterm" />
       <GtpalDot count={abortions} color="#ef4444" label="Losses" />
@@ -360,8 +360,8 @@ function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
 
 function ConfidentialFooter() {
   return (
-    <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1.5px solid #283693', textAlign: 'center' }}>
-      <img src="/abc-website-banner.png" alt="abcsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
+    <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1.5px solid #1A3638', textAlign: 'center' }}>
+      <img src="/north-star-logo.png" alt="northstarsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
       <p style={{ fontSize: 9, color: '#78716c', margin: '0 0 2px' }}>
         5627 Kanan Road #229, Agoura Hills, CA 91301 &nbsp;·&nbsp; O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
       </p>
@@ -385,7 +385,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
   const employment = pd.employment || {}
   const hopes = pd.hopesWishes || {}
   const pregnancyHistory = pd.pregnancyHistory || {}
-  const color = '#283693'
+  const color = '#1A3638'
 
   const pregnancies = pregnancyHistory.pregnancies || []
   const numPreg = parseInt(pregnancyHistory.numberOfPregnancies) || pregnancies.length
@@ -459,9 +459,9 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       {/* Surrogate — page 2 */}
       <div style={{ pageBreakBefore: 'always', breakBefore: 'page', height: 1, margin: 0 }} className="pdf-page-break" />
-      <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
+      <PartyBanner color="#D4A853" icon={User}>Surrogate</PartyBanner>
 
-      <SectionTitle color="#ed148c" icon={FileText}>Demographics</SectionTitle>
+      <SectionTitle color="#D4A853" icon={FileText}>Demographics</SectionTitle>
       <InfoGrid items={[
         { label: 'Full Name', value: gcApp.fullLegalName || gcCase?.name },
         { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
@@ -478,7 +478,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       {gcHasPartner && (
         <>
-          <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
+          <SectionTitle color="#D4A853" icon={Users}>Spouse / Partner</SectionTitle>
           <InfoGrid items={[
             { label: 'Full Name', value: gcPartnerName || '—' },
             { label: 'Date of Birth', value: `${formatDate(gcPartnerDob)}${gcPartnerDob && calcAge(gcPartnerDob) !== null ? ` (Age ${calcAge(gcPartnerDob)})` : ''}` },
@@ -488,7 +488,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         </>
       )}
 
-      <SectionTitle color="#ed148c" icon={Heart}>Surrogate Details</SectionTitle>
+      <SectionTitle color="#D4A853" icon={Heart}>Surrogate Details</SectionTitle>
       <InfoGrid items={[
         { label: 'Surrogate Friendly Insurance', editable: true, value: <EditableSelect field="surrogacyFriendlyInsurance" msData={msData} onChange={onChange} placeholder="Select..." /> },
         { label: 'Insurance Carrier', editable: true, value: <EditableValue field="insuranceCarrier" msData={msData} onChange={onChange} placeholder="Enter carrier name..." /> },
@@ -498,7 +498,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Surrogacy Type', editable: true, value: <EditableSelect field="surrogacyType" msData={msData} onChange={onChange} options={['Gestational Surrogacy', 'Traditional Surrogacy']} placeholder="Select type..." value="Gestational Surrogacy" /> },
       ]} />
 
-      <SectionTitle color="#ed148c" icon={Scale}>Surrogate's Attorney</SectionTitle>
+      <SectionTitle color="#D4A853" icon={Scale}>Surrogate's Attorney</SectionTitle>
       <InfoGrid items={[
         { label: 'Attorney Name', editable: true, value: <EditableValue field="gcAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." value={jd.gcAttorneyName} /> },
         { label: 'Attorney Email', editable: true, value: <EditableValue field="gcAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." value={jd.gcAttorneyEmail} /> },
@@ -576,9 +576,9 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       ]} />
 
       {/* Intended Parents — same 4-col structured layout as Escrow Sheet */}
-      <PartyBanner color="#283693" icon={Users}>Intended Parents</PartyBanner>
+      <PartyBanner color="#1A3638" icon={Users}>Intended Parents</PartyBanner>
 
-      <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
+      <PartyLabel color="#1A3638">Intended Parent #1</PartyLabel>
       <InfoGrid columns={4} items={[
         { label: 'Full Name', value: `${ipContact.ip1FirstName || a.primaryFirstName || ''} ${ipContact.ip1LastName || a.primaryLastName || ''}`.trim(), span: 2 },
         { label: 'Date of Birth', value: `${formatDate(ipContact.ip1Dob || a.primaryDob)}${(ipContact.ip1Dob || a.primaryDob) ? ` (Age ${calcAge(ipContact.ip1Dob || a.primaryDob)})` : ''}`, span: 2 },
@@ -592,7 +592,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
-          <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
+          <PartyLabel color="#1A3638">Intended Parent #2</PartyLabel>
           <InfoGrid items={[
             { label: 'Full Name', value: `${ipContact.ip2FirstName || a.ip2FirstName || ''} ${ipContact.ip2LastName || a.ip2LastName || ''}`.trim() },
             { label: 'Date of Birth', value: `${formatDate(ipContact.ip2Dob || a.ip2Dob)}${(ipContact.ip2Dob || a.ip2Dob) ? ` (Age ${calcAge(ipContact.ip2Dob || a.ip2Dob)})` : ''}` },
@@ -603,7 +603,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       )}
 
       {/* Surrogate — detailed medical */}
-      <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
+      <PartyBanner color="#D4A853" icon={User}>Surrogate</PartyBanner>
 
       {/* Hero stats: Age (DOB), Height, Weight, BMI, Marital Status */}
       <SurrogateStatTiles
@@ -644,7 +644,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         if (!hasPartner) return null
         return (
           <>
-            <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
+            <SectionTitle color="#D4A853" icon={Users}>Spouse / Partner</SectionTitle>
             <InfoGrid items={[
               { label: 'Full Name',     value: partnerName || '—' },
               { label: 'Date of Birth', value: partnerDob ? `${formatDate(partnerDob)}${calcAge(partnerDob) ? ` (Age ${calcAge(partnerDob)})` : ''}` : '—' },
@@ -657,7 +657,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       {/* Pregnancy History — page 2: GTPAL summary directly above the per-row table. */}
       <div style={{ pageBreakBefore: 'always', breakBefore: 'page', height: 1, margin: 0 }} className="pdf-page-break" />
-      <PartyBanner color="#ed148c" icon={Baby}>Pregnancy History</PartyBanner>
+      <PartyBanner color="#D4A853" icon={Baby}>Pregnancy History</PartyBanner>
       <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
 
       {/* Pregnancy detail table — Live Birth deliveries default to
@@ -730,9 +730,9 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       <SheetHeader title="Escrow Match Sheet" journey={journey} color={color} />
 
       {/* Intended Parents */}
-      <PartyBanner color="#283693" icon={Users}>Intended Parents</PartyBanner>
+      <PartyBanner color="#1A3638" icon={Users}>Intended Parents</PartyBanner>
 
-      <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
+      <PartyLabel color="#1A3638">Intended Parent #1</PartyLabel>
       <InfoGrid columns={4} items={[
         { label: 'Full Name', value: `${ipContact.ip1FirstName || a.primaryFirstName || ''} ${ipContact.ip1LastName || a.primaryLastName || ''}`.trim(), span: 2 },
         { label: 'Date of Birth', value: `${formatDate(ipContact.ip1Dob || a.primaryDob)}${(ipContact.ip1Dob || a.primaryDob) ? ` (Age ${calcAge(ipContact.ip1Dob || a.primaryDob)})` : ''}`, span: 2 },
@@ -746,7 +746,7 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
-          <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
+          <PartyLabel color="#1A3638">Intended Parent #2</PartyLabel>
           <InfoGrid items={[
             { label: 'Full Name', value: `${ipContact.ip2FirstName || a.ip2FirstName || ''} ${ipContact.ip2LastName || a.ip2LastName || ''}`.trim() },
             { label: 'Date of Birth', value: `${formatDate(ipContact.ip2Dob || a.ip2Dob)}${(ipContact.ip2Dob || a.ip2Dob) ? ` (Age ${calcAge(ipContact.ip2Dob || a.ip2Dob)})` : ''}` },
@@ -757,7 +757,7 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       )}
 
       {/* Surrogate */}
-      <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
+      <PartyBanner color="#D4A853" icon={User}>Surrogate</PartyBanner>
       <InfoGrid columns={4} items={[
         { label: 'Full Name', value: gcCase?.name, span: 2 },
         { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}`, span: 2 },
@@ -1311,11 +1311,11 @@ ${representationParagraph}
       <Dialog open={attorneyPickerOpen} onOpenChange={v => { if (!v) { setAttorneyPickerOpen(false); setPendingPdf(null) } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Scale className="size-5 text-[#283693]" /> Send to which attorney?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Scale className="size-5 text-[#1A3638]" /> Send to which attorney?</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <button onClick={() => sendAttorneySheet('ip')}
-              className="w-full text-left rounded-xl border border-stone-200 px-4 py-3 hover:border-[#283693] hover:shadow-sm transition-all">
+              className="w-full text-left rounded-xl border border-stone-200 px-4 py-3 hover:border-[#1A3638] hover:shadow-sm transition-all">
               <p className="text-sm font-semibold text-stone-800">IP Attorney</p>
               <p className="text-xs text-stone-500 mt-0.5">{journey?.journey_data?.ipAttorneyName || 'Not set'} {journey?.journey_data?.ipAttorneyEmail ? `· ${journey.journey_data.ipAttorneyEmail}` : ''}</p>
             </button>

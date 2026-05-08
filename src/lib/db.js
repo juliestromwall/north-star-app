@@ -1251,7 +1251,7 @@ export async function createCaseTask(task) {
   // Schema allows only 'open' | 'in_progress' | 'complete' — coerce unknowns to 'open'.
   // Intake coordinator handles surrogate intake only, not IPs — IP tasks fall back to Julie.
   const validStatuses = ['open', 'in_progress', 'complete']
-  const fallbackAssignee = task.case_type === 'ip' ? 'julie@abcsurrogacy.com' : 'intake@abcsurrogacy.com'
+  const fallbackAssignee = task.case_type === 'ip' ? 'julie@northstarsurrogacy.com' : 'intake@northstarsurrogacy.com'
   const normalized = {
     ...task,
     status: validStatuses.includes(task.status) ? task.status : 'open',

@@ -331,7 +331,7 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
     if (forPdf) {
       return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
     }
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${val || '&nbsp;'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #1A3638;padding:2px 4px;color:#1A3638;font-weight:500;">${val || '&nbsp;'}</span>`
   }
 
   function sig(id) {
@@ -340,13 +340,13 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
       if (val.type === 'drawn' && val.image) {
         return `<img src="${val.image}" style="height:30px;vertical-align:middle;" />`
       }
-      return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#283693;">${val.name || ''}</span>`
+      return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#1A3638;">${val.name || ''}</span>`
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:200px;">&nbsp;</span>'
     if (val?.name) {
-      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#1A3638;">${val.name}</span>`
     }
-    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
+    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #D4A853;padding:2px 4px;">&nbsp;</span>`
   }
 
   function date() {
@@ -362,13 +362,13 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 
   const introHtml = `
   <div style="text-align:center;margin-bottom:20px;">
-    <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
+    <h1 style="font-size:16px;font-weight:700;margin:0;color:#1A3638;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>
 
-  <p>You and/or your partner have submitted an application for gestational surrogacy with Abundant Beginnings Co. As part of this application process, a background investigation will be conducted. The purpose of the background investigation is to evaluate your suitability for surrogacy with Abundant Beginnings Co.</p>
+  <p>You and/or your partner have submitted an application for gestational surrogacy with North Star Surrogacy As part of this application process, a background investigation will be conducted. The purpose of the background investigation is to evaluate your suitability for surrogacy with North Star Surrogacy</p>
 
-  <p><strong>Abundant Beginnings Co.</strong> has specifically requested information regarding:</p>
+  <p><strong>North Star Surrogacy</strong> has specifically requested information regarding:</p>
   <ul style="margin:6px 0 12px 20px;padding:0;">
     <li>Past employers and/or education institutions;</li>
     <li>Criminal records;</li>
@@ -411,13 +411,13 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
   </div>`
 
   const section2Html = `
-  <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
+  <div style="border:1px solid #1A3638;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
-    <p>I hereby authorize Abundant Beginnings Co. to procure an investigative consumer report regarding me for surrogacy purposes. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that North Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
+    <p>I hereby authorize North Star Surrogacy to procure an investigative consumer report regarding me for surrogacy purposes. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
-      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.</p>
+      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy</p>
       <p style="margin:0;">${checkNo} <strong>I do not wish to receive a copy</strong> of any report that is prepared, or any public records that may be obtained.</p>
     </div>
 
@@ -429,12 +429,12 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 
   const section3Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
-    <h3 style="font-size:12px;font-weight:700;color:#283693;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
+    <h3 style="font-size:12px;font-weight:700;color:#1A3638;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
     <p style="font-size:10px;color:#666;margin:0 0 8px;">RCS Investigations & Consulting, LLC — #6002048</p>
 
     <p style="font-size:10px;">This driving record is being requested for the following reason:<br/>
     <strong>INSURANCE</strong> — For use by any insurer or insurance support organization, in connection with claims investigation activities, anti-fraud activities, rating or underwriting.<br/>
-    To become a gestational surrogate with Abundant Beginnings Company, LLC.</p>
+    To become a gestational surrogate with North Star Surrogacy, LLC.</p>
 
     <p>I authorize RCS Investigations and Consulting, LLC, or its agents, to obtain a copy of my driving record. I understand I have the right to inspect this document in accordance with the Fair Credit Reporting Act.</p>
 
@@ -485,19 +485,19 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
     let val = values[id] || ''
     if (id === 'fullName') val = fullName
     if (forPdf) return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${val || '&nbsp;'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #1A3638;padding:2px 4px;color:#1A3638;font-weight:500;">${val || '&nbsp;'}</span>`
   }
   function sig(id) {
     const val = signatures[id]
     if (forPdf && val) {
       if (val.type === 'drawn' && val.image) return `<img src="${val.image}" style="height:30px;vertical-align:middle;" />`
-      return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#283693;">${val.name || ''}</span>`
+      return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#1A3638;">${val.name || ''}</span>`
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:200px;">&nbsp;</span>'
     if (val?.name) {
-      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#1A3638;">${val.name}</span>`
     }
-    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
+    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #D4A853;padding:2px 4px;">&nbsp;</span>`
   }
   function date() { return `<span style="font-weight:500;">${today}</span>` }
 
@@ -510,13 +510,13 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
 
   const introHtml = `
   <div style="text-align:center;margin-bottom:20px;">
-    <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
+    <h1 style="font-size:16px;font-weight:700;margin:0;color:#1A3638;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>
 
-  <p>You are exploring finding a surrogate with Abundant Beginnings Co. As part of this process, a background investigation will be conducted.</p>
+  <p>You are exploring finding a surrogate with North Star Surrogacy As part of this process, a background investigation will be conducted.</p>
 
-  <p><strong>Abundant Beginnings Co.</strong> has specifically requested information regarding:</p>
+  <p><strong>North Star Surrogacy</strong> has specifically requested information regarding:</p>
   <ul style="margin:6px 0 12px 20px;padding:0;">
     <li>Criminal records</li>
     <li>Civil Records</li>
@@ -558,13 +558,13 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
   </div>`
 
   const section2Html = `
-  <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
+  <div style="border:1px solid #1A3638;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
-    <p>I hereby authorize Abundant Beginnings Co. to procure an investigative consumer report regarding me. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that North Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
+    <p>I hereby authorize North Star Surrogacy to procure an investigative consumer report regarding me. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
-      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.</p>
+      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy</p>
       <p style="margin:0;">${checkNo} <strong>I do not wish to receive a copy</strong> of any report that is prepared, or any public records that may be obtained.</p>
     </div>
 
@@ -576,11 +576,11 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
 
   const section3Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
-    <h3 style="font-size:12px;font-weight:700;color:#283693;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
+    <h3 style="font-size:12px;font-weight:700;color:#1A3638;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
     <p style="font-size:10px;color:#666;margin:0 0 8px;">RCS Investigations & Consulting, LLC — #6002048</p>
 
     <p style="font-size:10px;">My driving record is being requested for the following reason:<br/>
-    <strong>Abundant Beginnings Company, LLC</strong> is requesting this as part of their matching process with a surrogate.</p>
+    <strong>North Star Surrogacy, LLC</strong> is requesting this as part of their matching process with a surrogate.</p>
 
     <p>I authorize RCS Investigations and Consulting, LLC, or its agents, to obtain a copy of my driving record. I understand I have the right to inspect this document in accordance with the Fair Credit Reporting Act.</p>
 
@@ -630,23 +630,23 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const gcName = values.gcName || ''
   const partnerName = values.partnerName || ''
-  const agencyName = 'Abundant Beginnings Co.'
+  const agencyName = 'North Star Surrogacy'
 
   function sigInline(sigId, forRole) {
     const isActive = forRole === signerRole
     const val = signatures[sigId]
     if (forPdf && val) {
       if (val.type === 'drawn' && val.image) return `<img src="${val.image}" style="height:26px;vertical-align:middle;" />`
-      return `<span style="font-family:serif;font-style:italic;font-size:17px;color:#283693;">${val.name || ''}</span>`
+      return `<span style="font-family:serif;font-style:italic;font-size:17px;color:#1A3638;">${val.name || ''}</span>`
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:180px;">&nbsp;</span>'
     if (!isActive) {
       return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #ccc;padding:2px 4px;">&nbsp;</span>`
     }
     if (val?.name) {
-      return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+      return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#1A3638;">${val.name}</span>`
     }
-    return `<span data-sig-id="${sigId}" style="display:inline-block;min-width:180px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
+    return `<span data-sig-id="${sigId}" style="display:inline-block;min-width:180px;border-bottom:2px dashed #D4A853;padding:2px 4px;">&nbsp;</span>`
   }
   function initInline(initId, forRole) {
     const isActive = forRole === signerRole
@@ -657,7 +657,7 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
     if (!isActive) {
       return `<span style="display:inline-block;min-width:40px;border-bottom:1px solid #ccc;color:#999;font-size:10px;font-style:italic;">—</span>`
     }
-    return `<span data-init-id="${initId}" style="display:inline-block;min-width:40px;border-bottom:2px dashed #ed148c;padding:1px 2px;color:#ed148c;font-weight:600;cursor:pointer;">${val || '___'}</span>`
+    return `<span data-init-id="${initId}" style="display:inline-block;min-width:40px;border-bottom:2px dashed #D4A853;padding:1px 2px;color:#D4A853;font-weight:600;cursor:pointer;">${val || '___'}</span>`
   }
   function nameVal(name) {
     if (!name) return `<span style="display:inline-block;min-width:160px;border-bottom:1px solid #333;">&nbsp;</span>`
@@ -674,7 +674,7 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
       if (isActive) return `<span style="font-weight:500;">${today}</span>`
       return `<span style="border-bottom:1px solid #333;display:inline-block;min-width:100px;">&nbsp;</span>`
     }
-    if (isActive) return `<span style="font-weight:500;color:#283693;">${today}</span>`
+    if (isActive) return `<span style="font-weight:500;color:#1A3638;">${today}</span>`
     const storedDate = signerDates[forRole]
     if (storedDate) return `<span style="font-weight:500;color:#666;">${storedDate}</span>`
     return `<span style="color:#999;font-size:10px;">—</span>`
@@ -682,7 +682,7 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
   function textField(id, placeholder = '') {
     const v = values[id] || ''
     if (forPdf) return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #333;padding:2px 4px;">${v || '&nbsp;'.repeat(8)}</span>`
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${v || '&nbsp;'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px solid #1A3638;padding:2px 4px;color:#1A3638;font-weight:500;">${v || '&nbsp;'}</span>`
   }
 
   const logoOrigin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -712,7 +712,7 @@ ${inner}
     const adminName = values.adminName || ''
     return wrap(`
   <div style="text-align:center;margin-bottom:16px;">
-    <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">HIPAA PRIVACY ACKNOWLEDGMENT AND CONSENT</h1>
+    <h1 style="font-size:16px;font-weight:700;margin:0;color:#1A3638;">HIPAA PRIVACY ACKNOWLEDGMENT AND CONSENT</h1>
     <p style="font-size:11px;color:#666;margin:4px 0 0;font-style:italic;">(Surrogacy Program / Agency Use)</p>
   </div>
   <p>I, <strong>${nameVal(gcName)}</strong>, acknowledge that I have been informed of my privacy rights under the Health Insurance Portability and Accountability Act of 1996 (HIPAA).</p>
@@ -759,7 +759,7 @@ ${inner}
   // ── General Psych (Single) ──
   if (template.id === 'release_general_psych_single_gc' && pageId === 'p1') {
     return wrap(`
-  <h1 style="font-size:15px;font-weight:700;margin:0 0 10px;color:#283693;">PSYCHOLOGICAL EVALUATION</h1>
+  <h1 style="font-size:15px;font-weight:700;margin:0 0 10px;color:#1A3638;">PSYCHOLOGICAL EVALUATION</h1>
   <p>An important factor in pursuing surrogacy is the psychological evaluation. This evaluation includes a clinical interview with the potential surrogate and her partner, if there is one, and typically takes 60–90 minutes. The evaluation is not confidential and a report is written and submitted to ${agencyName}.</p>
   <p>I understand that not every potential participant for third-party procedures will be accepted for participation. As necessary, I hereby authorize ${agencyName} to discuss the results of the clinical interview with members of the fertility treatment team and understand that the result of the evaluation will be used to assess my ability to participate. I hereby release ${agencyName} from any liability in the event that I am not accepted for treatment.</p>
   <p>I, <strong>${nameVal(gcName)}</strong> (potential surrogate name), hereby acknowledge that I have requested services as explained above from ${agencyName}. I understand that there are potential psychological risks posed by evaluation and emotional support. These may include risks that are presently unknown or unidentified. I understand that any psychological and emotional risks may vary widely among individuals, so it is impossible to accurately state the likelihood of my personal risk and I cannot expect any mental health professional (MHP) to state with certainty whether or not I may suffer any psychological consequences of support and evaluation. Fully understanding the above, I voluntarily agree to proceed with evaluation and/or support.</p>
@@ -779,7 +779,7 @@ ${inner}
     const sigGcId = 'sig_gc_p1'
     const sigPartnerId = 'sig_partner_p1'
     return wrap(`
-  <h1 style="font-size:15px;font-weight:700;margin:0 0 10px;color:#283693;">PSYCHOLOGICAL EVALUATION</h1>
+  <h1 style="font-size:15px;font-weight:700;margin:0 0 10px;color:#1A3638;">PSYCHOLOGICAL EVALUATION</h1>
   <p>An important factor in pursuing surrogacy is the psychological evaluation. This evaluation includes a clinical interview with the potential surrogate and her partner, if there is one, and typically takes 60–90 minutes. The evaluation is not confidential and a report is written and submitted to ${agencyName}.</p>
   <p>I/we understand that not every potential participant for third-party procedures will be accepted for participation. As necessary, I/we hereby authorize ${agencyName} to discuss the results of the clinical interview with members of the fertility treatment team and understand that the result of the evaluation will be used to assess my ability to participate. I/we hereby release ${agencyName} from any liability in the event that I am not accepted for treatment.</p>
   <p>I/we, <strong>${nameVal(gcName)}</strong> and <strong>${nameVal(partnerName)}</strong> (potential surrogate name/partner), hereby acknowledge that I/we have requested services as explained above from ${agencyName}. I/we understand that there are potential psychological risks posed by evaluation and emotional support. These may include risks that are presently unknown or unidentified. I/we understand that any psychological and emotional risks may vary widely among individuals, so it is impossible to accurately state the likelihood of my/our personal risk and I/we cannot expect any mental health professional (MHP) to state with certainty whether or not I/we may suffer any psychological consequences of support and evaluation. Fully understanding the above, I/we voluntarily agree to proceed with evaluation and/or support.</p>
@@ -966,8 +966,8 @@ export function generateAuditTrailHtml(signerName, signerEmail, signatureTypes =
 
   return `
 <div style="font-family: Arial, sans-serif; padding: 40px; color: #000; font-size: 12px; line-height: 1.5;">
-  <div style="border-top: 2px solid #283693; padding-top: 20px;">
-    <p style="font-weight: 700; color: #283693; font-size: 14px; margin: 0 0 12px 0;">ELECTRONIC SIGNATURE CERTIFICATE</p>
+  <div style="border-top: 2px solid #1A3638; padding-top: 20px;">
+    <p style="font-weight: 700; color: #1A3638; font-size: 14px; margin: 0 0 12px 0;">ELECTRONIC SIGNATURE CERTIFICATE</p>
     <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
       <tr><td style="padding: 4px 0; width: 180px;"><strong>Completed:</strong></td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
       <tr><td style="padding: 4px 0;"><strong>Signer:</strong></td><td>${signerName}</td></tr>
@@ -976,7 +976,7 @@ export function generateAuditTrailHtml(signerName, signerEmail, signatureTypes =
       <tr><td style="padding: 4px 0;"><strong>IP Address:</strong></td><td>Captured at signing</td></tr>
     </table>
     <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">
-      Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.
+      Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.
     </p>
   </div>
 </div>`

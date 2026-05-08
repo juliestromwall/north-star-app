@@ -70,7 +70,7 @@ function ProgressRing({ percent, size = 56 }) {
   return (
     <svg width={size} height={size} className="shrink-0">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e7e5e4" strokeWidth={5} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#ed148c" strokeWidth={5}
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#D4A853" strokeWidth={5}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         transform={`rotate(-90 ${size/2} ${size/2})`}
         className="transition-all duration-700"
@@ -126,7 +126,7 @@ function ProfileProgressCard({ userId, currentUser }) {
   // Status-based accent color
   const accent = isApproved ? { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', btn: '#16a34a' }
     : isSubmitted ? { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', btn: '#d97706' }
-    : { bg: 'bg-[#ed148c]', light: 'bg-pink-50', text: 'text-stone-500', border: 'border-stone-100', btn: '#ed148c' }
+    : { bg: 'bg-[#D4A853]', light: 'bg-pink-50', text: 'text-stone-500', border: 'border-stone-100', btn: '#D4A853' }
 
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-white border ${accent.border} shadow-sm hover:shadow-md transition-all`}>
@@ -157,7 +157,7 @@ function ProfileProgressCard({ userId, currentUser }) {
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
               </div>
               <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
             </div>
@@ -260,12 +260,12 @@ function TaskCard({ task, onStatusChange }) {
 
   return (
     <div className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-      isPending ? 'border-[#ed148c]/30 bg-[#ed148c]/5' : 'border-stone-200 bg-white'
+      isPending ? 'border-[#D4A853]/30 bg-[#D4A853]/5' : 'border-stone-200 bg-white'
     }`}>
       <div className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${
-        isPending ? 'bg-[#ed148c]/10' : 'bg-[#283693]/10'
+        isPending ? 'bg-[#D4A853]/10' : 'bg-[#1A3638]/10'
       }`}>
-        <Icon className={`w-5 h-5 ${isPending ? 'text-[#ed148c]' : 'text-[#283693]'}`} />
+        <Icon className={`w-5 h-5 ${isPending ? 'text-[#D4A853]' : 'text-[#1A3638]'}`} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-stone-800 text-sm">{task.title}</p>
@@ -277,13 +277,13 @@ function TaskCard({ task, onStatusChange }) {
         )}
       </div>
       {isPending && (
-        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#ed148c', color: '#fff' }}
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#D4A853', color: '#fff' }}
           onClick={() => onStatusChange(task.id, 'in_progress')}>
           Start <ArrowRight className="w-3.5 h-3.5" />
         </Button>
       )}
       {isInProgress && (
-        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#283693', color: '#fff' }}
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#1A3638', color: '#fff' }}
           onClick={() => onStatusChange(task.id, 'completed')}>
           <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
         </Button>
@@ -363,7 +363,7 @@ function OnboardingDashboard({ name, currentUser }) {
     <div className="max-w-3xl mx-auto">
       {/* Welcome header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#283693]">Welcome, {name}!</h1>
+        <h1 className="text-2xl font-bold text-[#1A3638]">Welcome, {name}!</h1>
       </div>
 
       {/* Top banner — application CTA or "all caught up" */}
@@ -372,20 +372,20 @@ function OnboardingDashboard({ name, currentUser }) {
         {appAvailable ? (
           <Link to="/my-application" className="block">
             <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all">
-              <div className={`h-1 ${appAnswers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#283693]'}`} />
+              <div className={`h-1 ${appAnswers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#1A3638]'}`} />
               <div className="p-6">
                 <div className="flex items-center gap-5">
                   <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${
-                    appAnswers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#283693]/8'
+                    appAnswers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#1A3638]/8'
                   }`}>
                     {appAnswers?._applicationSubmitted
                       ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                      : <ClipboardList className="w-6 h-6 text-[#283693]" />
+                      : <ClipboardList className="w-6 h-6 text-[#1A3638]" />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className={`font-semibold text-base ${appAnswers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#283693]'}`}>
+                      <p className={`font-semibold text-base ${appAnswers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#1A3638]'}`}>
                         {appAnswers?._applicationSubmitted ? 'Application Submitted' : 'Complete Your Application'}
                       </p>
                     </div>
@@ -396,7 +396,7 @@ function OnboardingDashboard({ name, currentUser }) {
                       }
                     </p>
                   </div>
-                  <ArrowRight className={`w-5 h-5 shrink-0 ${appAnswers?._applicationSubmitted ? 'text-emerald-400' : 'text-[#283693]/40'}`} />
+                  <ArrowRight className={`w-5 h-5 shrink-0 ${appAnswers?._applicationSubmitted ? 'text-emerald-400' : 'text-[#1A3638]/40'}`} />
                 </div>
               </div>
             </div>
@@ -420,14 +420,14 @@ function OnboardingDashboard({ name, currentUser }) {
           </div>
         ) : (
           <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
-            <div className="h-1 bg-gradient-to-r from-[#283693] to-[#ed148c]" />
+            <div className="h-1 bg-gradient-to-r from-[#1A3638] to-[#D4A853]" />
             <div className="p-6">
               <div className="flex items-start gap-5">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#283693]/8 shrink-0">
-                  <Sparkles className="w-6 h-6 text-[#283693]" />
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#1A3638]/8 shrink-0">
+                  <Sparkles className="w-6 h-6 text-[#1A3638]" />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#283693] text-base">We're so glad you're here!</p>
+                  <p className="font-semibold text-[#1A3638] text-base">We're so glad you're here!</p>
                   <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
                     Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
                   </p>
@@ -441,8 +441,8 @@ function OnboardingDashboard({ name, currentUser }) {
 
       {/* Action banner — only show when there are pending tasks */}
       {pendingCount > 0 && (
-        <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-[#ed148c]/8 border border-[#ed148c]/15">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ed148c] text-white text-sm font-bold shrink-0">
+        <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-[#D4A853]/8 border border-[#D4A853]/15">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#D4A853] text-white text-sm font-bold shrink-0">
             {pendingCount}
           </div>
           <p className="text-sm font-medium text-stone-700">
@@ -481,12 +481,12 @@ function OnboardingDashboard({ name, currentUser }) {
       {/* To Do section */}
       {activeTasks.length > 0 && (
         <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm mb-6">
-          <div className="h-1 bg-[#ed148c]" />
+          <div className="h-1 bg-[#D4A853]" />
           <div className="px-6 pt-5 pb-3">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-stone-800">To Do</h2>
               {pendingCount > 0 && (
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#ed148c] text-white text-[11px] font-bold">{pendingCount}</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#D4A853] text-white text-[11px] font-bold">{pendingCount}</span>
               )}
             </div>
             <p className="text-xs text-stone-400 mt-0.5">Items that need your attention</p>
@@ -533,8 +533,8 @@ function OnboardingDashboard({ name, currentUser }) {
       <div className="mt-4 mb-2 text-center">
         <p className="text-xs text-stone-400">
           Questions? Reach us at{' '}
-          <a href="mailto:intake@abcsurrogacy.com" className="text-[#283693] font-medium hover:text-[#ed148c] transition-colors">
-            intake@abcsurrogacy.com
+          <a href="mailto:intake@northstarsurrogacy.com" className="text-[#1A3638] font-medium hover:text-[#D4A853] transition-colors">
+            intake@northstarsurrogacy.com
           </a>
         </p>
       </div>

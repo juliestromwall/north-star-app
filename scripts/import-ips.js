@@ -91,11 +91,11 @@ function convertDob(dob) {
 
 // Admin email lookup
 const ADMIN_MAP = {
-  'stacie adler': 'stacie@abcsurrogacy.com',
-  'emily rotter': 'emily@abcsurrogacy.com',
-  'desiree melchiori': 'desiree@abcsurrogacy.com',
-  'julie allgood': 'julie@abcsurrogacy.com',
-  'nicole lawson': 'nicole@abcsurrogacy.com',
+  'stacie adler': 'stacie@northstarsurrogacy.com',
+  'emily rotter': 'emily@northstarsurrogacy.com',
+  'desiree melchiori': 'desiree@northstarsurrogacy.com',
+  'julie allgood': 'julie@northstarsurrogacy.com',
+  'nicole lawson': 'nicole@northstarsurrogacy.com',
 }
 
 function getAdminEmail(name) {

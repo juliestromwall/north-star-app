@@ -193,8 +193,8 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
   const isWithdraw = kind === 'withdraw'
   const headline = isWithdraw ? `↩️ Skip Withdrawn` : `⏭️ ${milestoneName} Check-In Skipped`
   const sentence = isWithdraw
-    ? `${therapistName ? `<strong style="color: #283693;">${therapistName}</strong>` : 'The therapist'} withdrew the previous skip for the <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong>. They are restarting the check-in now and will submit it shortly.`
-    : `${therapistName ? `<strong style="color: #283693;">${therapistName}</strong>` : 'The therapist'} marked the <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong> as <strong style="color: #b45309;">Skipped</strong>.`
+    ? `${therapistName ? `<strong style="color: #1A3638;">${therapistName}</strong>` : 'The therapist'} withdrew the previous skip for the <strong>${milestoneName}</strong> check-in for <strong style="color: #1A3638;">${patientName}</strong>. They are restarting the check-in now and will submit it shortly.`
+    : `${therapistName ? `<strong style="color: #1A3638;">${therapistName}</strong>` : 'The therapist'} marked the <strong>${milestoneName}</strong> check-in for <strong style="color: #1A3638;">${patientName}</strong> as <strong style="color: #b45309;">Skipped</strong>.`
   const reasonBlock = !isWithdraw && skipReason
     ? `<div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin: 16px 0;">
         <p style="margin: 0 0 4px; font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Reason</p>
@@ -213,19 +213,19 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
 <body style="margin: 0; padding: 0; background: #ffffff;">
   <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
     <div style="text-align: center; padding: 24px 24px 12px;">
-      <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+      <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 160px;" />
     </div>
     <div style="padding: 0 32px 32px;">
-      <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">${headline}</h1>
+      <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">${headline}</h1>
       <div style="padding: 24px 0 8px;">
         <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">${sentence}</p>
         ${reasonBlock}
       </div>
       ${journeyUrl ? `<div style="text-align: center; margin: 24px 0;">
-        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
+        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
       </div>` : ''}
       <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
-      <p style="color: #a8a29e; font-size: 10px; text-align: center;">Abundant Beginnings Company, LLC &middot; abcsurrogacy.com</p>
+      <p style="color: #a8a29e; font-size: 10px; text-align: center;">North Star Surrogacy, LLC &middot; northstarsurrogacy.com</p>
     </div>
   </div>
 </body>
@@ -235,7 +235,7 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
 async function sendAdminSkipEmail(env, { kind, recipient, patientName, milestoneName, therapistName, skipReason, journeyUrl }) {
   const resendKey = env.RESEND_API_KEY
   if (!resendKey || !recipient) return { sent: false, error: !resendKey ? 'RESEND_API_KEY not configured' : 'No recipient' }
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
   const isWithdraw = kind === 'withdraw'
   const subject = isWithdraw
     ? `↩️ Skip Withdrawn — ${milestoneName} for ${patientName}`
@@ -245,7 +245,7 @@ async function sendAdminSkipEmail(env, { kind, recipient, patientName, milestone
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
+        from: `North Star Surrogacy <${fromEmail}>`,
         to: [recipient],
         subject,
         html: buildSkipNotificationHtml({ kind, patientName, milestoneName, therapistName, skipReason, journeyUrl }),
@@ -476,8 +476,8 @@ export async function onRequestPost(context) {
       const journey = await resolveJourneyForSurrogate(env, surrogateId)
       const recipient = caseManagerEmail || journey.caseManagerEmail || ''
       const journeyUrl = journey.journeyId
-        ? `https://app.abcsurrogacy.com/journeys/${journey.journeyId}`
-        : `https://app.abcsurrogacy.com/surrogates/${surrogateId}`
+        ? `https://app.northstarsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.northstarsurrogacy.com/surrogates/${surrogateId}`
       const emailResult = await sendAdminSkipEmail(env, {
         kind: 'skip',
         recipient,
@@ -504,8 +504,8 @@ export async function onRequestPost(context) {
       const journey = await resolveJourneyForSurrogate(env, surrogateId)
       const recipient = caseManagerEmail || journey.caseManagerEmail || ''
       const journeyUrl = journey.journeyId
-        ? `https://app.abcsurrogacy.com/journeys/${journey.journeyId}`
-        : `https://app.abcsurrogacy.com/surrogates/${surrogateId}`
+        ? `https://app.northstarsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.northstarsurrogacy.com/surrogates/${surrogateId}`
       const emailResult = await sendAdminSkipEmail(env, {
         kind: 'withdraw',
         recipient,

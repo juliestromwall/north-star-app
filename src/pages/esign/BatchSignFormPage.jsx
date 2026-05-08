@@ -46,14 +46,14 @@ function SignaturePad({ value, onChange, signerName }) {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
       </div>
       {mode === 'typed' ? (
         <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
           onChange={e => onChange({ type: 'typed', name: e.target.value })}
           placeholder="Type your full name"
-          className="w-full text-xl py-3 px-4 border-b-2 border-[#283693]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
+          className="w-full text-xl py-3 px-4 border-b-2 border-[#1A3638]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
       ) : (
         <div>
           <canvas ref={canvasRef} width={500} height={80} className="w-full border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none" onMouseDown={handleDown} onTouchStart={handleDown} />
@@ -432,13 +432,13 @@ export default function BatchSignFormPage() {
 
   // ── Render ──
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-[#283693]" />
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
+      <Loader2 className="size-8 animate-spin text-[#1A3638]" />
     </div>
   )
 
   if (!docs.length) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
       <Card className="max-w-md"><CardContent className="p-8 text-center">
         <FileText className="size-12 text-stone-300 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-stone-700">Batch Not Found</h2>
@@ -448,7 +448,7 @@ export default function BatchSignFormPage() {
   )
 
   if (allDone) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center">
       <Card className="max-w-md"><CardContent className="p-8 text-center">
         <CheckCircle2 className="size-12 text-green-500 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-green-700">All Documents Submitted</h2>
@@ -458,12 +458,12 @@ export default function BatchSignFormPage() {
   )
 
   if (!verified) return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="p-8">
           <div className="text-center mb-6">
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-16 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#283693]">Sign {docs.length} Documents</h2>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-[#1A3638]">Sign {docs.length} Documents</h2>
             <p className="text-sm text-stone-500 mt-1">Verify your email to begin</p>
           </div>
           <ul className="text-xs text-stone-500 mb-4 space-y-1 list-disc pl-5">
@@ -479,7 +479,7 @@ export default function BatchSignFormPage() {
                 onKeyDown={e => e.key === 'Enter' && handleVerify()}
                 placeholder="your@email.com"
               />
-              <Button onClick={handleVerify} className="shrink-0" style={{ backgroundColor: '#283693' }}>
+              <Button onClick={handleVerify} className="shrink-0" style={{ backgroundColor: '#1A3638' }}>
                 <Mail className="size-4 mr-1" /> Verify
               </Button>
             </div>
@@ -503,13 +503,13 @@ export default function BatchSignFormPage() {
   const alreadySignedHere = signedDocIds.has(activeDoc.id)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
       <div className="max-w-3xl mx-auto py-6 px-3 sm:px-6">
         {/* Header + stepper */}
         <div className="text-center mb-4">
-          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
           <p className="text-xs text-stone-500">Document {activeIdx + 1} of {docs.length} &middot; Signing as {mySigner.name}</p>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283693] mt-1">{template.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638] mt-1">{template.title}</h1>
         </div>
 
         {/* Stepper pills */}
@@ -517,7 +517,7 @@ export default function BatchSignFormPage() {
           {docs.map((d, i) => (
             <div key={d.id} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium ${
               signedDocIds.has(d.id) ? 'bg-green-100 text-green-700'
-                : i === activeIdx ? 'bg-[#283693] text-white'
+                : i === activeIdx ? 'bg-[#1A3638] text-white'
                 : 'bg-stone-100 text-stone-500'
             }`}>
               {signedDocIds.has(d.id) ? <CheckCircle2 className="size-3" /> : <span>{i + 1}</span>}
@@ -532,7 +532,7 @@ export default function BatchSignFormPage() {
         {!isDocFirst && (
           <Card className="mb-5">
             <CardContent className="p-4 sm:p-6">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-4">Fill in your information</h3>
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider mb-4">Fill in your information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(template.fields || []).map(f => (
                   <div key={f.id} className={`space-y-1 ${f.type === 'radio' || f.id === 'phone' ? 'sm:col-span-2' : ''}`}>
@@ -543,7 +543,7 @@ export default function BatchSignFormPage() {
                           <label key={opt} className="flex items-center gap-1.5 text-sm">
                             <input type="radio" name={f.id} checked={fieldValues[f.id] === opt}
                               onChange={() => updateDocState(activeDoc.id, { fieldValues: { ...fieldValues, [f.id]: opt } })}
-                              className="accent-[#283693]" />
+                              className="accent-[#1A3638]" />
                             {opt === 'yes' ? 'Yes' : opt === 'no' ? 'No' : opt}
                           </label>
                         ))}
@@ -605,7 +605,7 @@ export default function BatchSignFormPage() {
         {!isDocFirst && (
           <Card className="mb-5">
             <CardContent className="p-4 sm:p-6 space-y-4">
-              <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Signatures</h3>
+              <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider">Signatures</h3>
               {(template.signatures || []).map(s => (
                 <div key={s.id} className="space-y-2">
                   <label className="text-xs font-medium text-stone-500">{s.label} <span className="text-red-400">*</span></label>
@@ -627,12 +627,12 @@ export default function BatchSignFormPage() {
                       {signatures[s.id].type === 'drawn' && signatures[s.id].image ? (
                         <img src={signatures[s.id].image} alt="signature" style={{ height: 32 }} />
                       ) : (
-                        <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
+                        <span className="text-sm font-serif italic text-[#1A3638]">{signatures[s.id].name || 'Signed'}</span>
                       )}
                       <button onClick={() => setActiveSigId(s.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                     </div>
                   ) : (
-                    <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5">Click to sign</button>
+                    <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#D4A853]/30 rounded-lg text-sm text-[#D4A853] hover:bg-[#D4A853]/5">Click to sign</button>
                   )}
                 </div>
               ))}
@@ -644,7 +644,7 @@ export default function BatchSignFormPage() {
         {isDocFirst && (template.fields || []).length > 0 && (
           <Card className="mb-5">
             <CardContent className="p-4 sm:p-6">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-3">Your information</h3>
+              <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider mb-3">Your information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {template.fields.map(f => (
                   <div key={f.id} className="space-y-1">
@@ -677,7 +677,7 @@ export default function BatchSignFormPage() {
             <Card key={page.id} className="mb-5">
               <CardContent className="p-4 sm:p-6 space-y-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-7 flex items-center justify-center">{pi + 1}</span>
+                  <span className="text-xs font-bold text-white bg-[#1A3638] rounded-full size-7 flex items-center justify-center">{pi + 1}</span>
                   <div>
                     <p className="font-semibold text-stone-800 text-sm sm:text-base">{page.title}</p>
                     <p className="text-[11px] text-stone-400">Page {pi + 1} of {(template.pages || []).length}</p>
@@ -687,7 +687,7 @@ export default function BatchSignFormPage() {
 
                 {myInits.length > 0 && (
                   <div className="space-y-2 pt-3 border-t">
-                    <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your initials</h4>
+                    <h4 className="text-xs font-bold text-[#D4A853] uppercase tracking-wider">Your initials</h4>
                     {myInits.map(init => (
                       <div key={init.id} className="flex items-center gap-3">
                         <label className="text-xs font-medium text-stone-500 min-w-[120px]">Initials</label>
@@ -704,7 +704,7 @@ export default function BatchSignFormPage() {
 
                 {mySigs.length > 0 && (
                   <div className="space-y-3 pt-3 border-t">
-                    <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h4>
+                    <h4 className="text-xs font-bold text-[#D4A853] uppercase tracking-wider">Your signature</h4>
                     {mySigs.map(sig => (
                       <div key={sig.id}>
                         {activeSigId === sig.id ? (
@@ -725,12 +725,12 @@ export default function BatchSignFormPage() {
                             {signatures[sig.id].type === 'drawn' && signatures[sig.id].image ? (
                               <img src={signatures[sig.id].image} alt="signature" style={{ height: 32 }} />
                             ) : (
-                              <span className="text-sm font-serif italic text-[#283693]">{signatures[sig.id].name || 'Signed'}</span>
+                              <span className="text-sm font-serif italic text-[#1A3638]">{signatures[sig.id].name || 'Signed'}</span>
                             )}
                             <button onClick={() => setActiveSigId(sig.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                           </div>
                         ) : (
-                          <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5">Click to sign</button>
+                          <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#D4A853]/30 rounded-lg text-sm text-[#D4A853] hover:bg-[#D4A853]/5">Click to sign</button>
                         )}
                       </div>
                     ))}
@@ -744,7 +744,7 @@ export default function BatchSignFormPage() {
         {/* Bottom actions: sign current, advance */}
         <div className="flex flex-col items-center gap-3 pt-2 pb-10">
           <label className="flex items-center gap-2 text-sm text-stone-700">
-            <input type="checkbox" id={`agree-${activeDoc.id}`} className="size-4 accent-[#283693]" onChange={() => setValidationError(null)} />
+            <input type="checkbox" id={`agree-${activeDoc.id}`} className="size-4 accent-[#1A3638]" onChange={() => setValidationError(null)} />
             <span>I agree that my electronic signature is legally binding</span>
           </label>
 
@@ -769,7 +769,7 @@ export default function BatchSignFormPage() {
               disabled={submitting || alreadySignedHere}
               size="lg"
               className="gap-2 flex-1 sm:flex-none sm:px-8"
-              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
             >
               {submitting ? <Loader2 className="size-5 animate-spin" />
                 : activeIdx < docs.length - 1 ? <ChevronRight className="size-5" />
@@ -780,7 +780,7 @@ export default function BatchSignFormPage() {
                 : 'Sign & Finish'}
             </Button>
           </div>
-          <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+          <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
         </div>
       </div>
     </div>

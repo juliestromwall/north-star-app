@@ -20,7 +20,7 @@ const QUALIFIED_IP_STEPS = [
   { icon: Heart, label: 'Initial consultation call', desc: 'A call with your dedicated coordinator to walk through the process and answer all your questions.' },
 ]
 
-const CONFETTI_ICON_SRC = '/abc-favicon.png'
+const CONFETTI_ICON_SRC = '/favicon.png'
 
 export default function IntakeConfirmationPage() {
   const { state } = useLocation()
@@ -121,7 +121,7 @@ export default function IntakeConfirmationPage() {
                 return
               }
             } catch {}
-            setSignupError('We could not send your secure password setup email. Please use the password reset link from your email, or contact info@abcsurrogacy.com.')
+            setSignupError('We could not send your secure password setup email. Please use the password reset link from your email, or contact info@northstarsurrogacy.com.')
             setSigningUp(false)
             return
           }
@@ -142,7 +142,7 @@ export default function IntakeConfirmationPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
         <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
         </header>
 
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -173,15 +173,15 @@ export default function IntakeConfirmationPage() {
             <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
             <p className="text-sm text-stone-500">
               You can reach our team any time at{' '}
-              <a href="mailto:info@abcsurrogacy.com" className="text-[#464DA0] underline font-medium">
-                info@abcsurrogacy.com
+              <a href="mailto:info@northstarsurrogacy.com" className="text-[#464DA0] underline font-medium">
+                info@northstarsurrogacy.com
               </a>
             </p>
           </div>
         </div>
 
         <footer className="py-6 text-center text-xs text-stone-400">
-          © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+          © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
         </footer>
       </div>
     )
@@ -192,7 +192,7 @@ export default function IntakeConfirmationPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
         <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
         </header>
 
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -214,8 +214,8 @@ export default function IntakeConfirmationPage() {
 
           <p className="text-stone-500 mb-10 leading-relaxed">
             Circumstances change, and we may be in touch in the future. If you believe there may have been an error, please don't hesitate to contact us directly at{' '}
-            <a href="mailto:intake@abcsurrogacy.com" className="text-[#ed148c] underline">
-              intake@abcsurrogacy.com
+            <a href="mailto:intake@northstarsurrogacy.com" className="text-[#D4A853] underline">
+              intake@northstarsurrogacy.com
             </a>.
           </p>
 
@@ -234,7 +234,7 @@ export default function IntakeConfirmationPage() {
         </div>
 
         <footer className="py-6 text-center text-xs text-stone-400">
-          © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+          © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
         </footer>
       </div>
     )
@@ -245,7 +245,7 @@ export default function IntakeConfirmationPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
       {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc={CONFETTI_ICON_SRC} zIndex={40} />}
       <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -265,7 +265,7 @@ export default function IntakeConfirmationPage() {
         </p>
 
         {/* GC: account setup — PRIMARY CTA */}
-        <div className={`rounded-xl border-2 p-5 text-left mb-8 transition-all ${pwSaved ? 'border-emerald-300 bg-emerald-50' : 'border-[#283693] bg-white shadow-lg'}`}>
+        <div className={`rounded-xl border-2 p-5 text-left mb-8 transition-all ${pwSaved ? 'border-emerald-300 bg-emerald-50' : 'border-[#1A3638] bg-white shadow-lg'}`}>
           {pwSaved ? (
             <div className="text-center py-3 space-y-4">
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto">
@@ -291,7 +291,7 @@ export default function IntakeConfirmationPage() {
                   navigate('/dashboard')
                 }}
                 className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
-                style={{ backgroundColor: '#283693', color: '#fff' }}
+                style={{ backgroundColor: '#1A3638', color: '#fff' }}
               >
                 Continue to my portal
                 <ArrowRight className="w-4 h-4" />
@@ -300,7 +300,7 @@ export default function IntakeConfirmationPage() {
           ) : resetEmailSent ? (
             <div className="text-center py-3 space-y-4">
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mx-auto">
-                <Mail className="w-6 h-6 text-[#283693]" />
+                <Mail className="w-6 h-6 text-[#1A3638]" />
               </div>
               <div>
                 <p className="font-semibold text-stone-800 text-lg">Check your email</p>
@@ -320,8 +320,8 @@ export default function IntakeConfirmationPage() {
           ) : (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#283693]/10">
-                  <Lock className="w-4 h-4 text-[#283693]" />
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1A3638]/10">
+                  <Lock className="w-4 h-4 text-[#1A3638]" />
                 </div>
                 <p className="text-sm font-semibold text-stone-800">Create your account</p>
               </div>
@@ -371,7 +371,7 @@ export default function IntakeConfirmationPage() {
                 {signupError && (
                   <div className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                     {signupError.includes('already registered') || signupError.includes('already been registered')
-                      ? <>It looks like you already have an account. <a href="/login" className="text-[#283693] underline font-medium">Log in here</a></>
+                      ? <>It looks like you already have an account. <a href="/login" className="text-[#1A3638] underline font-medium">Log in here</a></>
                       : signupError
                     }
                   </div>
@@ -380,7 +380,7 @@ export default function IntakeConfirmationPage() {
                   onClick={handleCreateAccount}
                   disabled={!pwValid || signingUp}
                   className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
-                  style={pwValid ? { backgroundColor: '#283693', color: '#fff' } : {}}
+                  style={pwValid ? { backgroundColor: '#1A3638', color: '#fff' } : {}}
                 >
                   {signingUp ? 'Creating account...' : 'Create account & continue'}
                   {!signingUp && <ArrowRight className="w-4 h-4" />}
@@ -398,8 +398,8 @@ export default function IntakeConfirmationPage() {
           {steps.map((s, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ed148c]/10 shrink-0">
-                  <s.icon className="w-5 h-5 text-[#ed148c]" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#D4A853]/10 shrink-0">
+                  <s.icon className="w-5 h-5 text-[#D4A853]" />
                 </div>
                 {i < steps.length - 1 && (
                   <div className="w-px flex-1 bg-stone-200 my-1" />
@@ -417,15 +417,15 @@ export default function IntakeConfirmationPage() {
           <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
           <p className="text-sm text-stone-500">
             You can reach our team any time at{' '}
-            <a href="mailto:intake@abcsurrogacy.com" className="text-[#ed148c] underline">
-              intake@abcsurrogacy.com
+            <a href="mailto:intake@northstarsurrogacy.com" className="text-[#D4A853] underline">
+              intake@northstarsurrogacy.com
             </a>
           </p>
         </div>
       </div>
 
       <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+        © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
       </footer>
     </div>
   )

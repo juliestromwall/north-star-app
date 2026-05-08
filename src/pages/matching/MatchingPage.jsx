@@ -28,7 +28,7 @@ const STAGE_SECTION_LABEL = {
   'matching': 'Matching',
 }
 const STAGE_DOT_COLOR = {
-  'pre-qualification': '#ed148c',
+  'pre-qualification': '#D4A853',
   'screening': '#c4219a',
   'matching': '#9b2ea7',
 }
@@ -75,7 +75,7 @@ function MilestoneStrip({ stageId, tracking }) {
         <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
       </div>
       <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
         {data.map(ms => (
@@ -434,7 +434,7 @@ export default function MatchingPage() {
                       <div className="flex items-center gap-2">
                         <ProfileAvatar name={gc.name} avatar={avatarUrl || profile?.personal?.profilePhotoUrl} size="md" className="ring-2 ring-white shadow-sm" />
                         <div className="flex-1 min-w-0">
-                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#283693] truncate block">{gc.name}</Link>
+                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#1A3638] truncate block">{gc.name}</Link>
                           {gc.location && <p className="text-[10px] text-stone-500 flex items-center gap-1 truncate"><MapPin className="size-2.5" />{gc.location}</p>}
                           <div className="mt-0.5"><StageBadge stage={ss.stage} status={ss.status} /></div>
                         </div>
@@ -446,7 +446,7 @@ export default function MatchingPage() {
                         </div>
                       )}
                       <div className="flex gap-1.5 pt-1">
-                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#283693', color: '#fff' }}
+                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                           onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
                           <Send className="size-3" /> Share
                         </Button>
@@ -484,7 +484,7 @@ export default function MatchingPage() {
                       <div className="flex items-center gap-2">
                         <ProfileAvatar name={gc.name} avatar={avatarUrl || profile?.personal?.profilePhotoUrl} size="md" className="ring-2 ring-white shadow-sm" />
                         <div className="flex-1 min-w-0">
-                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#283693] truncate block">{gc.name}</Link>
+                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#1A3638] truncate block">{gc.name}</Link>
                           {gc.location && <p className="text-[10px] text-stone-500 flex items-center gap-1 truncate"><MapPin className="size-2.5" />{gc.location}</p>}
                           <div className="mt-0.5"><StageBadge stage={ss.stage} status={ss.status} /></div>
                         </div>
@@ -497,7 +497,7 @@ export default function MatchingPage() {
                       )}
                       <MilestoneStrip stageId={ss.stage} tracking={trackingMap[gc.id]} />
                       <div className="flex gap-1.5 pt-1">
-                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#283693', color: '#fff' }}
+                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                           onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
                           <Send className="size-3" /> Share
                         </Button>
@@ -539,7 +539,7 @@ export default function MatchingPage() {
                     <div className="flex items-center gap-3">
                       <ProfileAvatar name={gc.name} avatar={avatarUrl || profile?.personal?.profilePhotoUrl} size="lg" className="ring-2 ring-white shadow" />
                       <div className="flex-1 min-w-0">
-                        <Link to={`/surrogates/${gc.id}`} className="text-sm font-bold hover:text-[#283693] truncate block">{gc.name}</Link>
+                        <Link to={`/surrogates/${gc.id}`} className="text-sm font-bold hover:text-[#1A3638] truncate block">{gc.name}</Link>
                         {gc.location && <p className="text-xs text-stone-500 flex items-center gap-1"><MapPin className="size-3" />{gc.location}</p>}
                         <div className="flex items-center gap-1.5 mt-1">
                           <StageBadge stage={ss.stage} status={ss.status} />
@@ -595,7 +595,7 @@ export default function MatchingPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }}
+                      <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                         onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
                         <Send className="size-3" /> Share Profile
                       </Button>
@@ -687,13 +687,13 @@ export default function MatchingPage() {
                   <div className="flex items-center gap-3">
                     <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="md" />
                     <div className="flex-1 min-w-0">
-                      <Link to={`/intended-parents/${ip.id}`} className="text-sm font-semibold hover:text-[#283693] truncate block">{ip.names}</Link>
+                      <Link to={`/intended-parents/${ip.id}`} className="text-sm font-semibold hover:text-[#1A3638] truncate block">{ip.names}</Link>
                       <p className="text-xs text-stone-500">{ip.type}{ip.location ? ` · ${ip.location}` : ''}</p>
                       {ip.reDoctorName && <p className="text-xs text-stone-400 flex items-center gap-1"><Stethoscope className="size-3" />{ip.reDoctorName}</p>}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }}
+                    <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#1A3638', color: '#fff' }}
                       onClick={() => setShareTarget({ id: ip.id, type: 'ip', name: ip.names })}>
                       <Send className="size-3" /> Share Profile
                     </Button>
@@ -750,7 +750,7 @@ export default function MatchingPage() {
               onSelect={(id) => setCreateForm(f => ({ ...f, ipId: id }))}
             />
             <Button onClick={handleCreateMatch} disabled={creating || !createForm.gcId || !createForm.ipId}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {creating ? 'Creating...' : 'Create Match'}
             </Button>
           </div>
@@ -786,7 +786,7 @@ export default function MatchingPage() {
               onSelect={(id) => setTandemForm(f => ({ ...f, gcId: id }))}
             />
             <Button onClick={handleCreateTandem} disabled={creatingTandem || !tandemForm.gcId || !tandemForm.ipId}
-              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {creatingTandem ? 'Creating tandem...' : 'Create Tandem Match'}
             </Button>
           </div>

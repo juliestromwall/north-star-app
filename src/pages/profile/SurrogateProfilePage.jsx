@@ -25,7 +25,7 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
   }
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
       <div className="flex flex-wrap gap-2">
         {options.map(opt => {
@@ -35,10 +35,10 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
             <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
                 isOn
-                  ? 'bg-[#283693] text-white border-[#283693]'
+                  ? 'bg-[#1A3638] text-white border-[#1A3638]'
                   : disabled
                     ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
-                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#1A3638] hover:text-[#1A3638]'
               }`}>
               {opt}
             </button>
@@ -104,7 +104,7 @@ function TextField({ label, value, onChange, placeholder, type = 'text', disable
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="bg-white border-stone-200 text-sm h-9 focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+        className="bg-white border-stone-200 text-sm h-9 focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20"
       />
     </Field>
   )
@@ -118,7 +118,7 @@ function TextAreaField({ label, value, onChange, placeholder, rows = 3, classNam
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="bg-white border-stone-200 text-sm focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+        className="bg-white border-stone-200 text-sm focus:border-[#1A3638] focus:ring-1 focus:ring-[#1A3638]/20"
       />
     </Field>
   )
@@ -152,7 +152,7 @@ function YesNoField({ label, value, onChange, className = '' }) {
           onClick={() => onChange('yes')}
           className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
             value === 'yes'
-              ? 'bg-[#283693] text-white shadow-sm'
+              ? 'bg-[#1A3638] text-white shadow-sm'
               : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
           }`}
         >
@@ -163,7 +163,7 @@ function YesNoField({ label, value, onChange, className = '' }) {
           onClick={() => onChange('no')}
           className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
             value === 'no'
-              ? 'bg-[#283693] text-white shadow-sm'
+              ? 'bg-[#1A3638] text-white shadow-sm'
               : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
           }`}
         >
@@ -534,10 +534,10 @@ function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, fallbackId,
           </button>
         </div>
       ) : (
-        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[#D4A853]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="text-center">
             {uploading ? (
-              <Loader2 className="w-6 h-6 mx-auto text-[#ed148c] animate-spin" />
+              <Loader2 className="w-6 h-6 mx-auto text-[#D4A853] animate-spin" />
             ) : (
               <>
                 <Upload className="w-6 h-6 mx-auto text-gray-400" />
@@ -566,12 +566,12 @@ function ProgressRing({ percent, size = 80, strokeWidth = 6 }) {
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
           stroke="#e5e7eb" strokeWidth={strokeWidth} />
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
-          stroke="#ed148c" strokeWidth={strokeWidth}
+          stroke="#D4A853" strokeWidth={strokeWidth}
           strokeDasharray={circ} strokeDashoffset={offset}
           strokeLinecap="round" className="transition-all duration-700" />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-bold text-[#283693]">{percent}%</span>
+        <span className="text-lg font-bold text-[#1A3638]">{percent}%</span>
       </div>
     </div>
   )
@@ -872,7 +872,7 @@ export default function SurrogateProfilePage() {
           await saveSurrogateProfile(currentUser.id, currentUser.email, profile)
         } catch (err) {
           console.error('Profile save before submit failed:', err)
-          alert("We couldn't save your profile to our servers. Please check your internet connection and try again. If this keeps happening, contact support@abcsurrogacy.com and we'll help you finish submitting.")
+          alert("We couldn't save your profile to our servers. Please check your internet connection and try again. If this keeps happening, contact support@northstarsurrogacy.com and we'll help you finish submitting.")
           return
         }
       }
@@ -883,7 +883,7 @@ export default function SurrogateProfilePage() {
           await updateSurrogateProfileStatus(currentUser.email, 'pending_review')
         } catch (err) {
           console.error('Status update failed:', err)
-          alert("Your profile was saved, but we couldn't mark it as submitted. Please contact support@abcsurrogacy.com so we can finalize your submission.")
+          alert("Your profile was saved, but we couldn't mark it as submitted. Please contact support@northstarsurrogacy.com so we can finalize your submission.")
           return
         }
       }
@@ -905,7 +905,7 @@ export default function SurrogateProfilePage() {
           case_id: intakeCaseId,
           case_type: 'surrogate',
           title: `Review ${surrogateName}'s Profile`,
-          assigned_to: 'intake@abcsurrogacy.com',
+          assigned_to: 'intake@northstarsurrogacy.com',
           due_date: today,
           priority: 'high',
           status: 'open',
@@ -968,11 +968,11 @@ export default function SurrogateProfilePage() {
           <div className="px-6 py-5 border-b border-stone-100 flex flex-col sm:flex-row items-center gap-5">
             <ProgressRing percent={overallCompletion} />
             <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h1 className="text-xl font-bold text-[#283693]">My Surrogate Profile</h1>
+              <h1 className="text-xl font-bold text-[#1A3638]">My Surrogate Profile</h1>
               <p className="text-stone-400 text-sm mt-0.5">Complete your matching profile so intended parents can get to know you.</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-stone-300 text-stone-600 hover:text-[#283693] hover:border-[#283693]/30">
+              <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-stone-300 text-stone-600 hover:text-[#1A3638] hover:border-[#1A3638]/30">
                 <Eye className="w-3.5 h-3.5" /> {previewOpen ? 'Edit' : 'Preview'}
               </Button>
               {!profileApproved && !profileSubmitted && overallCompletion === 100 && (
@@ -980,7 +980,7 @@ export default function SurrogateProfilePage() {
                   size="sm"
                   onClick={() => setShowSubmitModal(true)}
                   className="gap-1.5 rounded-lg"
-                  style={{ backgroundColor: '#283693', color: '#fff' }}
+                  style={{ backgroundColor: '#1A3638', color: '#fff' }}
                 >
                   <Send className="w-3.5 h-3.5" /> Submit
                 </Button>
@@ -991,7 +991,7 @@ export default function SurrogateProfilePage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 h-1.5 bg-stone-200/60 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#ed148c] to-[#283693] rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-[#D4A853] to-[#1A3638] rounded-full transition-all duration-700"
                   style={{ width: `${overallCompletion}%` }}
                 />
               </div>
@@ -1008,7 +1008,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-blue-800">Profile Submitted for Review</p>
-              <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions. If you need to make edits, please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="font-semibold underline">jenn@abcsurrogacy.com</a>.</p>
+              <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions. If you need to make edits, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
             </div>
           </div>
         )}
@@ -1021,7 +1021,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-green-800">Profile Approved</p>
-              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="font-semibold underline">jenn@abcsurrogacy.com</a>.</p>
+              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the North Star Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
             </div>
           </div>
         )}
@@ -1046,9 +1046,9 @@ export default function SurrogateProfilePage() {
                     <CollapsibleTrigger asChild>
                       <button className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-stone-50/60'}`}>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          complete ? 'bg-emerald-50' : 'bg-[#283693]/5'
+                          complete ? 'bg-emerald-50' : 'bg-[#1A3638]/5'
                         }`}>
-                          <Icon className={`w-4 h-4 ${complete ? 'text-emerald-500' : 'text-[#283693]/70'}`} />
+                          <Icon className={`w-4 h-4 ${complete ? 'text-emerald-500' : 'text-[#1A3638]/70'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-stone-800">{sec.title}</p>
@@ -1088,7 +1088,7 @@ export default function SurrogateProfilePage() {
                     }
                   }}
                   className="gap-2 px-8 py-3 text-base rounded-xl"
-                  style={{ backgroundColor: overallCompletion === 100 ? '#ed148c' : '#283693', color: '#fff' }}
+                  style={{ backgroundColor: overallCompletion === 100 ? '#D4A853' : '#1A3638', color: '#fff' }}
                 >
                   <Send className="w-4 h-4" /> Submit Profile for Review
                 </Button>
@@ -1105,19 +1105,19 @@ export default function SurrogateProfilePage() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-blue-100 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-green-500" />
               </div>
-              <h2 className="text-xl font-bold text-[#283693]">This is great! Your profile is 100% Complete!</h2>
+              <h2 className="text-xl font-bold text-[#1A3638]">This is great! Your profile is 100% Complete!</h2>
               <p className="text-stone-600">Please submit your profile for review so our team can start matching you with intended parents.</p>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <Button variant="outline" onClick={() => setShowSubmitModal(false)}>
                   Cancel
                 </Button>
-                <Button variant="outline" className="border-[#283693] text-[#283693]" onClick={() => { setShowSubmitModal(false); openPreview() }}>
+                <Button variant="outline" className="border-[#1A3638] text-[#1A3638]" onClick={() => { setShowSubmitModal(false); openPreview() }}>
                   <Eye className="w-4 h-4 mr-1.5" /> Preview
                 </Button>
                 <Button
                   onClick={handleSubmitForReview}
                   disabled={submitting}
-                  style={{ backgroundColor: '#ed148c', color: '#fff' }}
+                  style={{ backgroundColor: '#D4A853', color: '#fff' }}
                   className="gap-1.5"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -1149,7 +1149,7 @@ export default function SurrogateProfilePage() {
                   )
                 })}
               </div>
-              <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                 Got it — I'll complete my profile
               </Button>
             </div>
@@ -1161,16 +1161,16 @@ export default function SurrogateProfilePage() {
           <DialogContent className="max-w-md">
             <div className="text-center space-y-4 py-2">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-blue-100 flex items-center justify-center mx-auto">
-                <Camera className="w-8 h-8 text-[#283693]" />
+                <Camera className="w-8 h-8 text-[#1A3638]" />
               </div>
-              <h2 className="text-xl font-bold text-[#283693]">Welcome to Your Profile!</h2>
+              <h2 className="text-xl font-bold text-[#1A3638]">Welcome to Your Profile!</h2>
               <p className="text-stone-600 leading-relaxed">
                 This profile may be shared with prospective Intended Parents. Please be sure to add photos to your gallery that represent you and your family.
               </p>
               <p className="text-stone-600 leading-relaxed">
                 Once you have completed every section, be sure to click <strong>"Submit Profile for Review."</strong>
               </p>
-              <Button onClick={() => setShowWelcomeModal(false)} className="w-full gap-1.5" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+              <Button onClick={() => setShowWelcomeModal(false)} className="w-full gap-1.5" style={{ backgroundColor: '#D4A853', color: '#fff' }}>
                 Got it — Let's go!
               </Button>
             </div>
@@ -1193,15 +1193,15 @@ function PVSection({ title, icon: Icon, number, children }) {
   return (
     <div>
       {/* Magazine-style header: big pink number + serif title. Keep header + first card together. */}
-      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#ed148c]/20 print:break-after-avoid">
+      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#D4A853]/20 print:break-after-avoid">
         {number && (
-          <span className="text-4xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums">
+          <span className="text-4xl font-heading font-black text-[#D4A853]/60 leading-none tabular-nums">
             {String(number).padStart(2, '0')}
           </span>
         )}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {Icon && <Icon className="w-4 h-4 text-[#ed148c] shrink-0" />}
-          <h3 className="text-xl font-heading font-black text-[#283693] tracking-tight leading-tight">{title}</h3>
+          {Icon && <Icon className="w-4 h-4 text-[#D4A853] shrink-0" />}
+          <h3 className="text-xl font-heading font-black text-[#1A3638] tracking-tight leading-tight">{title}</h3>
         </div>
       </div>
       {/* Content area — sections CAN split across pages, but individual cards (below) cannot */}
@@ -1278,13 +1278,13 @@ function PregnancyCard({ pregnancy: pr, index }) {
   return (
     <div className={`bg-white rounded-xl border border-stone-200 overflow-hidden print:break-inside-avoid`}>
       {/* Header strip */}
-      <div className={`flex items-start gap-3 px-5 py-3 bg-gradient-to-r from-[#283693]/5 to-transparent ${headerOnly ? '' : 'border-b border-stone-100'}`}>
-        <div className="w-9 h-9 rounded-full bg-[#283693] text-white flex items-center justify-center font-heading font-black text-sm shrink-0">P{num}</div>
+      <div className={`flex items-start gap-3 px-5 py-3 bg-gradient-to-r from-[#1A3638]/5 to-transparent ${headerOnly ? '' : 'border-b border-stone-100'}`}>
+        <div className="w-9 h-9 rounded-full bg-[#1A3638] text-white flex items-center justify-center font-heading font-black text-sm shrink-0">P{num}</div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {pr.outcome && <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${outcomeColor}`}>{pr.outcome}</span>}
-            {pr.wasSurrogacy === 'yes' && <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#ed148c]/10 text-[#ed148c]">Surrogacy</span>}
-            {gestation && <span className="text-xs font-semibold text-[#283693]">{gestation}</span>}
+            {pr.wasSurrogacy === 'yes' && <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D4A853]/10 text-[#D4A853]">Surrogacy</span>}
+            {gestation && <span className="text-xs font-semibold text-[#1A3638]">{gestation}</span>}
             {pr.dob && (() => {
               const dob = new Date(pr.dob + 'T00:00')
               const dateStr = dob.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
@@ -1327,9 +1327,9 @@ function PregnancyCard({ pregnancy: pr, index }) {
         <div className={`grid ${babies.length > 1 ? 'sm:grid-cols-2' : ''} gap-0 border-b border-stone-100`}>
           {babies.map((baby, bi) => (
             <div key={bi} className={`p-4 ${bi > 0 ? 'sm:border-l border-stone-100' : ''}`}>
-              {baby.label && <p className="text-[10px] font-bold text-[#ed148c] uppercase tracking-widest mb-1">{baby.label}</p>}
+              {baby.label && <p className="text-[10px] font-bold text-[#D4A853] uppercase tracking-widest mb-1">{baby.label}</p>}
               <div className="flex items-baseline gap-2 flex-wrap">
-                {baby.name && <p className="text-base font-heading font-bold text-[#283693]">{baby.name}</p>}
+                {baby.name && <p className="text-base font-heading font-bold text-[#1A3638]">{baby.name}</p>}
                 {baby.sex && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${baby.sex === 'Male' || baby.sex === 'Boy' ? 'bg-blue-50 text-blue-600' : baby.sex === 'Female' || baby.sex === 'Girl' ? 'bg-pink-50 text-pink-600' : 'bg-stone-50 text-stone-500'}`}>{baby.sex}</span>}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs text-stone-500">
@@ -1477,14 +1477,14 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           {heroPhoto ? (
             <img src={heroPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover object-top" />
           ) : (
-            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#ed148c]/20 via-[#fce7f0] to-[#283693]/10 flex items-center justify-center">
+            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#D4A853]/20 via-[#fce7f0] to-[#1A3638]/10 flex items-center justify-center">
               <Camera className="w-12 h-12 text-white/70" />
             </div>
           )}
           {/* Subtle bottom gradient for name card legibility */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#fdf8f3] to-transparent" />
           {galleryPhotos.length > 1 && (
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#283693] text-xs font-bold px-3 py-1 rounded-full print:hidden">
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#1A3638] text-xs font-bold px-3 py-1 rounded-full print:hidden">
               {galleryPhotos.length} photos
             </div>
           )}
@@ -1496,7 +1496,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             {/* Portrait — square rounded, white border, shadow */}
             {portraitPhoto ? (
               <img data-pdf="portrait" src={portraitPhoto.url} alt=""
-                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#283693]/15 shrink-0 print:shadow-none"
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#1A3638]/15 shrink-0 print:shadow-none"
               />
             ) : (
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">
@@ -1505,14 +1505,14 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             )}
 
             {/* Name card — overlaps cover image from bottom */}
-            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#283693]/10 border border-stone-100 px-6 py-5 print:shadow-none">
-              <p className="text-xs font-bold text-[#ed148c] uppercase tracking-[0.25em] mb-1">Hi there, I'm</p>
-              <h1 className="text-3xl sm:text-4xl font-heading font-black text-[#283693] leading-tight tracking-tight">
+            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#1A3638]/10 border border-stone-100 px-6 py-5 print:shadow-none">
+              <p className="text-xs font-bold text-[#D4A853] uppercase tracking-[0.25em] mb-1">Hi there, I'm</p>
+              <h1 className="text-3xl sm:text-4xl font-heading font-black text-[#1A3638] leading-tight tracking-tight">
                 {firstName}.
               </h1>
               {(about.city || about.state) && (
                 <p className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#ed148c]" />
+                  <MapPin className="w-3.5 h-3.5 text-[#D4A853]" />
                   {[about.city, about.state].filter(Boolean).join(', ')}
                 </p>
               )}
@@ -1522,7 +1522,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
         {/* Stats byline + compensation row — below name card */}
         <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#1A3638]">
             {age && (
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-heading font-black leading-none">{age}</span>
@@ -1553,7 +1553,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             {about.maritalStatus && (
               <><span className="h-6 w-px bg-stone-300" />
               <div className="flex items-center gap-1.5">
-                <Heart className="w-4 h-4 text-[#ed148c]" fill="currentColor" />
+                <Heart className="w-4 h-4 text-[#D4A853]" fill="currentColor" />
                 <span className="text-base font-heading font-bold">{about.maritalStatus}</span>
               </div></>
             )}
@@ -1561,8 +1561,8 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#ed148c] font-bold">Base Fee</span>
-              <span className="text-2xl font-heading font-black text-[#283693] leading-none">{formatCurrency(hopes.desiredCompensation) || '—'}</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#D4A853] font-bold">Base Fee</span>
+              <span className="text-2xl font-heading font-black text-[#1A3638] leading-none">{formatCurrency(hopes.desiredCompensation) || '—'}</span>
             </div>
             {(() => {
               const isVerified = insuranceStatus === 'active_policy' || insuranceStatus === 'verified_open_enrollment' || insuranceStatus === 'complete'
@@ -1823,12 +1823,12 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {expSurr.previousSurrogate === 'yes' && (
           <PVSection title="Surrogacy Experience" icon={Stethoscope} number={9}>
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#ed148c]/10 text-[#ed148c] text-sm font-semibold px-4 py-1.5">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#D4A853]/10 text-[#D4A853] text-sm font-semibold px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Experienced Surrogate — {expSurr.surrogacyTimes || '?'} time(s)
               </div>
               {normalizeJourneyList(expSurr.journeys).map((j, i) => (
                 <div key={i} className="rounded-xl bg-[#fdf8f3] p-4 space-y-2">
-                  <p className="text-xs font-bold text-[#283693] uppercase">Journey #{i + 1}</p>
+                  <p className="text-xs font-bold text-[#1A3638] uppercase">Journey #{i + 1}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
                     <PVField label="What was the name of the Reproductive Doctor?" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
                     <PVField label="What City/State was the IVF clinic located in?" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
@@ -1895,7 +1895,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {/* ── Letter to Intended Parents (full-width standout card) ── */}
         {hopes.additionalComments && (
           <div className="mt-8 print:break-inside-avoid">
-            <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#ed148c]/20 shadow-sm print:shadow-none">
+            <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#D4A853]/20 shadow-sm print:shadow-none">
               <div className="px-7 pt-6 pb-4">
                 <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Intended Parent(s),</p>
               </div>
@@ -1910,10 +1910,10 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {/* Print-only photo gallery at bottom */}
         {photos?.length > 1 && (
           <div className="hidden print:block print:break-inside-avoid">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#1A3638]/5 to-transparent">
               <div className="flex items-center gap-2.5">
-                <Camera className="w-4.5 h-4.5 text-[#283693]" />
-                <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wide">Photos</h3>
+                <Camera className="w-4.5 h-4.5 text-[#1A3638]" />
+                <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wide">Photos</h3>
               </div>
             </div>
             <div className="px-6 py-4 grid grid-cols-5 gap-2">
@@ -1930,7 +1930,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {!hideFooter && (
           <div className="text-center py-6 print:hidden">
             <div className="inline-flex items-center gap-2 text-xs text-gray-400">
-              <img src="/abc-logo.png" alt="" className="h-5 opacity-30" />
+              <img src="/north-star-logo.png" alt="" className="h-5 opacity-30" />
               This is a preview of how intended parents will see your profile.
             </div>
           </div>
@@ -2090,12 +2090,12 @@ function PersonalSection({ v, u }) {
           options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))} />
         <TextField label="Weight (lbs)" value={v(s, 'weight')} onChange={u(s, 'weight')} type="number" placeholder="lbs" />
         <Field label="BMI (auto)">
-          <div className="h-9 flex items-center px-3 rounded-md border bg-gray-50 text-sm font-medium text-[#283693]">{bmi}</div>
+          <div className="h-9 flex items-center px-3 rounded-md border bg-gray-50 text-sm font-medium text-[#1A3638]">{bmi}</div>
         </Field>
       </div>
 
-      <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
-        <h4 className="font-medium text-[#283693] mb-3">Relationship & Household</h4>
+      <div className="p-4 rounded-xl bg-[#1A3638]/5 border border-[#1A3638]/10">
+        <h4 className="font-medium text-[#1A3638] mb-3">Relationship & Household</h4>
         <div className="space-y-4">
           <SelectField label="Current Marital/Relationship Status" value={v(s, 'maritalStatus')} onChange={u(s, 'maritalStatus')}
             options={['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']} />
@@ -2202,7 +2202,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                   onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                   className={`text-left rounded-xl border-2 p-4 transition-all ${
                     expandedIdx === idx
-                      ? 'border-[#283693] bg-[#283693]/5 shadow-md'
+                      ? 'border-[#1A3638] bg-[#1A3638]/5 shadow-md'
                       : complete
                       ? 'border-emerald-300 bg-emerald-50 hover:shadow-sm'
                       : hasData
@@ -2234,9 +2234,9 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
 
           {/* Expanded pregnancy detail form */}
           {expandedIdx !== null && expandedIdx < numberOfPregnancies && (
-            <div className="rounded-xl border-2 border-[#283693] bg-white p-5 space-y-4 shadow-lg mt-2">
+            <div className="rounded-xl border-2 border-[#1A3638] bg-white p-5 space-y-4 shadow-lg mt-2">
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-[#283693] text-lg">Pregnancy #{expandedIdx + 1} Details</h4>
+                <h4 className="font-semibold text-[#1A3638] text-lg">Pregnancy #{expandedIdx + 1} Details</h4>
                 <Button variant="ghost" size="sm" onClick={() => setExpandedIdx(null)} className="text-stone-400 text-xs">
                   Done
                 </Button>
@@ -2316,7 +2316,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
 
                     {/* Baby A */}
                     <div className={isMultiples ? 'rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4' : ''}>
-                      {isMultiples && <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby A</p>}
+                      {isMultiples && <p className="text-xs font-bold text-[#1A3638] uppercase tracking-wider">Baby A</p>}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <TextField label="Name" value={p?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder="Baby's name" />
                         <SelectField label="Sex" value={p?.sex || ''} onChange={val => updatePregnancy(expandedIdx, 'sex', val)}
@@ -2333,7 +2333,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     {/* Baby B */}
                     {isMultiples && (
                       <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4">
-                        <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby B</p>
+                        <p className="text-xs font-bold text-[#1A3638] uppercase tracking-wider">Baby B</p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           <TextField label="Name" value={p?.babyBName || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBName', val)} placeholder="Baby's name" />
                           <SelectField label="Sex" value={p?.babyBSex || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBSex', val)}
@@ -2351,7 +2351,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     {/* Baby C */}
                     {isTriplets && (
                       <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4">
-                        <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby C</p>
+                        <p className="text-xs font-bold text-[#1A3638] uppercase tracking-wider">Baby C</p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           <TextField label="Name" value={p?.babyCName || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCName', val)} placeholder="Baby's name" />
                           <SelectField label="Sex" value={p?.babyCSex || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCSex', val)}
@@ -2390,7 +2390,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                 placeholder="Any other details about pregnancy, delivery, or recovery" rows={2} />
 
               <div className="flex justify-end">
-                <Button onClick={() => setExpandedIdx(null)} className="gap-2 rounded-xl" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                <Button onClick={() => setExpandedIdx(null)} className="gap-2 rounded-xl" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                   <CheckCircle2 className="w-4 h-4" /> Save & Close
                 </Button>
               </div>
@@ -2459,8 +2459,8 @@ function HealthSection({ v, u }) {
   ]
   return (
     <div className="space-y-6">
-      <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
-        <h4 className="font-medium text-[#283693] mb-3">Mental Health</h4>
+      <div className="p-4 rounded-xl bg-[#1A3638]/5 border border-[#1A3638]/10">
+        <h4 className="font-medium text-[#1A3638] mb-3">Mental Health</h4>
         <div className="space-y-4">
           <YesNoField label="Have you ever been formally or informally diagnosed with any mental health challenge (e.g. depression, anxiety, bipolar disorder, postpartum depression)?" value={v(s, 'mentalHealthDiagnosis')} onChange={u(s, 'mentalHealthDiagnosis')} />
           {v(s, 'mentalHealthDiagnosis') === 'yes' && (
@@ -2490,7 +2490,7 @@ function HealthSection({ v, u }) {
       </div>
 
       <div className="p-4 rounded-xl bg-pink-50/50 border border-pink-100">
-        <h4 className="font-medium text-[#283693] mb-3">Medications</h4>
+        <h4 className="font-medium text-[#1A3638] mb-3">Medications</h4>
         <div className="space-y-4">
           <TextAreaField label="Non-prescription medication use (such as Tylenol, Advil, allergy/cold medication, etc.)" value={v(s, 'nonPrescriptionMeds')} onChange={u(s, 'nonPrescriptionMeds')} rows={2} />
           <TextAreaField label="Prescription medications taken in the past 5 years, their purpose and dates of use" value={v(s, 'prescriptionMeds')} onChange={u(s, 'prescriptionMeds')} rows={2} />
@@ -2555,7 +2555,7 @@ function GeneralSection({ v, u, profile }) {
       <YesNoField label="Do you have a reliable vehicle to drive?" value={v(s, 'reliableVehicle')} onChange={u(s, 'reliableVehicle')} />
 
       <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">Smoking, Alcohol & Substances</h4>
+        <h4 className="font-medium text-[#1A3638] mb-3">Smoking, Alcohol & Substances</h4>
         <div className="space-y-4">
           <YesNoField label="Do you currently smoke or vape?" value={v(s, 'smokeVape')} onChange={u(s, 'smokeVape')} />
           <YesNoField label="Do you have a history of smoking in the past?" value={v(s, 'smokingHistory')} onChange={u(s, 'smokingHistory')} />
@@ -2617,7 +2617,7 @@ function EmploymentSection({ v, u, profile }) {
 
       {hasPartner && (
         <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-          <h4 className="font-medium text-[#283693] mb-3">Spouse/Partner Employment</h4>
+          <h4 className="font-medium text-[#1A3638] mb-3">Spouse/Partner Employment</h4>
           <div className="space-y-4">
             <YesNoField label="Is your spouse/partner employed?" value={v(s, 'partnerEmployed')} onChange={u(s, 'partnerEmployed')} />
             {v(s, 'partnerEmployed') === 'yes' && (
@@ -2752,8 +2752,8 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                 const j = journeys[idx] || {}
                 return (
                   <div key={idx} className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden">
-                    <div className="px-4 py-2.5 bg-[#283693]/5 border-b border-gray-200">
-                      <span className="text-sm font-semibold text-[#283693]">Surrogacy Journey #{idx + 1}</span>
+                    <div className="px-4 py-2.5 bg-[#1A3638]/5 border-b border-gray-200">
+                      <span className="text-sm font-semibold text-[#1A3638]">Surrogacy Journey #{idx + 1}</span>
                     </div>
                     <div className="p-4 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2795,7 +2795,7 @@ function HopesWishesSection({ v, u, profile }) {
   return (
     <div className="space-y-6">
       <div className="p-4 rounded-xl bg-pink-50/50 border border-pink-100">
-        <h4 className="font-medium text-[#283693] mb-3">Your Motivation</h4>
+        <h4 className="font-medium text-[#1A3638] mb-3">Your Motivation</h4>
         <div className="space-y-4">
           <TextAreaField label="Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?" value={v(s, 'reasonForSurrogacy')} onChange={u(s, 'reasonForSurrogacy')}
             placeholder="Please be specific with your answer" rows={4} />
@@ -2806,7 +2806,7 @@ function HopesWishesSection({ v, u, profile }) {
       </div>
 
       <div className="space-y-4">
-        <h4 className="font-medium text-[#283693]">Willingness</h4>
+        <h4 className="font-medium text-[#1A3638]">Willingness</h4>
         <YesNoField label="Are you willing to have 3 transfer attempts with the same IP if that is what it takes to achieve a pregnancy?" value={v(s, 'threeTransferAttempts')} onChange={u(s, 'threeTransferAttempts')} />
         <YesNoField label="Are you willing to reduce the amount of caffeine and soda you consume during the pregnancy?" value={v(s, 'reduceCaffeine')} onChange={u(s, 'reduceCaffeine')} />
         <TextAreaField label="Are you open to making other lifestyle changes at the request of the Intended Parents?" value={v(s, 'lifestyleChanges')} onChange={u(s, 'lifestyleChanges')} rows={2} placeholder="Please explain..." />
@@ -2818,7 +2818,7 @@ function HopesWishesSection({ v, u, profile }) {
       </div>
 
       <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">Ideal Match & Communication</h4>
+        <h4 className="font-medium text-[#1A3638] mb-3">Ideal Match & Communication</h4>
         <div className="space-y-4">
           <TextAreaField label="Describe ideal intended parent(s) for whom you would like to be a surrogate" value={v(s, 'idealIPs')} onChange={u(s, 'idealIPs')} rows={3} />
           <SelectField label="What is the best form of communication that you are comfortable using?" value={v(s, 'preferredCommunication')} onChange={u(s, 'preferredCommunication')}
@@ -2836,7 +2836,7 @@ function HopesWishesSection({ v, u, profile }) {
       </div>
 
       <div className="space-y-4">
-        <h4 className="font-medium text-[#283693]">Matching Preferences</h4>
+        <h4 className="font-medium text-[#1A3638]">Matching Preferences</h4>
         <YesNoField label="Are you willing to match with Intended Parents who already have children?" value={v(s, 'ipsWithChildren')} onChange={u(s, 'ipsWithChildren')} />
         <YesNoField label="Are you open to matching with LGBTQ+ individual/couples?" value={v(s, 'openLGBTQ')} onChange={u(s, 'openLGBTQ')} />
         <YesNoField label="Are you willing to match with a single Intended Parent?" value={v(s, 'openSingleIP')} onChange={u(s, 'openSingleIP')} />
@@ -2855,7 +2855,7 @@ function HopesWishesSection({ v, u, profile }) {
       </div>
 
       <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">Medical Decisions</h4>
+        <h4 className="font-medium text-[#1A3638] mb-3">Medical Decisions</h4>
         <div className="space-y-4">
           <YesNoField label="If recommended by a physician, would you be willing to undergo CVS, amniocentesis or other diagnostic testing?" value={v(s, 'cvsAmnio')} onChange={u(s, 'cvsAmnio')} />
           {v(s, 'cvsAmnio') === 'no' && (
@@ -2877,8 +2877,8 @@ function HopesWishesSection({ v, u, profile }) {
         </div>
       </div>
 
-      <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
-        <h4 className="font-medium text-[#283693] mb-3">Compensation</h4>
+      <div className="p-4 rounded-xl bg-[#1A3638]/5 border border-[#1A3638]/10">
+        <h4 className="font-medium text-[#1A3638] mb-3">Compensation</h4>
         <div className="space-y-4">
           <CurrencyField label="Surrogate base fee" value={v(s, 'desiredCompensation')} onChange={u(s, 'desiredCompensation')} />
         </div>
@@ -2954,14 +2954,14 @@ function PhotoEditor({ photo, onSave, onClose }) {
       <div className="flex items-center gap-4">
         <label className="text-xs text-gray-500 shrink-0">Zoom</label>
         <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={e => setZoom(Number(e.target.value))}
-          className="flex-1 accent-[#ed148c]" />
+          className="flex-1 accent-[#D4A853]" />
         <Button variant="outline" size="sm" onClick={() => setRotation(r => (r + 90) % 360)} className="gap-1.5">
           <RotateCw className="w-3.5 h-3.5" /> Rotate
         </Button>
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+        <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#D4A853', color: '#fff' }}>
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
         </Button>
       </div>
@@ -3090,7 +3090,7 @@ function PhotosSection() {
             {coverPhoto && (
               <div className="relative aspect-square rounded-2xl overflow-hidden border border-gray-200">
                 <img src={coverPhoto.url} alt="" className="w-full h-full object-cover" />
-                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold shadow-sm">Cover</span>
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[#D4A853] text-white text-[10px] font-bold shadow-sm">Cover</span>
               </div>
             )}
 
@@ -3101,10 +3101,10 @@ function PhotosSection() {
             ))}
 
             {/* Upload button */}
-            <label className={`aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+            <label className={`aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#D4A853]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
                 {uploading ? (
-                  <Loader2 className="w-8 h-8 mx-auto text-[#ed148c] animate-spin" />
+                  <Loader2 className="w-8 h-8 mx-auto text-[#D4A853] animate-spin" />
                 ) : (
                   <>
                     <Camera className="w-8 h-8 mx-auto text-gray-300" />

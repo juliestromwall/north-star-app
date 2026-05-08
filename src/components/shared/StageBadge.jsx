@@ -6,7 +6,7 @@ export function JourneyStatusPill({ stage, status, caseType }) {
   const stages = caseType === 'ip' ? IP_STAGES : SURROGATE_STAGES
   const stageObj = stages.find(s => s.id === stage || s.label === stage)
     || SURROGATE_STAGES.find(s => s.id === stage || s.label === stage)
-  const color = stageObj?.color || '#283693'
+  const color = stageObj?.color || '#1A3638'
   const label = status || stageObj?.label || '—'
   return (
     <span
@@ -21,7 +21,7 @@ export function JourneyStatusPill({ stage, status, caseType }) {
 export default function StageBadge({ stage, status, className = '', caseType }) {
   const stages = caseType === 'ip' ? IP_STAGES : SURROGATE_STAGES
   const stageObj = stages.find(s => s.id === stage || s.label === stage) || SURROGATE_STAGES.find(s => s.id === stage || s.label === stage)
-  const color = stageObj?.color || '#283693'
+  const color = stageObj?.color || '#1A3638'
   const label = stageObj?.label || stage || '—'
 
   return (

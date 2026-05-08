@@ -122,7 +122,7 @@ for (const c of toCreate) {
       case_id: c.journeyId,
       case_type: 'journey',
       title: `${c.gcName} is 16 Weeks Pregnant, Check on PBO`,
-      assigned_to: c.assignedTo || 'intake@abcsurrogacy.com',
+      assigned_to: c.assignedTo || 'intake@northstarsurrogacy.com',
       due_date: c.dueDate,
       priority: 'normal',
       status: 'open',

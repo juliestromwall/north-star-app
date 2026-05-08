@@ -160,12 +160,12 @@ function CaseCell({ caseHref, ipName, gcName, fallbackName, meta }) {
       <Link to={caseHref} className="hover:opacity-80 block leading-tight">
         {hasSplit ? (
           <>
-            <p className="text-[13px] font-semibold text-[#283693] truncate">{ipName}</p>
+            <p className="text-[13px] font-semibold text-[#1A3638] truncate">{ipName}</p>
             <p className="text-[10px] text-stone-400 leading-none">+</p>
-            <p className="text-[13px] font-semibold text-[#ed148c] truncate">{gcName}</p>
+            <p className="text-[13px] font-semibold text-[#D4A853] truncate">{gcName}</p>
           </>
         ) : (
-          <p className="text-[13px] font-semibold text-[#283693] truncate">{fallbackName}</p>
+          <p className="text-[13px] font-semibold text-[#1A3638] truncate">{fallbackName}</p>
         )}
       </Link>
       {meta && <p className="text-[10px] text-stone-400 mt-1">{meta}</p>}
@@ -366,14 +366,14 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => { setReconcileId(null); setShowTaskForm(false); setTaskNote('') }}>Cancel</Button>
               {showTaskForm ? (
-                <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} disabled={creatingTask} onClick={async () => {
+                <Button size="sm" className="gap-1" style={{ backgroundColor: '#1A3638' }} disabled={creatingTask} onClick={async () => {
                   setCreatingTask(true)
                   try {
                     await createCaseTask({
                       case_id: reconcileExp.journey_id,
                       case_type: 'journey',
                       title: `Upload receipt — ${formatCurrency(reconcileExp.amount)} to ${reconcileExp.paid_to || 'vendor'}`,
-                      assigned_to: reconcileJourney?.assignedTo || 'julie@abcsurrogacy.com',
+                      assigned_to: reconcileJourney?.assignedTo || 'julie@northstarsurrogacy.com',
                       due_date: new Date().toISOString().split('T')[0],
                       priority: 'high',
                       status: 'open',
@@ -1067,7 +1067,7 @@ export default function ExpensesPage() {
       <Dialog open={!!emailViewId} onOpenChange={open => { if (!open) { setEmailViewId(null); setEmailViewData(null) } }}>
         <DialogContent className="!max-w-[90vw] w-[90vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Mail className="size-5 text-[#283693]" /> Linked Email</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Mail className="size-5 text-[#1A3638]" /> Linked Email</DialogTitle>
           </DialogHeader>
           {emailViewLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="size-6 animate-spin text-stone-400" /></div>

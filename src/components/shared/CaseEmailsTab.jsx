@@ -417,10 +417,10 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           {/* View mode tabs */}
           {contactEmails.length > 0 && connected && (
             <div className="flex items-center border rounded-lg overflow-hidden">
-              <button onClick={() => setViewMode('logged')} className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'logged' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+              <button onClick={() => setViewMode('logged')} className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'logged' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
                 Logged ({emails.length})
               </button>
-              <button onClick={() => setViewMode('inbox')} className={`px-3 py-1 text-xs font-medium transition-colors relative ${viewMode === 'inbox' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+              <button onClick={() => setViewMode('inbox')} className={`px-3 py-1 text-xs font-medium transition-colors relative ${viewMode === 'inbox' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
                 Last 30 Days ({inboxEmails.length})
                 {unreadInboxCount > 0 && viewMode !== 'inbox' && (
                   <span className="absolute -top-1 -right-1 flex size-2">
@@ -450,7 +450,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       </div>
       {viewMode === 'logged' && usedTags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          <button onClick={() => setTagFilter('')} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${!tagFilter ? 'bg-[#283693] text-white border-transparent' : 'bg-white text-stone-500 border-stone-200'}`}>All</button>
+          <button onClick={() => setTagFilter('')} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${!tagFilter ? 'bg-[#1A3638] text-white border-transparent' : 'bg-white text-stone-500 border-stone-200'}`}>All</button>
           {usedTags.map(t => {
             const tagObj = EMAIL_TAGS.find(et => et.value === t)
             return (
@@ -482,7 +482,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <button onClick={() => handleViewInboxEmail(latest)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">
+                            <button onClick={() => handleViewInboxEmail(latest)} className="text-sm font-medium truncate text-left text-[#1A3638] hover:underline cursor-pointer">
                               {latest.subject || '(no subject)'}
                             </button>
                             {thread.count > 1 && (
@@ -497,7 +497,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                         <p className="text-xs text-muted-foreground truncate">{thread.count > 1 ? senders.slice(0, 3).join(', ') + (senders.length > 3 ? ` +${senders.length - 3}` : '') : `From: ${senders[0] || ''}`}</p>
                         {latest.snippet && <p className="text-xs text-muted-foreground truncate mt-0.5">{latest.snippet}</p>}
                       </div>
-                      <button onClick={() => openLogDialog(latest)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log latest message in this thread to this case">
+                      <button onClick={() => openLogDialog(latest)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#1A3638] text-white hover:bg-[#1A3638]/90" title="Log latest message in this thread to this case">
                         <LinkIcon className="size-3 inline mr-1" />Log
                       </button>
                     </div>
@@ -521,7 +521,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <button onClick={() => handleViewFull(email)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">{email.subject || '(no subject)'}</button>
+                      <button onClick={() => handleViewFull(email)} className="text-sm font-medium truncate text-left text-[#1A3638] hover:underline cursor-pointer">{email.subject || '(no subject)'}</button>
                       {tagObj ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditTagEmail(email) }}
@@ -616,7 +616,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                         <span className="text-xs font-medium truncate flex-1">{att.filename}</span>
                         <span className="text-[10px] text-stone-400 shrink-0">{fileSizeLabel(att.size)}</span>
                         <button onClick={() => handlePreviewAttachment(att)} disabled={downloading === att.attachmentId}
-                          className="text-[10px] font-semibold text-[#283693] hover:underline shrink-0">
+                          className="text-[10px] font-semibold text-[#1A3638] hover:underline shrink-0">
                           {downloading === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : 'Preview'}
                         </button>
                         <button onClick={() => { setSaveAttDialog(att); setSaveCategory('other') }}
@@ -680,7 +680,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                         <Forward className="size-3" /> Forward
                       </Button>
                       {selectedEmail?._fromInbox && (
-                        <Button size="sm" className="gap-1.5 text-xs ml-auto" style={{ backgroundColor: '#283693' }}
+                        <Button size="sm" className="gap-1.5 text-xs ml-auto" style={{ backgroundColor: '#1A3638' }}
                           onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
                           <LinkIcon className="size-3" /> Log to Case
                         </Button>
@@ -712,13 +712,13 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               <div className="grid grid-cols-2 gap-1.5">
                 {DOC_FOLDERS.map(f => (
                   <button key={f.id} onClick={() => setSaveCategory(f.id)}
-                    className={`text-xs text-left px-3 py-2 rounded-lg border transition-all ${saveCategory === f.id ? 'border-[#283693] bg-[#283693]/5 text-[#283693] font-semibold' : 'border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+                    className={`text-xs text-left px-3 py-2 rounded-lg border transition-all ${saveCategory === f.id ? 'border-[#1A3638] bg-[#1A3638]/5 text-[#1A3638] font-semibold' : 'border-stone-200 text-stone-600 hover:border-stone-300'}`}>
                     {f.label}
                   </button>
                 ))}
               </div>
             </div>
-            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={savingAtt === saveAttDialog?.attachmentId}
+            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#1A3638' }} disabled={savingAtt === saveAttDialog?.attachmentId}
               onClick={() => saveAttDialog && handleSaveAttToCase(saveAttDialog, saveCategory)}>
               {savingAtt === saveAttDialog?.attachmentId ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
               {savingAtt ? 'Saving...' : 'Save to Documents'}
@@ -755,7 +755,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 <span className="text-sm text-stone-700 flex items-center gap-1.5"><Lock className="size-3.5 text-purple-600" /> Mark as Private</span>
               </label>
             )}
-            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={logging || !logTag} onClick={handleConfirmLog}>
+            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#1A3638' }} disabled={logging || !logTag} onClick={handleConfirmLog}>
               {logging ? <Loader2 className="size-3 animate-spin" /> : <LinkIcon className="size-3" />}
               {logging ? 'Logging...' : !logTag ? 'Select a tag to continue' : 'Log to Case'}
             </Button>
@@ -800,7 +800,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FileText className="size-5 text-[#283693]" /> Send Email Template</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><FileText className="size-5 text-[#1A3638]" /> Send Email Template</DialogTitle>
           </DialogHeader>
           {!selectedTemplate ? (
             <div className="space-y-2">
@@ -830,7 +830,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" size="sm" onClick={() => { setSelectedTemplate(null); setTemplateOpen(false) }}>Cancel</Button>
-                  <Button size="sm" className="gap-1 text-white" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                  <Button size="sm" className="gap-1 text-white" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
                     onClick={() => {
                       openDraft({ to: caseEmail, subject: merged.subject, body: merged.body, caseId, caseType, userId: currentUser?.id })
                       setSelectedTemplate(null)

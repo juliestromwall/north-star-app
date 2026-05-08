@@ -92,7 +92,7 @@ function YesNoField({ label, value, onChange }) {
           onClick={() => onChange('yes')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
             value === 'yes'
-              ? 'bg-[#283693] text-white shadow-md'
+              ? 'bg-[#1A3638] text-white shadow-md'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           }`}
         >
@@ -103,7 +103,7 @@ function YesNoField({ label, value, onChange }) {
           onClick={() => onChange('no')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
             value === 'no'
-              ? 'bg-[#283693] text-white shadow-md'
+              ? 'bg-[#1A3638] text-white shadow-md'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           }`}
         >
@@ -296,7 +296,7 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
   }
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#1A3638]">{label}</label>
       <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
       <div className="flex flex-wrap gap-2">
         {options.map(opt => {
@@ -305,7 +305,7 @@ function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
           return (
             <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
-                isOn ? 'bg-[#283693] text-white border-[#283693]' : disabled ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed' : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+                isOn ? 'bg-[#1A3638] text-white border-[#1A3638]' : disabled ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed' : 'bg-white text-stone-600 border-stone-300 hover:border-[#1A3638] hover:text-[#1A3638]'
               }`}>
               {opt}
             </button>
@@ -348,10 +348,10 @@ function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isAppro
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
-                  <Icon className="size-5 text-[#283693]" />
+                <div className="size-10 rounded-xl bg-[#1A3638]/10 flex items-center justify-center">
+                  <Icon className="size-5 text-[#1A3638]" />
                 </div>
-                <CardTitle className="text-base text-[#283693]">{section.label}</CardTitle>
+                <CardTitle className="text-base text-[#1A3638]">{section.label}</CardTitle>
               </div>
               <ChevronDown className={`size-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
             </div>
@@ -439,10 +439,10 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
-                  <Icon className="size-5 text-[#283693]" />
+                <div className="size-10 rounded-xl bg-[#1A3638]/10 flex items-center justify-center">
+                  <Icon className="size-5 text-[#1A3638]" />
                 </div>
-                <CardTitle className="text-base text-[#283693]">{section.label}</CardTitle>
+                <CardTitle className="text-base text-[#1A3638]">{section.label}</CardTitle>
               </div>
               <ChevronDown className={`size-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
             </div>
@@ -603,9 +603,9 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
           </div>
         </div>
       ) : (
-        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="text-center">
-            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#1A3638] animate-spin" /> : (
               <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
             )}
           </div>
@@ -636,7 +636,7 @@ function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Camera className="w-4 h-4 text-[#283693]" /> Profile Photos
+          <Camera className="w-4 h-4 text-[#1A3638]" /> Profile Photos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -765,9 +765,9 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
             {photos.map(photo => (
               <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
             ))}
-            <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+            <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#1A3638]/50 hover:bg-[#1A3638]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
-                {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+                {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#1A3638] animate-spin" /> : (
                   <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
                 )}
               </div>
@@ -926,8 +926,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
         }
         body { background: #fff; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         .print-container { max-width: 100%; margin: 0; padding: 0; }
-        .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-        .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #1A3638; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+        .print-bar button { background: white; color: #1A3638; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
       </style></head><body>
       <div class="print-bar">
         <strong>${name}'s Intended Parent Profile</strong>
@@ -1021,10 +1021,10 @@ export default function IPProfileTab({ ip, onUpdate }) {
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
                 </div>
               </div>
-              <span className="text-sm font-bold text-[#283693]">{percent}%</span>
+              <span className="text-sm font-bold text-[#1A3638]">{percent}%</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {SECTIONS.map(sec => {

@@ -88,15 +88,15 @@ function InlineSignaturePad({ value, onChange, signerName }) {
 
   return (
     <span className="block align-middle my-2 w-full max-w-[340px]">
-      <span className="border-2 border-dashed border-[#283693]/30 rounded-xl p-4 bg-[#283693]/5 block w-full">
+      <span className="border-2 border-dashed border-[#1A3638]/30 rounded-xl p-4 bg-[#1A3638]/5 block w-full">
         <span className="flex gap-2 mb-3">
-          <button onClick={() => { setMode('typed'); onChange(value?.name ? { type: 'typed', name: value.name } : null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
-          <button onClick={() => { setMode('drawn'); onChange(null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
+          <button onClick={() => { setMode('typed'); onChange(value?.name ? { type: 'typed', name: value.name } : null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
+          <button onClick={() => { setMode('drawn'); onChange(null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
         </span>
         {mode === 'typed' ? (
           <span className="block">
             <input type="text" value={value?.name || ''} onChange={e => onChange({ type: 'typed', name: e.target.value, image: null })}
-              placeholder="Type your full legal name" className="w-full text-lg border-b-2 border-[#283693]/30 bg-transparent outline-none pb-2 font-serif italic placeholder:not-italic placeholder:text-stone-300 placeholder:font-sans placeholder:text-sm" />
+              placeholder="Type your full legal name" className="w-full text-lg border-b-2 border-[#1A3638]/30 bg-transparent outline-none pb-2 font-serif italic placeholder:not-italic placeholder:text-stone-300 placeholder:font-sans placeholder:text-sm" />
             {value?.name && (
               <span className="block text-2xl font-serif italic text-[#1a1a2e] mt-3 text-center py-2">{value.name}</span>
             )}
@@ -184,8 +184,8 @@ function InitialsPad({ value, onChange, optional }) {
     <span className="inline-block align-middle my-1">
       <span className={`border-2 border-dashed rounded-lg p-2 inline-block ${optional ? 'border-stone-200 bg-stone-50/50' : 'border-purple-300 bg-purple-50/50'}`} style={{ minWidth: 120 }}>
         <span className="flex gap-1 mb-1">
-          <button onClick={() => setMode('typed')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Type</button>
-          <button onClick={() => setMode('drawn')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Draw</button>
+          <button onClick={() => setMode('typed')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Type</button>
+          <button onClick={() => setMode('drawn')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#1A3638] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Draw</button>
         </span>
         {mode === 'typed' ? (
           <input type="text" value={typeof value === 'string' && !value.startsWith('data:') ? value : ''} onChange={e => onChange(e.target.value)}
@@ -261,7 +261,7 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
         .signing-doc li { margin: 0.3em 0; }
         .signing-doc td, .signing-doc th { border: 1px solid #ddd; padding: 6px 10px; }
         .signing-doc img { max-width: 100%; height: auto; }
-        .signing-doc a { color: #283693; }
+        .signing-doc a { color: #1A3638; }
         @media (max-width: 640px) {
           .signing-doc {
             font-size: 13px;
@@ -345,7 +345,7 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
                 placeholder="Optional" className="inline-block w-[180px] text-sm border-b-2 border-stone-200 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
             case 'checkbox':
               return <label key={i} className="inline-flex items-center gap-1.5 align-middle mx-0.5 cursor-pointer">
-                <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#283693]" />
+                <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#1A3638]" />
               </label>
             case 'text':
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
@@ -358,7 +358,7 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
               }
               if (ft.startsWith('checkbox')) {
                 return <label key={i} className="inline-flex items-center gap-1.5 align-middle mx-0.5 cursor-pointer">
-                  <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#283693]" />
+                  <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#1A3638]" />
                 </label>
               }
               if (ft.startsWith('initials') || ft.startsWith('optionalinitials')) {
@@ -653,7 +653,7 @@ export default function SignDocumentPage() {
   // ── Render ────────────────────────────────────────────
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-stone-50"><Loader2 className="size-8 animate-spin text-[#283693]" /></div>
+    return <div className="min-h-screen flex items-center justify-center bg-stone-50"><Loader2 className="size-8 animate-spin text-[#1A3638]" /></div>
   }
 
   if (!doc) {
@@ -708,7 +708,7 @@ export default function SignDocumentPage() {
       <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
         <Card className="max-w-md rounded-2xl"><CardContent className="py-8 space-y-6">
           <div className="text-center">
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 mx-auto mb-4" />
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 mx-auto mb-4" />
             <h2 className="text-xl font-bold">{signerFacingTitle}</h2>
             <p className="text-sm text-stone-500 mt-1">Sent {doc.sent_at ? new Date(doc.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
           </div>
@@ -717,7 +717,7 @@ export default function SignDocumentPage() {
             <div className="flex gap-2">
               <Input type="email" value={signerEmail} onChange={e => setSignerEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleVerify()} placeholder="Your email address" className="flex-1" />
-              <Button onClick={handleVerify} style={{ backgroundColor: '#283693', color: '#fff' }}><Mail className="size-4" /> Verify</Button>
+              <Button onClick={handleVerify} style={{ backgroundColor: '#1A3638', color: '#fff' }}><Mail className="size-4" /> Verify</Button>
             </div>
           </div>
           <div className="pt-2">
@@ -743,8 +743,8 @@ export default function SignDocumentPage() {
       <div className="max-w-4xl mx-auto space-y-6 py-8">
         {/* Header */}
         <div className="text-center">
-          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 mx-auto mb-2" />
-          <h1 className="text-xl font-bold text-[#283693]">{signerFacingTitle}</h1>
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 mx-auto mb-2" />
+          <h1 className="text-xl font-bold text-[#1A3638]">{signerFacingTitle}</h1>
           <p className="text-xs text-stone-400 mt-1">
             Signing as: <span className="font-semibold">{mySigner.name}</span> ({mySigner.role})
           </p>
@@ -755,7 +755,7 @@ export default function SignDocumentPage() {
           {(doc.signers || []).map((s, i) => (
             <div key={i} className="flex items-center gap-1.5 text-xs">
               {s.status === 'signed' ? <CheckCircle2 className="size-3.5 text-emerald-500" /> : s.email === mySigner.email ? <Clock className="size-3.5 text-amber-500" /> : <Clock className="size-3.5 text-stone-300" />}
-              <span className={s.email === mySigner.email ? 'font-semibold text-[#283693]' : 'text-stone-500'}>{s.name}</span>
+              <span className={s.email === mySigner.email ? 'font-semibold text-[#1A3638]' : 'text-stone-500'}>{s.name}</span>
             </div>
           ))}
         </div>
@@ -768,7 +768,7 @@ export default function SignDocumentPage() {
                 Wide agreements can scroll sideways on mobile.
               </div>
             {loadingHtml ? (
-              <div className="text-center py-12"><Loader2 className="size-6 animate-spin text-[#283693] mx-auto" /></div>
+              <div className="text-center py-12"><Loader2 className="size-6 animate-spin text-[#1A3638] mx-auto" /></div>
             ) : docHtml ? (
               <DocumentWithFields
                 html={docHtml}
@@ -816,7 +816,7 @@ export default function SignDocumentPage() {
               <span>Protected under HIPAA. An audit trail records all signing activity.</span>
             </div>
             <Button onClick={handleSign} disabled={signing || !agreed || (!signatureValue?.name && !signatureValue?.image)}
-              className="w-full gap-1.5 py-3 text-base" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              className="w-full gap-1.5 py-3 text-base" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
               {signing ? <Loader2 className="size-5 animate-spin" /> : null}
               {signing ? 'Signing...' : 'Apply Signature'}
             </Button>

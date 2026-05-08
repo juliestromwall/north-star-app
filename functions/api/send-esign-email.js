@@ -16,7 +16,7 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env, request } = context
   const resendKey = env.RESEND_API_KEY
-  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -56,14 +56,14 @@ export async function onRequestPost(context) {
     : ''
 
   // Resolve the From + Reply-To. If the sending admin is on the verified
-  // domain (@abcsurrogacy.com), send directly as them — otherwise fall back
+  // domain (@northstarsurrogacy.com), send directly as them — otherwise fall back
   // to the default noreply and use Reply-To so replies still reach the admin.
   const cleanSenderEmail = (senderEmail || '').trim().toLowerCase()
-  const senderOnABCDomain = cleanSenderEmail.endsWith('@abcsurrogacy.com')
+  const senderOnABCDomain = cleanSenderEmail.endsWith('@northstarsurrogacy.com')
   const fromAddress = senderOnABCDomain ? cleanSenderEmail : fromEmail
   const fromDisplay = senderName
-    ? `${senderName} (ABC Surrogacy)`
-    : 'ABC Surrogacy'
+    ? `${senderName} (North Star Surrogacy)`
+    : 'North Star Surrogacy'
   const replyToAddress = cleanSenderEmail || null
 
   const htmlBody = `<!DOCTYPE html>
@@ -78,10 +78,10 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 160px;" />
       </div>
       <div style="padding: 0 32px 32px;">
-        <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
+        <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
           Signature Required
         </h1>
 
@@ -91,26 +91,26 @@ export async function onRequestPost(context) {
           </p>
           <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
             ${isBatch
-              ? `ABC Surrogacy has sent you the following documents that require your signature. Click the button below to review and sign all of them in one session.`
-              : `ABC Surrogacy has sent you a <strong>${primaryTitle}</strong> that requires your signature. Please click the button below to review and sign.`}
+              ? `North Star Surrogacy has sent you the following documents that require your signature. Click the button below to review and sign all of them in one session.`
+              : `North Star Surrogacy has sent you a <strong>${primaryTitle}</strong> that requires your signature. Please click the button below to review and sign.`}
           </p>
           ${formListHtml}
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${formUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="${formUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             ${isBatch ? `Review & Sign (${formTitles.length})` : 'Review & Sign'}
           </a>
         </div>
 
         <p style="font-size: 13px; color: #78716c; line-height: 1.6; margin: 20px 0 0; text-align: center;">
           If you have any questions, please contact us at
-          <a href="mailto:info@abcsurrogacy.com" style="color: #283693; font-weight: 600;">info@abcsurrogacy.com</a>
+          <a href="mailto:info@northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">info@northstarsurrogacy.com</a>
         </p>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
         </p>
       </div>
     </div>
@@ -122,28 +122,28 @@ export async function onRequestPost(context) {
     const textBody = isBatch
       ? `Hi ${firstName},
 
-ABC Surrogacy has sent you ${formTitles.length} documents that require your signature:
+North Star Surrogacy has sent you ${formTitles.length} documents that require your signature:
 
 ${formListText}Review and sign all: ${formUrl}
 
-If you have any questions, reply to this email or contact us at info@abcsurrogacy.com.
+If you have any questions, reply to this email or contact us at info@northstarsurrogacy.com.
 
-— Abundant Beginnings Company, LLC
-abcsurrogacy.com`
+— North Star Surrogacy, LLC
+northstarsurrogacy.com`
       : `Hi ${firstName},
 
-ABC Surrogacy has sent you a ${primaryTitle} that requires your signature.
+North Star Surrogacy has sent you a ${primaryTitle} that requires your signature.
 
 Review and sign: ${formUrl}
 
-If you have any questions, reply to this email or contact us at info@abcsurrogacy.com.
+If you have any questions, reply to this email or contact us at info@northstarsurrogacy.com.
 
-— Abundant Beginnings Company, LLC
-abcsurrogacy.com`
+— North Star Surrogacy, LLC
+northstarsurrogacy.com`
 
     const subject = isBatch
-      ? `ABC Surrogacy — Please sign: ${formTitles.length} documents`
-      : `ABC Surrogacy — Please sign: ${primaryTitle}`
+      ? `North Star Surrogacy — Please sign: ${formTitles.length} documents`
+      : `North Star Surrogacy — Please sign: ${primaryTitle}`
 
     const payload = {
       from: `${fromDisplay} <${fromAddress}>`,

@@ -251,7 +251,7 @@ export default function IPDetailPage() {
                     setIp(prev => ({ ...prev, assignedTo: email }))
                   }}
                 >
-                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]">
+                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#1A3638]">
                     <SelectValueUI />
                   </SelectTriggerUI>
                   <SelectContentUI>
@@ -286,7 +286,7 @@ export default function IPDetailPage() {
                       <div className="absolute z-20 top-full right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border py-1.5">
                         <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
                           onClick={() => { openDraft({ to: allEmails, userId: currentUser.id, caseId: ip.id, caseType: 'ip' }); setEmailMenuOpen(false) }}>
-                          <Mail className="size-3.5 text-[#283693]" /> {emailLabel}
+                          <Mail className="size-3.5 text-[#1A3638]" /> {emailLabel}
                         </button>
                         <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
                           onClick={() => { navigator.clipboard.writeText(allEmails); setEmailMenuOpen(false) }}>
@@ -781,7 +781,7 @@ export default function IPDetailPage() {
       <Dialog open={sillyGooseOpen} onOpenChange={setSillyGooseOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-center text-[#283693]">Silly goose! 🪿</DialogTitle>
+            <DialogTitle className="text-center text-[#1A3638]">Silly goose! 🪿</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 text-center">
             <img
@@ -796,7 +796,7 @@ export default function IPDetailPage() {
               Use the "Assigned To" dropdown on this case, then try the invite again.
             </p>
             <div className="flex justify-center pt-1">
-              <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setSillyGooseOpen(false)}>
+              <Button size="sm" style={{ backgroundColor: '#1A3638', color: '#fff' }} onClick={() => setSillyGooseOpen(false)}>
                 Got it
               </Button>
             </div>
@@ -809,7 +809,7 @@ export default function IPDetailPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Send className="size-5 text-[#283693]" />
+              <Send className="size-5 text-[#1A3638]" />
               Release application to {(() => {
                 const a = ip?.answers || {}
                 const n1 = a.primaryFirstName || ''
@@ -826,7 +826,7 @@ export default function IPDetailPage() {
               <Button variant="outline" size="sm" onClick={() => setShowReleaseModal(false)} disabled={releasingApp}>Cancel</Button>
               <Button
                 size="sm"
-                style={{ backgroundColor: '#283693', color: '#fff' }}
+                style={{ backgroundColor: '#1A3638', color: '#fff' }}
                 className="gap-1.5"
                 disabled={releasingApp}
                 onClick={async () => {

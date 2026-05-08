@@ -20,7 +20,7 @@ function ProgressRing({ percent, size = 72 }) {
   return (
     <svg width={size} height={size} className="shrink-0">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e7e5e4" strokeWidth={5} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#ed148c" strokeWidth={5}
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#D4A853" strokeWidth={5}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         transform={`rotate(-90 ${size/2} ${size/2})`}
         className="transition-all duration-700"
@@ -48,7 +48,7 @@ function IPProfileProgressCard({ caseData }) {
     ? { bg: 'bg-emerald-500', border: 'border-emerald-100', btn: '#16a34a' }
     : isSubmitted
     ? { bg: 'bg-amber-500', border: 'border-amber-100', btn: '#d97706' }
-    : { bg: 'bg-[#ed148c]', border: 'border-stone-100', btn: '#ed148c' }
+    : { bg: 'bg-[#D4A853]', border: 'border-stone-100', btn: '#D4A853' }
 
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-white border ${accent.border} shadow-sm hover:shadow-md transition-all`}>
@@ -82,7 +82,7 @@ function IPProfileProgressCard({ caseData }) {
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
               </div>
               <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
             </div>
@@ -106,12 +106,12 @@ function TaskCard({ task, onStatusChange }) {
 
   return (
     <div className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-      isPending ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-200 bg-white'
+      isPending ? 'border-[#1A3638]/30 bg-[#1A3638]/5' : 'border-stone-200 bg-white'
     }`}>
       <div className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${
-        isPending ? 'bg-[#283693]/10' : 'bg-stone-100'
+        isPending ? 'bg-[#1A3638]/10' : 'bg-stone-100'
       }`}>
-        <ClipboardList className={`w-5 h-5 ${isPending ? 'text-[#283693]' : 'text-stone-500'}`} />
+        <ClipboardList className={`w-5 h-5 ${isPending ? 'text-[#1A3638]' : 'text-stone-500'}`} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-stone-800 text-sm">{task.title}</p>
@@ -123,13 +123,13 @@ function TaskCard({ task, onStatusChange }) {
         )}
       </div>
       {isPending && (
-        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#283693', color: '#fff' }}
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#1A3638', color: '#fff' }}
           onClick={() => onStatusChange(task.id, 'in_progress')}>
           Start <ArrowRight className="w-3.5 h-3.5" />
         </Button>
       )}
       {isInProgress && (
-        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#283693', color: '#fff' }}
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#1A3638', color: '#fff' }}
           onClick={() => onStatusChange(task.id, 'completed')}>
           <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
         </Button>
@@ -285,26 +285,26 @@ export default function IPDashboard() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#283693]">Welcome, {firstName}!</h1>
+        <h1 className="text-2xl font-bold text-[#1A3638]">Welcome, {firstName}!</h1>
       </div>
 
       {/* ── Complete Application card (when admin has released the app) ── */}
       {caseData?.answers?._applicationAvailable && (
         <Link to="/my-application" className="block">
           <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all">
-            <div className={`h-1 ${caseData?.answers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#283693]'}`} />
+            <div className={`h-1 ${caseData?.answers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#1A3638]'}`} />
             <div className="p-6">
               <div className="flex items-center gap-5">
                 <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${
-                  caseData?.answers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#283693]/8'
+                  caseData?.answers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#1A3638]/8'
                 }`}>
                   {caseData?.answers?._applicationSubmitted
                     ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                    : <ClipboardList className="w-6 h-6 text-[#283693]" />
+                    : <ClipboardList className="w-6 h-6 text-[#1A3638]" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-base ${caseData?.answers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#283693]'}`}>
+                  <p className={`font-semibold text-base ${caseData?.answers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#1A3638]'}`}>
                     {caseData?.answers?._applicationSubmitted ? 'Application Submitted' : 'You can now complete the remaining Application'}
                   </p>
                   <p className="text-sm text-stone-500 mt-1 leading-relaxed">
@@ -315,7 +315,7 @@ export default function IPDashboard() {
                   </p>
                 </div>
                 {!caseData?.answers?._applicationSubmitted && (
-                  <Button className="rounded-xl gap-1.5 shrink-0 shadow-sm" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                  <Button className="rounded-xl gap-1.5 shrink-0 shadow-sm" style={{ backgroundColor: '#1A3638', color: '#fff' }}>
                     Complete Application <ArrowRight className="w-4 h-4" />
                   </Button>
                 )}
@@ -331,14 +331,14 @@ export default function IPDashboard() {
       {/* ── Welcome intro card (pre-submit) ── */}
       {!caseData?.answers?._profileSubmitted && (
         <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
-          <div className="h-1 bg-gradient-to-r from-[#283693] to-[#ed148c]" />
+          <div className="h-1 bg-gradient-to-r from-[#1A3638] to-[#D4A853]" />
           <div className="p-6">
             <div className="flex items-start gap-5">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#283693]/8 shrink-0">
-                <Sparkles className="w-6 h-6 text-[#283693]" />
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#1A3638]/8 shrink-0">
+                <Sparkles className="w-6 h-6 text-[#1A3638]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[#283693] text-base">Welcome to Your User Portal</p>
+                <p className="font-semibold text-[#1A3638] text-base">Welcome to Your User Portal</p>
                 <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
                   We would love if you could complete your Intended Parent Profile. This is the profile that may be shared with prospective surrogates. Please be sure to include photos of you, and some photos with your family, loved ones or pets.
                 </p>
@@ -357,8 +357,8 @@ export default function IPDashboard() {
 
       {/* Action banner — pending tasks */}
       {pendingCount > 0 && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#283693]/10 border border-[#283693]/20">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#283693] text-white text-sm font-bold shrink-0">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#1A3638]/10 border border-[#1A3638]/20">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#1A3638] text-white text-sm font-bold shrink-0">
             {pendingCount}
           </div>
           <p className="text-sm font-medium text-stone-800">
@@ -373,8 +373,8 @@ export default function IPDashboard() {
       {false && intakeAnswers && (
         <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleIntakeClick}>
           <CardContent className="py-4 flex items-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#283693]/10 shrink-0">
-              <ClipboardList className="w-5 h-5 text-[#283693]" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#1A3638]/10 shrink-0">
+              <ClipboardList className="w-5 h-5 text-[#1A3638]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-stone-700 text-sm">My Intake Answers</p>
@@ -412,7 +412,7 @@ export default function IPDashboard() {
             <CardTitle className="flex items-center gap-2 text-base">
               To Do
               {pendingCount > 0 && (
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#283693] text-white text-[11px] font-bold">{pendingCount}</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#1A3638] text-white text-[11px] font-bold">{pendingCount}</span>
               )}
             </CardTitle>
             <CardDescription>Items that need your attention</CardDescription>
@@ -462,8 +462,8 @@ export default function IPDashboard() {
           <div className="text-center">
             <p className="text-sm text-stone-600">
               Questions? Reach us at{' '}
-              <a href="mailto:info@abcsurrogacy.com" className="text-[#283693] underline font-medium">
-                info@abcsurrogacy.com
+              <a href="mailto:info@northstarsurrogacy.com" className="text-[#1A3638] underline font-medium">
+                info@northstarsurrogacy.com
               </a>
             </p>
           </div>
