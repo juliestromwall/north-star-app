@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Clock, Lock, Shield } from 'lucide-react'
+import { ArrowRight, Heart, Lock, Shield, Star } from 'lucide-react'
 import { useIframeHeightReporter } from '@/lib/embed'
 
 function parseDevice(ua) {
@@ -8,7 +8,6 @@ function parseDevice(ua) {
   if (/mobile|iphone|android.*mobile/i.test(ua)) return 'Mobile'
   return 'Desktop'
 }
-
 function parseBrowser(ua) {
   if (/edg\//i.test(ua)) return 'Edge'
   if (/chrome/i.test(ua) && !/edg/i.test(ua)) return 'Chrome'
@@ -17,7 +16,6 @@ function parseBrowser(ua) {
   if (/opera|opr/i.test(ua)) return 'Opera'
   return 'Other'
 }
-
 function parseOS(ua) {
   if (/windows/i.test(ua)) return 'Windows'
   if (/mac os/i.test(ua)) return 'macOS'
@@ -26,7 +24,6 @@ function parseOS(ua) {
   if (/linux/i.test(ua)) return 'Linux'
   return 'Other'
 }
-
 function captureTrackingParams(searchParams) {
   const fbclid = searchParams.get('fbclid')
   const ttclid = searchParams.get('ttclid')
@@ -40,124 +37,103 @@ function captureTrackingParams(searchParams) {
     utm_term: searchParams.get('utm_term'),
     fbclid: fbclid || null,
     ttclid: ttclid || null,
-    resolvedSource:
-      utm_source ||
-      (fbclid ? 'facebook' : null) ||
-      (ttclid ? 'tiktok' : null) ||
-      'direct',
-    // Enhanced tracking
-    device: parseDevice(ua),
-    browser: parseBrowser(ua),
-    os: parseOS(ua),
+    resolvedSource: utm_source || (fbclid ? 'facebook' : null) || (ttclid ? 'tiktok' : null) || 'direct',
+    device: parseDevice(ua), browser: parseBrowser(ua), os: parseOS(ua),
     language: navigator.language || null,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
-    screenWidth: window.screen.width,
-    screenHeight: window.screen.height,
-    viewportWidth: window.innerWidth,
-    viewportHeight: window.innerHeight,
-    landingUrl: window.location.href,
-    landedAt: new Date().toISOString(),
+    screenWidth: window.screen.width, screenHeight: window.screen.height,
+    viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
+    landingUrl: window.location.href, landedAt: new Date().toISOString(),
   }
   sessionStorage.setItem('intakeTrackingData', JSON.stringify(tracking))
 }
-
-const STATS = [
-  { stat: '220+', label: 'Babies born' },
-  { stat: '20+', label: 'Years of experience' },
-  { stat: '😍', label: 'Client satisfaction' },
-]
 
 export default function IntakeLandingPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   useIframeHeightReporter()
 
-  useEffect(() => {
-    captureTrackingParams(searchParams)
-  }, [searchParams])
+  useEffect(() => { captureTrackingParams(searchParams) }, [searchParams])
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#faf8f5' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#1F3A3C' }}>
       {/* Header */}
-      <header className="flex items-center justify-center px-6 py-5 bg-white border-b border-stone-100">
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+      <header className="flex items-center justify-center px-6 py-6 border-b border-white/10">
+        <img src="/north-star-logo-white.png" alt="North Star Surrogacy" className="h-20 w-auto" />
       </header>
 
       {/* Hero */}
-      <div className="max-w-2xl mx-auto px-5 pt-14 pb-10 text-center">
-        <button
-          type="button"
-          onClick={() => navigate('/apply/surrogate')}
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2 mb-6 text-sm font-semibold shadow-sm cursor-pointer transition-transform hover:scale-[1.03] hover:shadow-md active:scale-[0.98]"
-          style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)', color: '#fff' }}>
-          <Clock className="w-4 h-4" />
-          See if you qualify in less than 5 minutes.
-        </button>
-        <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight mb-4">
-          <span style={{ color: '#1A3638' }}>Could surrogacy be</span>{' '}
-          <span style={{ color: '#D4A853' }}>your next chapter?</span>
+      <div className="max-w-2xl mx-auto px-5 pt-16 pb-12 text-center">
+        <span className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6 text-[11px] font-semibold tracking-[0.25em] uppercase"
+          style={{ backgroundColor: 'rgba(212, 168, 83, 0.18)', color: '#D4A853', border: '1px solid rgba(212, 168, 83, 0.35)' }}>
+          <Star className="w-3.5 h-3.5" /> Begin Your Journey
+        </span>
+        <h1 className="text-4xl sm:text-5xl text-white leading-[1.15] font-light tracking-tight"
+          style={{ fontFamily: "'Libre Franklin', sans-serif" }}>
+          Ready to get started?
         </h1>
-        <p className="text-stone-500 text-lg leading-relaxed max-w-lg mx-auto">
-          Take our quick fit quiz and find out whether you qualify to carry for a family with North Star Surrogacy
+        <div className="mt-6 w-16 h-0.5 mx-auto rounded-full" style={{ backgroundColor: '#D4A853' }} />
+        <p className="mt-7 text-base sm:text-lg text-white/80 leading-relaxed max-w-xl mx-auto">
+          Whether you're hoping to grow your family or to help another family grow,
+          we'd love to hear from you. Tell us a little about yourself and our team
+          will reach out within 48 hours — no commitment, just a conversation.
         </p>
-        <div className="flex items-center justify-center gap-5 mt-5 flex-wrap">
+        <div className="flex items-center justify-center gap-6 mt-7 flex-wrap">
           {[
             { Icon: Lock, label: 'Private' },
-            { Icon: Shield, label: 'No commitment' },
+            { Icon: Shield, label: 'Confidential' },
+            { Icon: Heart, label: 'Trauma-informed' },
           ].map(({ Icon, label }) => (
-            <span key={label} className="flex items-center gap-1.5 text-xs text-stone-400 font-medium">
-              <Icon className="w-3.5 h-3.5" />
-              {label}
+            <span key={label} className="flex items-center gap-1.5 text-xs text-white/60 font-medium tracking-wide">
+              <Icon className="w-3.5 h-3.5" /> {label}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Quiz entry card */}
-      <div className="max-w-md mx-auto px-5 pb-16">
-        <button
-          type="button"
+      {/* Two-card chooser */}
+      <div className="max-w-3xl mx-auto px-5 pb-20 grid sm:grid-cols-2 gap-5">
+        <PathCard
           onClick={() => navigate('/apply/surrogate')}
-          className="group w-full text-left bg-white rounded-2xl border-2 border-stone-200 hover:shadow-lg transition-all duration-200 p-7 flex flex-col"
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#D4A853'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = ''}
-        >
-          <div className="text-4xl mb-4 select-none" aria-hidden>🤰</div>
-          <h2 className="text-xl font-bold text-stone-800 mb-2">
-            I Want to Be a Surrogate
-          </h2>
-          <p className="text-sm text-stone-500 leading-relaxed flex-1 mb-6">
-            Discover if you could help a loving family begin their journey — earn $60,000 to $85,000+ while being supported every step of the way.
-          </p>
-          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#D4A853' }}>
-            Take the quiz
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </div>
-        </button>
-      </div>
-
-      {/* Trust bar */}
-      <div className="border-t border-stone-200 bg-white py-10">
-        <div className="max-w-2xl mx-auto px-5 text-center">
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-7">
-            WHY FAMILIES CHOOSE ABUNDANT BEGINNINGS CO.
-          </p>
-          <div className="grid grid-cols-3 gap-6">
-            {STATS.map(({ stat, label }) => (
-              <div key={label}>
-                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#D4A853' }}>{stat}</div>
-                <div className="text-xs text-stone-500 mt-1">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+          eyebrow="For Surrogates"
+          title="I'd like to be a surrogate"
+          body="Help an intended family welcome a baby into the world. You'll be supported, respected, and well-compensated every step of the way."
+        />
+        <PathCard
+          onClick={() => navigate('/intendedparentapply')}
+          eyebrow="For Intended Parents"
+          title="I'm hoping to grow my family"
+          body="Begin the path to parenthood with a trauma-informed agency built on lived experience and clinical insight."
+        />
       </div>
 
       {/* Footer */}
-      <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} North Star Surrogacy ·{' '}
-        <a href="#" className="underline hover:text-stone-600">Privacy Policy</a>
+      <footer className="py-7 text-center text-xs text-white/40 border-t border-white/10">
+        © {new Date().getFullYear()} North Star Surrogacy · Guiding your path to parenthood
       </footer>
     </div>
+  )
+}
+
+function PathCard({ onClick, eyebrow, title, body }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group text-left rounded-2xl p-7 transition-all duration-200 hover:shadow-xl"
+      style={{ background: 'rgba(255, 255, 255, 0.95)' }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.25em] mb-4" style={{ color: '#D4A853' }}>{eyebrow}</p>
+      <h2 className="text-xl mb-3 leading-snug" style={{ fontFamily: "'Libre Franklin', sans-serif", color: '#1A3638', fontWeight: 600 }}>
+        {title}
+      </h2>
+      <p className="text-sm leading-relaxed mb-6" style={{ color: '#1A3638', opacity: 0.7 }}>
+        {body}
+      </p>
+      <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#1F3A3C' }}>
+        Get started
+        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+      </div>
+    </button>
   )
 }

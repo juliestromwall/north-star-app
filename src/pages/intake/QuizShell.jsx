@@ -163,7 +163,7 @@ export function QuizShell({
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>
-        <img src="/north-star-logo.png" alt="Abundant Beginnings" className="h-14 w-auto" />
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
         <div className="w-9" aria-hidden />
       </header>
 
