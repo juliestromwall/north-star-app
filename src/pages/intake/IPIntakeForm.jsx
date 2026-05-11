@@ -13,6 +13,70 @@ const ACCENT_FG = '#1A3638'
 
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
+// Country list with dial codes. US first (default), then a few common
+// English-speaking markets, then alphabetical. Add to this list if North
+// Star starts working with families from countries not yet listed.
+const COUNTRIES = [
+  { name: 'United States of America', dial: '+1' },
+  { name: 'Canada',                   dial: '+1' },
+  { name: 'United Kingdom',           dial: '+44' },
+  { name: 'Australia',                dial: '+61' },
+  { name: 'Argentina',                dial: '+54' },
+  { name: 'Austria',                  dial: '+43' },
+  { name: 'Belgium',                  dial: '+32' },
+  { name: 'Brazil',                   dial: '+55' },
+  { name: 'Chile',                    dial: '+56' },
+  { name: 'China',                    dial: '+86' },
+  { name: 'Colombia',                 dial: '+57' },
+  { name: 'Costa Rica',               dial: '+506' },
+  { name: 'Czech Republic',           dial: '+420' },
+  { name: 'Denmark',                  dial: '+45' },
+  { name: 'Egypt',                    dial: '+20' },
+  { name: 'Finland',                  dial: '+358' },
+  { name: 'France',                   dial: '+33' },
+  { name: 'Germany',                  dial: '+49' },
+  { name: 'Greece',                   dial: '+30' },
+  { name: 'Hong Kong',                dial: '+852' },
+  { name: 'India',                    dial: '+91' },
+  { name: 'Indonesia',                dial: '+62' },
+  { name: 'Ireland',                  dial: '+353' },
+  { name: 'Israel',                   dial: '+972' },
+  { name: 'Italy',                    dial: '+39' },
+  { name: 'Japan',                    dial: '+81' },
+  { name: 'Jordan',                   dial: '+962' },
+  { name: 'Kenya',                    dial: '+254' },
+  { name: 'Kuwait',                   dial: '+965' },
+  { name: 'Lebanon',                  dial: '+961' },
+  { name: 'Malaysia',                 dial: '+60' },
+  { name: 'Mexico',                   dial: '+52' },
+  { name: 'Netherlands',              dial: '+31' },
+  { name: 'New Zealand',              dial: '+64' },
+  { name: 'Nigeria',                  dial: '+234' },
+  { name: 'Norway',                   dial: '+47' },
+  { name: 'Oman',                     dial: '+968' },
+  { name: 'Pakistan',                 dial: '+92' },
+  { name: 'Panama',                   dial: '+507' },
+  { name: 'Peru',                     dial: '+51' },
+  { name: 'Philippines',              dial: '+63' },
+  { name: 'Poland',                   dial: '+48' },
+  { name: 'Portugal',                 dial: '+351' },
+  { name: 'Qatar',                    dial: '+974' },
+  { name: 'Romania',                  dial: '+40' },
+  { name: 'Russia',                   dial: '+7' },
+  { name: 'Saudi Arabia',             dial: '+966' },
+  { name: 'Singapore',                dial: '+65' },
+  { name: 'South Africa',             dial: '+27' },
+  { name: 'South Korea',              dial: '+82' },
+  { name: 'Spain',                    dial: '+34' },
+  { name: 'Sweden',                   dial: '+46' },
+  { name: 'Switzerland',              dial: '+41' },
+  { name: 'Taiwan',                   dial: '+886' },
+  { name: 'Thailand',                 dial: '+66' },
+  { name: 'Turkey',                   dial: '+90' },
+  { name: 'United Arab Emirates',     dial: '+971' },
+  { name: 'Vietnam',                  dial: '+84' },
+]
+
 const RELATIONSHIP_OPTIONS = ['Single', 'Married', 'Domestic Partnership', 'In a Relationship', 'Other']
 const STAGE_OPTIONS = [
   'Just starting to explore — gathering information',
@@ -40,7 +104,10 @@ export default function IPIntakeForm() {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '',
-    city: '', state: '', occupation: '',
+    country: 'United States of America',
+    city: '', state: '', stateRegion: '',
+    phone: '+1 ',
+    occupation: '',
     relationshipStatus: '',
     spouseFirstName: '', spouseLastName: '', spouseEmail: '', spouseOccupation: '',
     aboutYourselfFamily: '',
@@ -60,8 +127,24 @@ export default function IPIntakeForm() {
   const emailValid = isValidEmail(form.email)
   const partnered = isPartnered(form.relationshipStatus)
   const spouseEmailValid = !partnered || isValidEmail(form.spouseEmail)
+  const isUS = form.country === 'United States of America'
 
-  const step1Valid = form.firstName && form.lastName && emailValid && form.city && form.state && form.occupation.trim()
+  // When country changes, swap the phone's dial-code prefix to that country's
+  // code. Preserves anything the user already typed after the previous prefix.
+  function handleCountryChange(countryName) {
+    const country = COUNTRIES.find(c => c.name === countryName)
+    if (!country) { set('country', countryName); return }
+    trackFieldChange()
+    setForm(prev => {
+      // Strip the previous dial code prefix from the phone, keep the rest
+      let phoneTail = (prev.phone || '').trim()
+      const prevMatch = phoneTail.match(/^\+\d+\s*/)
+      if (prevMatch) phoneTail = phoneTail.slice(prevMatch[0].length)
+      return { ...prev, country: countryName, phone: `${country.dial} ${phoneTail}`.trim() + (phoneTail ? '' : ' ') }
+    })
+  }
+
+  const step1Valid = form.firstName && form.lastName && emailValid && form.country && form.city && (isUS ? form.state : form.stateRegion.trim()) && form.phone.trim().replace(/\D/g, '').length >= 7 && form.occupation.trim()
   const step2Valid = form.relationshipStatus && (!partnered || (form.spouseFirstName && form.spouseLastName && spouseEmailValid && form.spouseOccupation.trim()))
   const step3Valid = form.aboutYourselfFamily.trim() && form.whatLedYou.trim() && form.journeyStage && form.workingWithClinic !== null && form.hasEmbryos !== null && (form.hasEmbryos === false || form.embryoCount.trim()) && form.timeline.trim()
   const step4Valid = form.questionsConcerns.trim() && form.anythingElse.trim()
@@ -92,7 +175,8 @@ export default function IPIntakeForm() {
       intake_type: 'ip',
       applicant_email: form.email.trim().toLowerCase(),
       applicant_name: `${form.firstName} ${form.lastName}`.trim(),
-      city: form.city, state_region: form.state, country: 'United States',
+      applicant_phone: form.phone.trim(),
+      city: form.city, state_region: isUS ? form.state : form.stateRegion, country: form.country,
       qualified: true, dq_reasons: [],
       answers: { ...form, _tracking: tracking },
     }
@@ -127,10 +211,27 @@ export default function IPIntakeForm() {
           <FieldText label="Last Name" value={form.lastName} onChange={v => set('lastName', v)} />
         </div>
         <FieldText label="Email" type="email" value={form.email} onChange={v => set('email', v)} error={emailError} />
+        <FieldSelect
+          label="Country"
+          value={form.country}
+          onChange={handleCountryChange}
+          options={COUNTRIES.map(c => c.name)}
+        />
         <div className="grid grid-cols-2 gap-3">
           <FieldText label="City" value={form.city} onChange={v => set('city', v)} />
-          <FieldSelect label="State" value={form.state} onChange={v => set('state', v)} options={US_STATES} />
+          {isUS ? (
+            <FieldSelect label="State" value={form.state} onChange={v => set('state', v)} options={US_STATES} />
+          ) : (
+            <FieldText label="State / Region" value={form.stateRegion} onChange={v => set('stateRegion', v)} />
+          )}
         </div>
+        <FieldText
+          label="Phone"
+          type="tel"
+          value={form.phone}
+          onChange={v => set('phone', v)}
+          placeholder={`${COUNTRIES.find(c => c.name === form.country)?.dial || ''} 555 555 5555`}
+        />
         <FieldText label="Occupation" value={form.occupation} onChange={v => set('occupation', v)} />
       </QuizShell>
     )

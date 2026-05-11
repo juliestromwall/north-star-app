@@ -24,6 +24,12 @@ function isValidUSPhone(v) {
   const d = (v || '').replace(/\D/g, '')
   return d.length === 10 || (d.length === 11 && d.startsWith('1'))
 }
+function formatUSPhone(raw) {
+  const d = (raw || '').replace(/\D/g, '').slice(0, 10)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
 
 const TOTAL_STEPS = 5
 
@@ -158,7 +164,7 @@ export default function SurrogateIntakeForm() {
           <FieldText label="Last Name" value={form.lastName} onChange={v => set('lastName', v)} />
         </div>
         <FieldText label="Email" type="email" value={form.email} onChange={v => set('email', v)} error={emailError} />
-        <FieldText label="Phone" type="tel" value={form.phone} onChange={v => set('phone', v)} placeholder="(555) 555-5555" />
+        <FieldText label="Phone" type="tel" value={form.phone} onChange={v => set('phone', formatUSPhone(v))} placeholder="555-555-5555" />
         <FieldText label="Street Address" value={form.street} onChange={v => set('street', v)} />
         <FieldText label="Street Address Line 2 (optional)" value={form.street2} onChange={v => set('street2', v)} />
         <div className="grid grid-cols-2 gap-3">

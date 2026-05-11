@@ -152,7 +152,7 @@ export function QuizShell({
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#faf8f5' }}>
       {/* Sticky top bar */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-100 sticky top-0 z-10">
+      <header className="flex items-center justify-between px-4 py-5 bg-white border-b border-stone-100 sticky top-0 z-10">
         <button
           type="button"
           onClick={onBack}
@@ -163,7 +163,7 @@ export function QuizShell({
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-32 sm:h-40 w-auto" />
         <div className="w-9" aria-hidden />
       </header>
 
