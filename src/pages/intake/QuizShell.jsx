@@ -98,8 +98,12 @@ export function YesNoGrid({
 }
 
 // ── NumberStepper ─────────────────────────────────────────────────────────────
-// +/− stepper — much more mobile-friendly than a text input for small integers
+// +/− stepper — much more mobile-friendly than a text input for small integers.
+// Starts in an "unanswered" state showing — instead of 0, so an applicant who
+// hasn't interacted with the field isn't mistaken for one who answered 0.
+// First + click jumps from blank to 1; minus from 1 lands on 0 (a valid answer).
 export function NumberStepper({ value, onChange, min = 0, max = 10, label, note }) {
+  const isEmpty = value === '' || value === null || value === undefined
   const num = parseInt(value) || 0
   return (
     <div className="space-y-2">
@@ -108,19 +112,19 @@ export function NumberStepper({ value, onChange, min = 0, max = 10, label, note 
       <div className="flex items-center gap-5">
         <button
           type="button"
-          onClick={() => onChange(String(Math.max(min, num - 1)))}
-          disabled={num <= min}
+          onClick={() => { if (!isEmpty) onChange(String(Math.max(min, num - 1))) }}
+          disabled={isEmpty || num <= min}
           className="w-11 h-11 rounded-full border-2 border-stone-200 flex items-center justify-center text-stone-600 text-xl font-bold hover:border-stone-400 disabled:opacity-30 transition-colors"
         >
           −
         </button>
         <span className="text-3xl font-bold text-stone-900 w-10 text-center tabular-nums">
-          {num >= max ? `${max}+` : num}
+          {isEmpty ? '—' : (num >= max ? `${max}+` : num)}
         </span>
         <button
           type="button"
-          onClick={() => onChange(String(Math.min(max, num + 1)))}
-          disabled={num >= max}
+          onClick={() => onChange(String(isEmpty ? 1 : Math.min(max, num + 1)))}
+          disabled={!isEmpty && num >= max}
           className="w-11 h-11 rounded-full border-2 border-stone-200 flex items-center justify-center text-stone-600 text-xl font-bold hover:border-stone-400 disabled:opacity-30 transition-colors"
         >
           +
