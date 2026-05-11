@@ -696,7 +696,7 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Requested By */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <User className="size-4" /> Requested By
               </h3>
@@ -728,7 +728,7 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Reason for Communication */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <ClipboardList className="size-4" /> Reason for Communication
               </h3>
@@ -740,7 +740,7 @@ export default function PsychTrackingPage() {
             </div>
 
             {/* Billing Information */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <DollarSign className="size-4" /> Billing Information
               </h3>
@@ -758,7 +758,7 @@ export default function PsychTrackingPage() {
 
             {/* Birth Plan Sections — only shown for Birth Guidelines milestones */}
             {isBirthGuidelinesMilestoneAdmin && (
-              <div className="rounded-lg bg-[#D4A853]/[0.04] border border-[#D4A853]/20 p-4 space-y-4">
+              <div className="rounded-lg bg-[#D4A853]/[0.10] border border-[#D4A853]/20 p-4 space-y-4">
                 <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider flex items-center gap-2">
                   <ClipboardList className="size-4" /> Birth Plan
                 </h3>
@@ -797,7 +797,7 @@ export default function PsychTrackingPage() {
             )}
 
             {/* Communication Details */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="size-4" /> Communication Details
               </h3>
@@ -869,7 +869,7 @@ export default function PsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
@@ -902,7 +902,7 @@ export default function PsychTrackingPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
               {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Yes, Submit Report
             </Button>
@@ -1002,7 +1002,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
         <span className="text-emerald-600 font-medium text-xs">{value ? formatDate(value) : 'Complete'}</span>
         <button
           onClick={() => onViewReport(row, milestoneKey)}
-          className="text-[#1A3638] hover:text-[#0F2628] transition-colors"
+          className="text-[#1A3638] hover:text-[#5A9EA2] transition-colors"
           title="View Report"
         >
           <Eye className="size-3" />
@@ -1026,7 +1026,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
   return (
     <button
       onClick={() => onCheckin(row, milestoneKey)}
-      className="text-[#1A3638] hover:text-[#0F2628] text-xs font-medium transition-colors"
+      className="text-[#1A3638] hover:text-[#5A9EA2] text-xs font-medium transition-colors"
     >
       Check In
     </button>

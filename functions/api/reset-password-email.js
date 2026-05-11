@@ -194,7 +194,7 @@ export async function onRequestPost(context) {
               Click the button below to set a new password for your North Star Surrogacy portal at <a href="https://app.northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.northstarsurrogacy.com</a>.
             </p>
             <div style="text-align: center;">
-              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
                 Reset Password
               </a>
             </div>

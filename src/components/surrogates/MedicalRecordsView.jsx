@@ -137,7 +137,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${counts.total > 0 ? (counts.complete / counts.total) * 100 : 0}%`,
-              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)',
+              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #1F3A3C, #5A9EA2)',
             }}
           />
         </div>

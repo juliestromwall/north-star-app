@@ -136,7 +136,7 @@ export default function ResetPasswordPage() {
                 type="submit"
                 disabled={!password || !confirmPw || !agreedTerms || loading}
                 className="w-full h-11 rounded-xl text-sm font-semibold text-white border-0"
-                style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+                style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
               >
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>

@@ -1021,7 +1021,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
                 </div>
               </div>
               <span className="text-sm font-bold text-[#1A3638]">{percent}%</span>

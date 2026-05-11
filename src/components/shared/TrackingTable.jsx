@@ -264,7 +264,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
           </div>
         </div>
         <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
+          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
         </div>
       </div>
 
@@ -442,7 +442,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
 
               {/* ── Add Log Form ── */}
               {isAddingLog && (
-                <div className="bg-[#1A3638]/[0.03] border-t border-[#1A3638]/10 px-6 py-3" onClick={e => e.stopPropagation()}>
+                <div className="bg-[#88C0C4]/[0.18] border-t border-[#1A3638]/10 px-6 py-3" onClick={e => e.stopPropagation()}>
                   <div className="flex flex-wrap items-end gap-3">
                     {/* Status input */}
                     <div className="flex-1 min-w-[140px]">
@@ -481,7 +481,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     {/* Actions */}
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => submitLog(step.id)} disabled={!logStatus}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#0F2628] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors shadow-sm">
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#5A9EA2] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors shadow-sm">
                         <Check className="size-3" /> Save
                       </button>
                       {step.logType === 'text' && currentStatus !== 'na' && (
@@ -511,7 +511,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       autoFocus
                       onKeyDown={e => { if (e.key === 'Enter') addCaseSubtask(step.id); if (e.key === 'Escape') { setAddingCaseSubtask(null); setCaseSubtaskLabel('') } }}
                     />
-                    <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#0F2628] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors">Add</button>
+                    <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#1A3638] hover:bg-[#5A9EA2] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors">Add</button>
                     <button onClick={() => { setAddingCaseSubtask(null); setCaseSubtaskLabel('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
                   </div>
                 </div>

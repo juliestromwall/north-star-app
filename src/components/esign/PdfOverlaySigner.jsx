@@ -657,7 +657,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
           disabled={signing}
           size="lg"
           className="gap-2 sm:px-10"
-          style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+          style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
         >
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Submitting…' : 'Sign & Submit'}

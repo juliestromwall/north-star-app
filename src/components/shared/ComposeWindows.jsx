@@ -1177,7 +1177,7 @@ function ComposeWindow({ draft, index }) {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
                             <p className="text-[10px] text-stone-400">
-                              {doc._source && <span className={`inline-block mr-1.5 px-1 py-0 rounded text-white text-[9px] font-bold ${doc._source === 'GC' ? 'bg-pink-500' : doc._source === 'IP' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>{doc._source}</span>}
+                              {doc._source && <span className={`inline-block mr-1.5 px-1 py-0 rounded text-white text-[9px] font-bold ${doc._source === 'GC' ? 'bg-[#D4A853]' : doc._source === 'IP' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>{doc._source}</span>}
                               {doc.category?.replace(/_/g, ' ')} {doc.file_size ? `· ${fileSizeLabel(doc.file_size)}` : ''}
                             </p>
                           </div>

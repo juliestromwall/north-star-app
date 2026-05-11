@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
         </p>
 
         <div style="text-align: center; margin: 28px 0;">
-          <a href="https://app.northstarsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+          <a href="https://app.northstarsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
             Log In &amp; Complete Application
           </a>
         </div>

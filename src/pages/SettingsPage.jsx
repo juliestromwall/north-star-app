@@ -100,7 +100,7 @@ function AdminProfileSection() {
             <div className="flex items-center gap-4">
               <ProfileAvatar name={currentUser?.name || ''} avatar={prefs.avatarUrl || currentUser?.avatar} size="xl" />
               <div className="space-y-2">
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#1A3638] text-white hover:bg-[#0F2628] transition-colors">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#1A3638] text-white hover:bg-[#5A9EA2] transition-colors">
                   {uploading ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                   {uploading ? 'Uploading...' : 'Upload Photo'}
                   <input type="file" accept="image/*" className="hidden" onChange={e => handleAvatarUpload(e.target.files?.[0])} disabled={uploading} />

@@ -79,7 +79,7 @@ export async function onRequestPost(context) {
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="${passwordLink}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
+          <a href="${passwordLink}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
             Set Up Your Portal Password
           </a>
         </div>

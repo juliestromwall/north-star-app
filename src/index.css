@@ -44,11 +44,20 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Custom brand colors */
-    --color-abc-indigo: #1A3638;
-    --color-abc-coral: #D4A853;
-    --color-abc-cream: #FCF8EF;
-    --color-abc-navy: #1A3638;
+    /* North Star brand colors. The legacy 'abc-*' names are kept so existing
+       className references (bg-abc-indigo, text-abc-indigo, etc.) still resolve
+       to the new palette without a codebase-wide rename. */
+    --color-abc-indigo: #1A3638;        /* Dark Teal — primary */
+    --color-abc-coral: #D4A853;         /* Guiding Gold — accent */
+    --color-abc-cream: #F0EEEB;         /* Cream — page bg */
+    --color-abc-navy: #1A3638;          /* Dark Teal alias */
+    /* New named tokens — use these going forward */
+    --color-ns-teal: #1A3638;           /* Dark Teal */
+    --color-ns-gold: #D4A853;           /* Guiding Gold */
+    --color-ns-emerald: #1F3A3C;        /* Emerald Green */
+    --color-ns-light-teal: #88C0C4;     /* Light Teal */
+    --color-ns-mid-teal: #5A9EA2;       /* Mid Teal — hovers, dividers */
+    --color-ns-cream: #F0EEEB;          /* Cream */
 
     /* Fonts */
     --font-sans: 'Open Sans', sans-serif;
@@ -194,35 +203,37 @@
     transition: all 0.1s ease;
 }
 
-/* Active — dreamy liquid glass with ABC dot colors */
+/* Active — North Star green-to-gold liquid glass.
+   Stops use Emerald Green (#1F3A3C → 31,58,60), Mid Teal (#5A9EA2 → 90,158,162),
+   Light Teal (#88C0C4 → 136,192,196), Guiding Gold (#D4A853 → 212,168,83). */
 .sidebar-nav-active {
     position: relative;
     background: linear-gradient(135deg,
-        rgba(139, 197, 63, 0.12),
-        rgba(41, 171, 226, 0.14),
-        rgba(247, 148, 29, 0.10),
-        rgba(237, 20, 140, 0.12)
+        rgba(31, 58, 60, 0.14),
+        rgba(90, 158, 162, 0.16),
+        rgba(136, 192, 196, 0.12),
+        rgba(212, 168, 83, 0.16)
     );
     background-size: 200% 200%;
     animation: glass-shimmer 4s ease-in-out infinite;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow:
-        0 2px 16px rgba(41, 171, 226, 0.1),
-        0 1px 4px rgba(237, 20, 140, 0.06),
+        0 2px 16px rgba(90, 158, 162, 0.14),
+        0 1px 4px rgba(212, 168, 83, 0.10),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 .dark .sidebar-nav-active {
     background: linear-gradient(135deg,
-        rgba(139, 197, 63, 0.15),
-        rgba(41, 171, 226, 0.18),
-        rgba(247, 148, 29, 0.12),
-        rgba(237, 20, 140, 0.15)
+        rgba(31, 58, 60, 0.18),
+        rgba(90, 158, 162, 0.20),
+        rgba(136, 192, 196, 0.14),
+        rgba(212, 168, 83, 0.18)
     );
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
-        0 2px 20px rgba(41, 171, 226, 0.15),
-        0 1px 6px rgba(237, 20, 140, 0.1),
+        0 2px 20px rgba(90, 158, 162, 0.18),
+        0 1px 6px rgba(212, 168, 83, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 @keyframes glass-shimmer {

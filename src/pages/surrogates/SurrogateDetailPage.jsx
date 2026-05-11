@@ -785,7 +785,7 @@ export default function SurrogateDetailPage() {
                 <Button
                   size="icon"
                   title={surrogate.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
-                  className={`size-8 rounded-full ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0 shadow-md' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                  className={`size-8 rounded-full ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] text-white border-0 shadow-md' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                   onClick={() => { setSmsOpen(true); setSmsResult(null); setSmsMessage('') }}
                 >
                   <MessageSquare className="size-3.5" />
@@ -793,7 +793,7 @@ export default function SurrogateDetailPage() {
               )}
               <div className="relative">
                 {surrogate.preferredContact === 'Email' ? (
-                  <Button size="icon" title="Email (preferred)" className="size-8 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+                  <Button size="icon" title="Email (preferred)" className="size-8 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
                     onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
                     <Mail className="size-3.5" />
                   </Button>
@@ -1195,8 +1195,8 @@ export default function SurrogateDetailPage() {
                   >
                     {stageStatus.status === 'New' ? (
                       <span className="relative flex size-4 mx-auto mb-1">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                        <span className="relative inline-flex rounded-full size-4 bg-[#D4A853]" />
                       </span>
                     ) : (
                       <Circle className="size-4 mx-auto mb-1" style={{ color: currentStageObj.color + '60' }} />
@@ -1283,11 +1283,11 @@ export default function SurrogateDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`surrogate_${surrogate.id}`} tabs={[
           { value: 'overview', label: 'Checklist' },
-          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'profile', label: 'Profile' },
           { value: 'contact', label: 'Application' },
-          { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
-          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'notes', label: 'Notes' },
           { value: 'insurance', label: 'Insurance' },
           { value: 'records', label: (() => {
@@ -2430,7 +2430,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                   <span>{Math.round((uploadProgress.done / uploadProgress.total) * 100)}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
+                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
                 </div>
               </div>
             )}
@@ -3179,7 +3179,7 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }
         size="icon"
         title={`${label} (preferred)`}
         className="size-8 rounded-full text-white shadow-md"
-        style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+        style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
         onClick={onFlip}
       >
         <Icon className="size-3.5" />
@@ -4093,7 +4093,7 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
                 style={{
                   width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
                   maxWidth: 'calc(100% - 28px)',
-                  background: 'linear-gradient(90deg, #D4A853, #1A3638)',
+                  background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)',
                 }}
               />
             )}
@@ -5676,7 +5676,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         </p>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.northstarsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <a href="https://app.northstarsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
             Finish My Profile
           </a>
         </div>
@@ -5757,7 +5757,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
                 </div>
               </div>
               <span className="text-sm font-bold text-abc-indigo">{overallPercent}%</span>

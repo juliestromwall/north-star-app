@@ -105,14 +105,14 @@ export default function TopBar({ onMenuClick }) {
           >
             <link.icon className="size-[18px]" />
             {link.badge > 0 && (
-              <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
+              <span className="absolute -top-1 -right-1 bg-[#D4A853] text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
                 {link.badge > 999 ? '999+' : link.badge}
               </span>
             )}
             {link.pulse && (
               <span className="absolute top-0.5 right-0.5 flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" />
               </span>
             )}
           </NavLink>

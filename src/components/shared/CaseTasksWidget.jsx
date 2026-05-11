@@ -478,7 +478,7 @@ function DashboardAddTaskDialog({ open, onOpenChange, onSave, currentUser, cases
                 {filteredCases.map(c => (
                   <button key={`${c.type}-${c.id}`} onClick={() => { setForm(f => ({ ...f, case_id: c.id, case_type: c.type })); setCaseSearch(c.name) }}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-stone-50 flex items-center gap-2">
-                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'surrogate' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
+                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'surrogate' ? 'bg-[#D4A853]' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
                       {c.type === 'surrogate' ? 'GC' : c.type === 'ip' ? 'IP' : 'J'}
                     </span>
                     {c.name}

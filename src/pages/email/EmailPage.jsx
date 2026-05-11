@@ -113,7 +113,7 @@ function getInitials(name) {
 }
 
 const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-pink-500',
+  'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-[#D4A853]',
   'bg-amber-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-rose-500',
   'bg-teal-500', 'bg-orange-500',
 ]
@@ -602,7 +602,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
                           {groupCases.map(c => (
                             <button key={`${c.type}-${c.id}`} onClick={() => setSelectedCase(String(c.id) + ':' + c.type)}
                               className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 ${selectedCase === String(c.id) + ':' + c.type ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>
-                              <span className={`text-[8px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'gc' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
+                              <span className={`text-[8px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'gc' ? 'bg-[#D4A853]' : c.type === 'ip' ? 'bg-[#1A3638]' : 'bg-purple-500'}`}>
                                 {c.type === 'gc' ? 'GC' : c.type === 'ip' ? 'IP' : 'MJ'}
                               </span>
                               {c.name}
@@ -1126,7 +1126,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCreateLabelOpen(false); createActionRef.current = null }}>Cancel</Button>
-            <Button onClick={handleCreateLabelConfirm} style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
+            <Button onClick={handleCreateLabelConfirm} style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}>
               Create
             </Button>
           </DialogFooter>

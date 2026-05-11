@@ -950,7 +950,7 @@ export default function FaxPage() {
                         className={`group hover:bg-muted/40 transition-colors cursor-pointer ${!isRead ? 'bg-violet-50/60' : ''}`}
                         onClick={() => handlePreview(fax)}>
                         <td className="py-3 px-4">
-                          {!isRead && <span className="size-2 rounded-full bg-pink-500 animate-pulse inline-block" />}
+                          {!isRead && <span className="size-2 rounded-full bg-[#D4A853] animate-pulse inline-block" />}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">

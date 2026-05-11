@@ -776,7 +776,7 @@ export default function SignFormPage() {
               disabled={signing}
               size="lg"
               className="gap-2 w-full sm:w-auto sm:px-10"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+              style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
             >
               {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
               {signing ? 'Submitting...' : 'Sign & Submit'}
@@ -814,7 +814,7 @@ export default function SignFormPage() {
             onClick={handleSubmit}
             disabled={signing}
             className="gap-2 w-full sm:w-auto shrink-0"
-            style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+            style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
           >
             {signing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
             {signing ? 'Submitting...' : 'Sign & Submit'}
@@ -950,7 +950,7 @@ export default function SignFormPage() {
             onClick={handleSubmit}
             disabled={signing}
             className="gap-2 w-full py-3 text-base"
-            style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+            style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
           >
             {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
             {signing ? 'Submitting...' : 'Sign & Submit'}

@@ -20,8 +20,8 @@ const BABIES_BORN = 220
 function UnreadDot() {
   return (
     <span className="relative flex size-2 ml-auto">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-      <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+      <span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" />
     </span>
   )
 }
@@ -50,12 +50,12 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
           {collapsed ? (
             <img src="/north-star-mark.png" alt="ABC" className="h-8 w-auto object-contain" />
           ) : (
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto" />
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-28 w-auto" />
           )}
         </button>
       ) : (
         <div className="flex items-center justify-center shrink-0 px-5 py-5">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto" />
+          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-28 w-auto" />
         </div>
       )}
 
@@ -123,7 +123,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                         {collapsed && (
                           <>
                             {item.path === '/text-messages' && unreadSMS > 0 && (
-                              <span className="absolute top-1 right-1 size-2 rounded-full bg-pink-500" />
+                              <span className="absolute top-1 right-1 size-2 rounded-full bg-[#D4A853]" />
                             )}
                             {item.path === '/email' && unreadEmail > 0 && (
                               <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-abc-indigo text-white text-[9px] font-bold">

@@ -75,7 +75,7 @@ function MilestoneStrip({ stageId, tracking }) {
         <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
       </div>
       <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
         {data.map(ms => (
@@ -517,7 +517,7 @@ export default function MatchingPage() {
       {/* Surrogates in Matching (full card, unchanged) */}
       <div>
         <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="size-2 rounded-full bg-pink-500" /> Surrogates in Matching Stage ({gcsByStage.matching.length})
+          <span className="size-2 rounded-full bg-[#D4A853]" /> Surrogates in Matching Stage ({gcsByStage.matching.length})
         </h3>
         {gcsByStage.matching.length === 0 ? (
           <p className="text-sm text-stone-400">No surrogates currently in the Matching stage.</p>

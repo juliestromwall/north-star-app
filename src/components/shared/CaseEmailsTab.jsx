@@ -424,8 +424,8 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 Last 30 Days ({inboxEmails.length})
                 {unreadInboxCount > 0 && viewMode !== 'inbox' && (
                   <span className="absolute -top-1 -right-1 flex size-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" />
                   </span>
                 )}
               </button>
@@ -830,7 +830,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" size="sm" onClick={() => { setSelectedTemplate(null); setTemplateOpen(false) }}>Cancel</Button>
-                  <Button size="sm" className="gap-1 text-white" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+                  <Button size="sm" className="gap-1 text-white" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
                     onClick={() => {
                       openDraft({ to: caseEmail, subject: merged.subject, body: merged.body, caseId, caseType, userId: currentUser?.id })
                       setSelectedTemplate(null)

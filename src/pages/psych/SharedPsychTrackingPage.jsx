@@ -1034,7 +1034,7 @@ export default function SharedPsychTrackingPage() {
                 />
               </div>
               {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
-              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={handleSetPassword} disabled={passwordSaving}>
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }} onClick={handleSetPassword} disabled={passwordSaving}>
                 {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
                 {passwordSaving ? 'Setting up...' : 'Set Password & Continue'}
               </Button>
@@ -1078,7 +1078,7 @@ export default function SharedPsychTrackingPage() {
               </div>
               {idleLoggedOut && <p className="text-xs text-amber-600 font-medium">You were logged out due to inactivity. Please enter your password again.</p>}
               {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
-              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={handleLogin} disabled={passwordSaving}>
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }} onClick={handleLogin} disabled={passwordSaving}>
                 {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
                 {passwordSaving ? 'Verifying...' : 'Unlock'}
               </Button>
@@ -1215,7 +1215,7 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Requested By */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <User className="size-4" /> Requested By
               </h3>
@@ -1247,7 +1247,7 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Reason for Communication */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <ClipboardList className="size-4" /> Reason for Communication
               </h3>
@@ -1259,7 +1259,7 @@ export default function SharedPsychTrackingPage() {
             </div>
 
             {/* Billing Information */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <DollarSign className="size-4" /> Billing Information
               </h3>
@@ -1277,7 +1277,7 @@ export default function SharedPsychTrackingPage() {
 
             {/* Birth Plan Sections — only shown for Birth Guidelines milestones */}
             {isBirthGuidelinesMilestone && (
-              <div className="rounded-lg bg-[#D4A853]/[0.04] border border-[#D4A853]/20 p-4 space-y-4">
+              <div className="rounded-lg bg-[#D4A853]/[0.10] border border-[#D4A853]/20 p-4 space-y-4">
                 <h3 className="text-sm font-bold text-[#D4A853] uppercase tracking-wider flex items-center gap-2">
                   <ClipboardList className="size-4" /> Birth Plan
                 </h3>
@@ -1309,7 +1309,7 @@ export default function SharedPsychTrackingPage() {
             )}
 
             {/* Communication Details */}
-            <div className="rounded-lg bg-[#1A3638]/[0.03] border border-[#1A3638]/15 p-4 space-y-3">
+            <div className="rounded-lg bg-[#88C0C4]/[0.18] border border-[#88C0C4]/40 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#1A3638] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="size-4" /> Communication Details
               </h3>
@@ -1392,7 +1392,7 @@ export default function SharedPsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
@@ -1425,7 +1425,7 @@ export default function SharedPsychTrackingPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
               {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Yes, Submit Report
             </Button>
@@ -1494,7 +1494,7 @@ export default function SharedPsychTrackingPage() {
           })()}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setSkipDetailOpen(false)} disabled={withdrawSaving}>Close</Button>
-            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleWithdrawSkip} disabled={withdrawSaving}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={handleWithdrawSkip} disabled={withdrawSaving}>
               {withdrawSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
               Withdraw Skip & Check In
             </Button>
@@ -1536,7 +1536,7 @@ export default function SharedPsychTrackingPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setCustomOpen(false)} disabled={customSaving}>Cancel</Button>
-            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#0F2628] text-white" onClick={handleAddCustomCheckin} disabled={customSaving || !customLabel.trim()}>
+            <Button size="sm" className="gap-1.5 bg-[#1A3638] hover:bg-[#5A9EA2] text-white" onClick={handleAddCustomCheckin} disabled={customSaving || !customLabel.trim()}>
               {customSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
               Add Check-In
             </Button>
@@ -1572,7 +1572,7 @@ function getInitials(name) {
 function GradientAvatar({ name, accent = 'pink' }) {
   const bg = accent === 'indigo'
     ? 'linear-gradient(135deg, #6366f1, #1A3638)'
-    : 'linear-gradient(135deg, #D4A853, #1A3638)'
+    : 'linear-gradient(135deg, #1F3A3C, #5A9EA2)'
   return (
     <div className="size-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: bg }}>
       {getInitials(name)}
@@ -2002,7 +2002,7 @@ function CaseCard({ row, checkins, onCheckin, onViewReport, onSkip, onAddCustom,
               {typeof onAddCustom === 'function' && (
                 <button
                   onClick={() => onAddCustom(row)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1A3638] bg-[#1A3638]/10 hover:bg-[#1A3638]/15 border border-[#1A3638]/20 rounded-full transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1A3638] bg-[#1A3638]/10 hover:bg-[#88C0C4]/40 border border-[#1A3638]/20 rounded-full transition-colors"
                 >
                   <Plus className="size-3.5" /> Add Check-In
                 </button>

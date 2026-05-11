@@ -89,7 +89,7 @@ export default function IntakeLandingPage() {
           type="button"
           onClick={() => navigate('/apply/surrogate')}
           className="inline-flex items-center gap-2 rounded-full px-5 py-2 mb-6 text-sm font-semibold shadow-sm cursor-pointer transition-transform hover:scale-[1.03] hover:shadow-md active:scale-[0.98]"
-          style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)', color: '#fff' }}>
+          style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)', color: '#fff' }}>
           <Clock className="w-4 h-4" />
           See if you qualify in less than 5 minutes.
         </button>

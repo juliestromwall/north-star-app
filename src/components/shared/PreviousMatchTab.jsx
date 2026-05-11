@@ -109,7 +109,7 @@ function PreviousMatchCard({ match, index, total }) {
                   {match.notes.map((note, i) => (
                     <div key={i} className="text-sm">
                       <div className="flex items-center gap-2 text-xs text-stone-400 mb-1">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.type === 'gc' ? 'bg-pink-500' : note.type === 'ip' ? 'bg-[#1A3638]' : 'bg-stone-500'}`}>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.type === 'gc' ? 'bg-[#D4A853]' : note.type === 'ip' ? 'bg-[#1A3638]' : 'bg-stone-500'}`}>
                           {note.type === 'gc' ? 'GC' : note.type === 'ip' ? 'IP' : 'SHARED'}
                         </span>
                         <span>{note.by}</span>

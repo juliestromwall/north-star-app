@@ -769,7 +769,7 @@ export default function BatchSignFormPage() {
               disabled={submitting || alreadySignedHere}
               size="lg"
               className="gap-2 flex-1 sm:flex-none sm:px-8"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+              style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
             >
               {submitting ? <Loader2 className="size-5 animate-spin" />
                 : activeIdx < docs.length - 1 ? <ChevronRight className="size-5" />

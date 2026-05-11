@@ -82,7 +82,7 @@ function IPProfileProgressCard({ caseData }) {
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
               </div>
               <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
             </div>
@@ -331,7 +331,7 @@ export default function IPDashboard() {
       {/* ── Welcome intro card (pre-submit) ── */}
       {!caseData?.answers?._profileSubmitted && (
         <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
-          <div className="h-1 bg-gradient-to-r from-[#1A3638] to-[#D4A853]" />
+          <div className="h-1 bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2]" />
           <div className="p-6">
             <div className="flex items-start gap-5">
               <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#1A3638]/8 shrink-0">

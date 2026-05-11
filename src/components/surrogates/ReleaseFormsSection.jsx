@@ -246,7 +246,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
             disabled={sending || selectedCount === 0}
             onClick={handleSendSelected}
             className="gap-1.5"
-            style={{ background: selectedCount ? 'linear-gradient(135deg, #D4A853, #1A3638)' : undefined }}
+            style={{ background: selectedCount ? 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' : undefined }}
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             {sending ? 'Sending...' : `Send Selected${selectedCount ? ` (${selectedCount})` : ''}`}

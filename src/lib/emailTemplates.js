@@ -50,7 +50,7 @@ export const EMAIL_TEMPLATES = [
       <p>Hi {{first_name}},</p>
       <p>We noticed your surrogate profile hasn't been completed yet. Your profile is an important part of the matching process — it helps intended parents get to know you!</p>
       <p>Log in to your portal to complete your profile:</p>
-      <p style="text-align: center;"><a href="https://app.northstarsurrogacy.com/login" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Complete My Profile</a></p>
+      <p style="text-align: center;"><a href="https://app.northstarsurrogacy.com/login" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Complete My Profile</a></p>
       <p>If you need help or have questions, your case manager <strong>{{case_manager}}</strong> is here for you.</p>
       <p>Warmly,<br/>The North Star Surrogacy Team</p>
     `,

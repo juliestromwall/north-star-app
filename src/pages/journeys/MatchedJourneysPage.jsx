@@ -114,7 +114,7 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
                 <span>{completed}/{total}</span>
               </div>
               <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
               </div>
               <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
                 {milestoneData.map(ms => (

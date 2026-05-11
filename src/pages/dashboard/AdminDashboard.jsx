@@ -716,7 +716,7 @@ export default function AdminDashboard() {
             // Profile-inspired tinted backgrounds: indigo wash for today,
             // emerald wash for already-followed-up, otherwise white.
             const tint = today
-              ? 'bg-[#1A3638]/[0.04] border-[#1A3638]/20'
+              ? 'bg-[#88C0C4]/[0.20] border-[#1A3638]/20'
               : isFollowedUp
                 ? 'bg-emerald-50/40 border-emerald-200/60'
                 : 'bg-white border-stone-200'
@@ -867,7 +867,7 @@ export default function AdminDashboard() {
             if (isOverdue) return 'bg-rose-50/60 border-rose-200/70'
             if (task.priority === 'urgent') return 'bg-rose-50/60 border-rose-200/70'
             if (task.priority === 'high') return 'bg-amber-50/60 border-amber-200/70'
-            if (isToday) return 'bg-[#1A3638]/[0.04] border-[#1A3638]/20'
+            if (isToday) return 'bg-[#88C0C4]/[0.20] border-[#1A3638]/20'
             return 'bg-white border-stone-200'
           }
           const todayIsoStr = new Date().toISOString().split('T')[0]
@@ -974,7 +974,7 @@ export default function AdminDashboard() {
               {/* Magazine-style header — indigo icon dot for Tasks (matches
                   the pink Calendar dot on the Appointments card so the two
                   feel like a pair without being identical). */}
-              <CardHeader className="pb-3 border-b border-[#1A3638]/15">
+              <CardHeader className="pb-3 border-b border-[#88C0C4]/40">
                 <div className="flex items-center gap-3">
                   <div className="size-8 rounded-full bg-[#1A3638]/10 flex items-center justify-center shrink-0 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
                     <CheckCircle2 className="size-4 text-[#1A3638]" />
@@ -1230,7 +1230,7 @@ export default function AdminDashboard() {
             <Button
               size="sm"
               className="h-10 gap-1.5 shrink-0 text-white"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+              style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
               onClick={() => {
                 const sel = showAllCases ? summaryAdminEmail : currentUser?.email
                 let url
@@ -1366,8 +1366,8 @@ export default function AdminDashboard() {
                                   <span className="font-semibold text-stone-800">{s.name}</span>
                                   {isNew && (
                                     <span className="relative flex size-2.5 shrink-0">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                                      <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                                      <span className="relative inline-flex rounded-full size-2.5 bg-[#D4A853]" />
                                     </span>
                                   )}
                                 </div>

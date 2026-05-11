@@ -127,7 +127,7 @@ export default function BabiesBornPage() {
       <div className="grid grid-cols-2 gap-6">
         <Card className="rounded-2xl bg-gradient-to-br from-[#D4A853]/5 to-[#1A3638]/5 border-0">
           <CardContent className="flex items-center gap-4 py-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D4A853] to-[#1A3638] flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1F3A3C] to-[#5A9EA2] flex items-center justify-center shadow-lg">
               <Baby className="size-8 text-white" />
             </div>
             <div>
@@ -341,7 +341,7 @@ export default function BabiesBornPage() {
                 {/* Legend */}
                 <div className="flex items-center justify-center gap-6 mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-[#D4A853] to-[#1A3638]" />
+                    <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2]" />
                     <span className="text-xs text-stone-500">Births per year</span>
                   </div>
                   <div className="flex items-center gap-2">

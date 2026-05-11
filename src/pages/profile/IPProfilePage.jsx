@@ -578,7 +578,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           <div className="flex flex-col sm:flex-row items-end gap-5">
             {profilePhoto ? (
               <img data-pdf="portrait" src={profilePhoto.url} alt=""
-                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#1A3638]/15 shrink-0 print:shadow-none"
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#88C0C4]/40 shrink-0 print:shadow-none"
               />
             ) : (
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">
@@ -1169,7 +1169,7 @@ export default function IPProfilePage() {
               <p className="text-sm text-stone-500 mt-1">Complete your matching profile so surrogates can get to know you.</p>
               <div className="mt-3 max-w-sm mx-auto sm:mx-0">
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #D4A853, #1A3638)' }} />
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
                 </div>
                 <p className="text-xs text-stone-400 mt-1">{completion}% complete</p>
               </div>

@@ -991,7 +991,7 @@ export default function SurrogateProfilePage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 h-1.5 bg-stone-200/60 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#D4A853] to-[#1A3638] rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] rounded-full transition-all duration-700"
                   style={{ width: `${overallCompletion}%` }}
                 />
               </div>
@@ -1496,7 +1496,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             {/* Portrait — square rounded, white border, shadow */}
             {portraitPhoto ? (
               <img data-pdf="portrait" src={portraitPhoto.url} alt=""
-                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#1A3638]/15 shrink-0 print:shadow-none"
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#88C0C4]/40 shrink-0 print:shadow-none"
               />
             ) : (
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">

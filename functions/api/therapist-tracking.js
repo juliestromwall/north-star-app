@@ -222,7 +222,7 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
         ${reasonBlock}
       </div>
       ${journeyUrl ? `<div style="text-align: center; margin: 24px 0;">
-        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
+        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
       </div>` : ''}
       <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
       <p style="color: #a8a29e; font-size: 10px; text-align: center;">North Star Surrogacy, LLC &middot; northstarsurrogacy.com</p>

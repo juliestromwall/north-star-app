@@ -199,7 +199,7 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }
   }
   if (!flipped) {
     return preferred ? (
-      <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }} onClick={onFlip}>
+      <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }} onClick={onFlip}>
         <Icon className="size-3.5" /> {label} ★
       </Button>
     ) : (
@@ -415,7 +415,7 @@ function JourneyMilestoneTimeline({ journey }) {
                 style={{
                   width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
                   maxWidth: 'calc(100% - 28px)',
-                  background: 'linear-gradient(90deg, #D4A853, #1A3638)',
+                  background: 'linear-gradient(90deg, #1F3A3C, #5A9EA2)',
                 }}
               />
             )}
@@ -1379,7 +1379,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
           const isLast = i === timelineSteps.length - 1
           // Pregnant step color based on baby sex
           const babySex = jd.babySexes?.[0]
-          const pregnantBg = babySex === 'girl' ? 'bg-pink-500 border-pink-500' : babySex === 'boy' ? 'bg-blue-500 border-blue-500' : 'bg-green-500 border-green-500'
+          const pregnantBg = babySex === 'girl' ? 'bg-[#D4A853] border-pink-500' : babySex === 'boy' ? 'bg-blue-500 border-blue-500' : 'bg-green-500 border-green-500'
           const pregnantText = babySex === 'girl' ? 'text-pink-600' : babySex === 'boy' ? 'text-blue-600' : 'text-green-600'
           return (
             <div key={step.key} className="flex items-center flex-1">
@@ -1686,7 +1686,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setHeartbeatOpen(false)}>Cancel</Button>
-              <Button size="sm" disabled={saving || !heartbeatDate} className="gap-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={handleHeartbeat}>
+              <Button size="sm" disabled={saving || !heartbeatDate} className="gap-1 bg-[#1F3A3C] hover:bg-pink-700 text-white" onClick={handleHeartbeat}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <HeartPulse className="size-3" />}
                 Confirm Heartbeat
               </Button>
@@ -2653,7 +2653,7 @@ function NotesTab({ journeyId, currentUser }) {
 
   const NOTE_TYPES = [
     { key: 'shared', label: 'Shared Notes', color: 'bg-[#1A3638]' },
-    { key: 'gc', label: 'GC Notes', color: 'bg-pink-500' },
+    { key: 'gc', label: 'GC Notes', color: 'bg-[#D4A853]' },
     { key: 'ip', label: 'IP Notes', color: 'bg-[#1A3638]' },
     { key: 'all', label: 'All Notes', color: 'bg-stone-500' },
   ]
@@ -2684,7 +2684,7 @@ function NotesTab({ journeyId, currentUser }) {
             return (
               <Card key={note.id} className="rounded-2xl"><CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#1A3638]' : 'bg-[#1A3638]'}`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-[#D4A853]' : note.note_type === 'ip' ? 'bg-[#1A3638]' : 'bg-[#1A3638]'}`}>
                     {note.note_type === 'gc' ? 'GC' : note.note_type === 'ip' ? 'IP' : 'SHARED'}
                   </span>
                   <span className="text-xs text-stone-400">{note.created_by}</span>
@@ -4018,19 +4018,19 @@ export default function JourneyDetailPage() {
                   <div className="flex gap-1.5">
                     {gcCase.phone && (
                       <Button size="icon" title={gcCase.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
-                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => setSmsConfirm({ phone: gcCase.phone, name: gcCase.name, party: 'gc' })}>
                         <MessageSquare className="size-3" />
                       </Button>
                     )}
                     <Button size="icon" title={gcCase.preferredContact === 'Email' ? 'Email (preferred)' : 'Email'}
-                      className={`size-7 rounded-full ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                      className={`size-7 rounded-full ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                       onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id, party: 'gc' })}>
                       <Mail className="size-3" />
                     </Button>
                     {gcCase.phone && (
                       <Button size="icon" title={gcCase.preferredContact === 'Phone' ? 'Call (preferred)' : 'Call'}
-                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#D4A853] to-[#1A3638] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => toggleGcFlip('phone')}>
                         <Phone className="size-3" />
                       </Button>
@@ -4198,7 +4198,7 @@ export default function JourneyDetailPage() {
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Checklist' },
-          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
@@ -4206,7 +4206,7 @@ export default function JourneyDetailPage() {
           { value: 'insurance', label: 'Insurance' },
           { value: 'expenses', label: 'Escrow / Expenses' },
           { value: 'notes', label: 'Notes' },
-          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'texts', label: 'Texts' },
         ]} />
 
@@ -4245,7 +4245,7 @@ export default function JourneyDetailPage() {
         <TabsContent value="application" className="mt-4">
           <div className="flex gap-2 mb-4">
             <button onClick={() => setAppView('gc')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'gc' ? 'bg-pink-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'gc' ? 'bg-[#D4A853] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
               GC Application
             </button>
             <button onClick={() => setAppView('ip')}
@@ -4270,7 +4270,7 @@ export default function JourneyDetailPage() {
         <TabsContent value="profiles" className="space-y-4 mt-4">
           <div className="flex gap-2">
             <button onClick={() => setProfileView('gc')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'gc' ? 'bg-pink-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'gc' ? 'bg-[#D4A853] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
               Surrogate Profile
             </button>
             <button onClick={() => setProfileView('ip')}
@@ -4370,7 +4370,7 @@ export default function JourneyDetailPage() {
       {smsConfirm && (
         <div className={`fixed z-50 animate-in fade-in duration-200 ${smsConfirm.party === 'ip' ? 'top-[340px] right-8' : 'top-[140px] right-8'}`}>
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-5 py-3 flex items-center gap-3 max-w-md">
-            <div className="size-9 rounded-full bg-pink-500/10 flex items-center justify-center shrink-0">
+            <div className="size-9 rounded-full bg-[#D4A853]/10 flex items-center justify-center shrink-0">
               <MessageSquare className="size-4 text-pink-500" />
             </div>
             <div className="flex-1 min-w-0">

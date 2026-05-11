@@ -37,7 +37,7 @@ const DOT_COLORS = {
   '1': 'bg-blue-500',
   '2': 'bg-green-500',
   '3': 'bg-purple-500',
-  '4': 'bg-pink-500',
+  '4': 'bg-[#D4A853]',
   '5': 'bg-amber-500',
   '6': 'bg-orange-500',
   '7': 'bg-cyan-500',

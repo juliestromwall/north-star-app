@@ -154,7 +154,7 @@ function ScreeningProgress({ screening, recordTracking, surrogateId, stageId }) 
         <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #1A3638, #D4A853)' }} />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #1F3A3C, #5A9EA2)' }} />
       </div>
       {cardMilestones.length > 0 && (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -233,8 +233,8 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
       {isNew && (
         <div className="absolute top-3 right-3 z-10">
           <span className="relative flex size-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-            <span className="relative inline-flex rounded-full size-3 bg-pink-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+            <span className="relative inline-flex rounded-full size-3 bg-[#D4A853]" />
           </span>
         </div>
       )}
@@ -738,8 +738,8 @@ export default function SurrogateListPage() {
                         <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {rowIsNew && (
                           <span className="relative flex size-2.5 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                            <span className="relative inline-flex rounded-full size-2.5 bg-[#D4A853]" />
                           </span>
                         )}
                         {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}

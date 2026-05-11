@@ -90,12 +90,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #f0f1fa 0%, #fdf8f3 30%, #fef9fb 60%, #f0f1fa 100%)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #fafaf7 0%, #e8efee 25%, #c8d9d6 55%, #88C0C4 80%, #1F3A3C 100%)' }}>
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
-            <h1 className="text-3xl font-heading font-bold" style={{ color: '#1A3638' }}>Welcome <span style={{ color: '#D4A853' }}>back</span></h1>
+            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-40 w-auto mx-auto mb-6" />
+            <h1 className="text-3xl font-heading font-bold" style={{ color: '#1A3638' }}><span style={{ color: '#D4A853' }}>Welcome</span> back</h1>
             <p className="text-stone-400 text-sm mt-2">Sign in to your portal</p>
             {new URLSearchParams(location.search).get('reason') === 'idle' && (
               <p className="text-amber-600 text-xs mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">You were signed out due to inactivity. Please sign in again.</p>
@@ -132,7 +132,7 @@ export default function LoginPage() {
                     <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" autoFocus />
                   </div>
                   {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
-                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0" style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
+                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0" style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}>
                     {loading ? 'Sending...' : 'Send Reset Link'}
                   </Button>
                   <button type="button" onClick={() => { setForgotMode(false); setError(null) }} className="w-full text-xs text-stone-500 hover:text-stone-700 flex items-center justify-center gap-1 mt-2">
@@ -194,7 +194,7 @@ export default function LoginPage() {
               type="submit"
               disabled={!email || !password || loading}
               className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}
+              style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}
             >
               {loading ? 'Signing in...' : 'Sign in'}
               {!loading && <ArrowRight className="w-4 h-4" />}

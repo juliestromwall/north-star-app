@@ -175,7 +175,7 @@ export function QuizShell({
           <div className="w-full max-w-xs h-8 rounded-full overflow-hidden shadow-sm"
             style={{ background: '#e7e5e4' }}>
             <div className="h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center"
-              style={{ width: `${Math.max(progress, 20)}%`, background: 'linear-gradient(135deg, #D4A853, #1A3638)' }}>
+              style={{ width: `${Math.max(progress, 20)}%`, background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)' }}>
               {milestone && (
                 <span className="text-[11px] font-semibold text-white whitespace-nowrap">{milestone}</span>
               )}

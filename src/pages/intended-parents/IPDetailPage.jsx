@@ -619,8 +619,8 @@ export default function IPDetailPage() {
                   >
                     {stageStatus.status === 'New' ? (
                       <span className="relative flex size-4 mx-auto mb-1">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+                        <span className="relative inline-flex rounded-full size-4 bg-[#D4A853]" />
                       </span>
                     ) : (
                       <Circle className="size-4 text-stone-300 mx-auto mb-1" />
@@ -677,12 +677,12 @@ export default function IPDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`ip_${ip.id}`} tabs={[
           { value: 'overview', label: 'Checklist' },
-          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profile', label: 'Profile' },
           { value: 'documents', label: 'Documents' },
           { value: 'texts', label: 'Texts' },
-          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-[#D4A853]" /></span>}</span> },
           { value: 'notes', label: 'Notes' },
           ...(ip?.answers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />

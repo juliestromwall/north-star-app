@@ -40,8 +40,8 @@ const STATUS_STYLES = {
 function UnreadDot() {
   return (
     <span className="relative flex size-2.5 ml-1">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-      <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4A853] opacity-75" />
+      <span className="relative inline-flex rounded-full size-2.5 bg-[#D4A853]" />
     </span>
   )
 }

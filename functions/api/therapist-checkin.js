@@ -46,7 +46,7 @@ function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName,
         </p>
       </div>
       ${journeyUrl ? `<div style="text-align: center; margin: 24px 0;">
-        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #D4A853, #1A3638); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
           Open Case
         </a>
       </div>` : ''}
