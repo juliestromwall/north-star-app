@@ -140,7 +140,7 @@ export default function SurrogateIntakeForm() {
       if (data.accepted === false) {
         // Bot/duplicate rejection — still navigate to confirmation so user doesn't see error
       }
-      navigate('/apply/confirmation', { state: { intakeType: 'gc', firstName: form.firstName, qualified: submission.qualified } })
+      navigate('/getstarted/confirmation', { state: { intakeType: 'gc', firstName: form.firstName, qualified: submission.qualified } })
     } catch (err) {
       setSubmitError(err.message || 'Submission failed.'); setSubmitting(false)
     }

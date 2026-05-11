@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/auth/LoginPage'
 import StubPage from './pages/stubs/StubPage'
@@ -90,10 +90,15 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
         <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
-        <Route path="/surrogatequiz" element={<IntakeLandingPage />} />
-        <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
-        <Route path="/intendedparentapply" element={<IPIntakeForm />} />
-        <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
+        <Route path="/getstarted" element={<IntakeLandingPage />} />
+        <Route path="/getstarted/surrogate" element={<SurrogateIntakeForm />} />
+        <Route path="/getstarted/intendedparent" element={<IPIntakeForm />} />
+        <Route path="/getstarted/confirmation" element={<IntakeConfirmationPage />} />
+        {/* Legacy redirects — keep any old links / embeds working */}
+        <Route path="/surrogatequiz" element={<Navigate to="/getstarted" replace />} />
+        <Route path="/apply/surrogate" element={<Navigate to="/getstarted/surrogate" replace />} />
+        <Route path="/intendedparentapply" element={<Navigate to="/getstarted/intendedparent" replace />} />
+        <Route path="/apply/confirmation" element={<Navigate to="/getstarted/confirmation" replace />} />
         <Route path="/share/:token" element={<SharedProfilePage />} />
         <Route path="/therapist-tracking/share/:token" element={<SharedPsychTrackingPage />} />
         <Route path="/e-signature/:id" element={<SignDocumentPage />} />

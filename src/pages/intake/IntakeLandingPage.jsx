@@ -94,13 +94,13 @@ export default function IntakeLandingPage() {
       {/* Two-card chooser */}
       <div className="max-w-3xl mx-auto px-5 pb-20 grid sm:grid-cols-2 gap-5">
         <PathCard
-          onClick={() => navigate('/apply/surrogate')}
+          onClick={() => navigate('/getstarted/surrogate')}
           eyebrow="For Surrogates"
           title="I'd like to be a surrogate"
           body="Help an intended family welcome a baby into the world. You'll be supported, respected, and well-compensated every step of the way."
         />
         <PathCard
-          onClick={() => navigate('/intendedparentapply')}
+          onClick={() => navigate('/getstarted/intendedparent')}
           eyebrow="For Intended Parents"
           title="I'm hoping to grow my family"
           body="Begin the path to parenthood with a trauma-informed agency built on lived experience and clinical insight."

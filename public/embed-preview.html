@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ABC Quiz Embed Preview</title>
+  <title>North Star Intake Embed Preview</title>
   <style>
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
@@ -24,18 +24,18 @@
     <div class="banner">
       <h1>Embed preview</h1>
       <p>
-        Simulates how ABC's quiz iframes render on a partner site. Add
-        <code>?quiz=ip</code> to this URL to preview the Intended Parent
-        landing (<code>/intendedparentapply</code>) instead of the default
-        surrogate quiz (<code>/surrogatequiz</code>). The iframe
-        auto-resizes via the <code>abc:height</code> postMessage. Any
-        tracking params (utm_*, fbclid, ttclid, gclid…) on this page's URL
-        are forwarded into the iframe so attribution works.
+        Simulates how North Star's intake iframes render on a partner site. Add
+        <code>?quiz=ip</code> to this URL to preview the Intended Parent intake
+        (<code>/getstarted/intendedparent</code>) instead of the default
+        landing (<code>/getstarted</code>). The iframe auto-resizes via the
+        <code>abc:height</code> postMessage. Any tracking params (utm_*, fbclid,
+        ttclid, gclid…) on this page's URL are forwarded into the iframe so
+        attribution works.
       </p>
     </div>
     <div class="frame-wrap">
       <div class="meta">
-        <span>Iframe: <span class="host" id="src-label">/surrogatequiz</span></span>
+        <span>Iframe: <span class="host" id="src-label">/getstarted</span></span>
         <span id="height-label">height: —</span>
       </div>
       <iframe id="abc-quiz" allow="clipboard-write" title="North Star Surrogacy quiz"></iframe>
@@ -49,7 +49,7 @@
       // Pick the quiz variant from ?quiz= on the host URL.
       var hostParams = new URLSearchParams(window.location.search);
       var variant = (hostParams.get('quiz') || '').toLowerCase();
-      var base = variant === 'ip' ? '/intendedparentapply' : '/surrogatequiz';
+      var base = variant === 'ip' ? '/getstarted/intendedparent' : '/getstarted';
       // Strip our own `quiz` param before forwarding tracking to the iframe.
       hostParams.delete('quiz');
       var params = hostParams.toString() ? ('?' + hostParams.toString()) : '';

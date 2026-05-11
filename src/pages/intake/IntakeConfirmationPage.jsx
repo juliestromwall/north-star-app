@@ -55,7 +55,7 @@ export default function IntakeConfirmationPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#fdf8f3]">
         <div className="text-center">
           <p className="text-stone-500 mb-4">This page requires a form submission to display.</p>
-          <Button onClick={() => navigate('/surrogatequiz')} variant="outline">Go to Application</Button>
+          <Button onClick={() => navigate('/getstarted')} variant="outline">Go to Application</Button>
         </div>
       </div>
     )
@@ -227,7 +227,7 @@ export default function IntakeConfirmationPage() {
           </div>
 
           <div className="flex flex-col gap-3 items-center">
-            <button onClick={() => navigate('/surrogatequiz')} className="text-xs text-stone-400 underline underline-offset-2">
+            <button onClick={() => navigate('/getstarted')} className="text-xs text-stone-400 underline underline-offset-2">
               Return to Application Home
             </button>
           </div>
