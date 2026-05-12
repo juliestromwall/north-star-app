@@ -225,40 +225,14 @@ export const FIELD_LABELS = {
 // ─────────────────────────────────────────────────────────
 
 const SECTION_META = [
-  { key: 'personal', title: 'Personal Information', icon: User, description: 'Basic info, relationships, and household' },
-  { key: 'followUp', title: 'Profile Follow Up Questions', icon: Stethoscope, description: 'Additional screening and eligibility questions' },
   { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
-  { key: 'fertility', title: 'Fertility Information', icon: Stethoscope, description: 'Reproductive health and fertility details' },
-  { key: 'general', title: 'General Information', icon: Home, description: 'Housing, lifestyle, habits, and background' },
-  { key: 'health', title: 'Health Information', icon: HeartPulse, description: 'Medical history, medications, and conditions' },
-  { key: 'employment', title: 'Employment Information', icon: Briefcase, description: 'Work, income, and insurance details' },
-  { key: 'academic', title: 'Education', icon: Apple, description: 'Education and current schooling' },
-  { key: 'interests', title: 'Interests', icon: Heart, description: 'Favorites, hobbies, and personality' },
-  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Information', icon: Stethoscope, description: 'Previous surrogacy journey details' },
   { key: 'narrative', title: 'Profile Narrative', icon: Heart, description: 'Getting to know you, values, and preferences' },
   { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
 ]
 
 // Required fields per section for completion tracking
 const REQUIRED_FIELDS = {
-  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus', 'sexualPartners', 'usCitizen'],
-  followUp: [], // FollowUp questions are application-only, not part of profile completion
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication', 'contraceptiveMethod'],
-  general: ['homeOwnership', 'homeDuration', 'childrenFullTime', 'planMoreChildren',
-    'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
-    'householdControlledSubstances', 'typicalDiet', 'exerciseFrequency',
-    'childrenSpecialNeeds', 'piercingsTattoos', 'criminalHistory', 'travelPlans', 'reliableVehicle',
-    'divorcedRelationship'],
-  health: ['mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
-    'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
-    'allergies', 'medicalConditions', 'surgeries', 'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
-    'openToVaccinations', 'lastPap'],
-  employment: ['currentlyEmployed', 'governmentAssistance', 'healthInsurance'],
-  interests: ['favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
-    'favoriteColor', 'favoriteFlower', 'pets', 'catLitter', 'hobbies', 'dreamTravel', 'personality'],
-  academic: ['educationLevel', 'currentlyInSchool'],
-  experiencedSurrogate: ['previousSurrogate'],
   narrative: [
     'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
     'whyConsider', 'excitedAbout', 'hopingToGain', 'beenSurrogateBefore', 'ipDrawnTo',
@@ -278,54 +252,7 @@ const REQUIRED_FIELDS = {
 
 // Conditional required fields — only required if parent field has a specific value
 const CONDITIONAL_REQUIRED = {
-  personal: {
-    monogamous: { parent: 'maritalStatus', showWhen: v => !['Single', 'Divorced', 'Widowed', ''].includes(v || '') },
-    relationshipLength: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
-    partnerName: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
-    partnerDob: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
-    partnerUsCitizen: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
-  },
-  followUp: {},
-  fertility: {
-    sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
-    infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
-    gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
-    pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
-  },
-  general: {
-    childrenFullTimeDetails: { parent: 'childrenFullTime', showWhen: 'no' },
-    planMoreChildrenDetails: { parent: 'planMoreChildren', showWhen: 'yes' },
-    smokingHistoryDetails: { parent: 'smokingHistory', showWhen: 'yes' },
-    householdSmokerDetails: { parent: 'householdSmoker', showWhen: 'yes' },
-    alcoholDrugsDetails: { parent: 'alcoholDrugs', showWhen: 'yes' },
-    advisedLimitDetails: { parent: 'advisedLimitSubstances', showWhen: 'yes' },
-    householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
-    childrenSpecialNeedsDetails: { parent: 'childrenSpecialNeeds', showWhen: 'yes' },
-    criminalHistoryDetails: { parent: 'criminalHistory', showWhen: 'yes' },
-    travelPlansDetails: { parent: 'travelPlans', showWhen: 'yes' },
-  },
-  health: {
-    mentalHealthDetails: { parent: 'mentalHealthDiagnosis', showWhen: 'yes' },
-    mentalHealthHospDetails: { parent: 'mentalHealthHospitalization', showWhen: 'yes' },
-    mentalHealthMedDetails: { parent: 'mentalHealthMedication', showWhen: 'yes' },
-    counselingDetails: { parent: 'counselingTherapy', showWhen: 'yes' },
-    familyMentalHealthDetails: { parent: 'familyMentalHealth', showWhen: 'yes' },
-    domesticViolenceDetails: { parent: 'domesticViolence', showWhen: 'yes' },
-  },
-  employment: {
-    employmentIndustry: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    workHours: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    occupation: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    lengthAtEmployer: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    hourlyRate: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    weeklyIncome: { parent: 'currentlyEmployed', showWhen: 'yes' },
-    governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
-    insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
-  },
   narrative: {},
-  academic: {
-    currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
-  },
 }
 
 function isPregnancyComplete(p) {

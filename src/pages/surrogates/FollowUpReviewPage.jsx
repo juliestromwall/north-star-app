@@ -49,7 +49,7 @@ export default function FollowUpReviewPage() {
   function getFieldValue(key) {
     // Check followUp section first, then original sections
     if (profileData?.followUp?.[key] !== undefined && profileData.followUp[key] !== '') return profileData.followUp[key]
-    for (const sec of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'narrative']) {
+    for (const sec of ['pregnancyHistory', 'narrative']) {
       if (profileData?.[sec]?.[key] !== undefined && profileData[sec][key] !== '') return profileData[sec][key]
     }
     return ''

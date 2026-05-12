@@ -15,7 +15,7 @@ import Cropper from 'react-easy-crop'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, createCaseTask } from '@/lib/db'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { NarrativeProfileEditor, NarrativeProfileView } from '@/components/profile/NarrativeProfileSection'
 import { IP_PROFILE_SECTIONS } from '@/data/profileNarrative'
 
 // ── Field definitions ──
@@ -603,42 +603,26 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           </div>
         </div>
 
-        {/* Stats byline — ages + green flag qualities inline */}
-        {(() => {
-          const ip1Qs = !hiddenFields.includes('ip1.history.qualities') && Array.isArray(ip1?.history?.qualities) ? ip1.history.qualities : []
-          const ip2Qs = hasPartner && !hiddenFields.includes('ip2.history.qualities') && Array.isArray(ip2?.history?.qualities) ? ip2.history.qualities : []
-          return (
-            <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#1A3638]">
-                {ip1Age && (
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
-                    <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{hasPartner ? ip1Name : 'yrs'}</span>
-                    {ip1Qs.length > 0 && (
-                      <span className="flex items-baseline gap-1.5 ml-1.5">
-                        <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
-                        <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip1Qs.join(', ')}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-                {ip2Age && (
-                  <><span className="h-6 w-px bg-stone-300" />
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-2xl font-heading font-black leading-none">{ip2Age}</span>
-                    <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip2Name}</span>
-                    {ip2Qs.length > 0 && (
-                      <span className="flex items-baseline gap-1.5 ml-1.5">
-                        <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
-                        <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip2Qs.join(', ')}</span>
-                      </span>
-                    )}
-                  </div></>
-                )}
-              </div>
+        {/* Ages byline */}
+        {(ip1Age || ip2Age) && (
+          <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#1A3638]">
+              {ip1Age && (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
+                  <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{hasPartner ? ip1Name : 'yrs'}</span>
+                </div>
+              )}
+              {ip2Age && (
+                <><span className="h-6 w-px bg-stone-300" />
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-heading font-black leading-none">{ip2Age}</span>
+                  <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip2Name}</span>
+                </div></>
+              )}
             </div>
-          )
-        })()}
+          </div>
+        )}
       </div>
 
       {/* Thumbnail strip */}
@@ -653,80 +637,13 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         </div>
       )}
 
-      {/* Sections */}
+      {/* Narrative profile sections */}
       <div className="px-8 sm:px-12 py-6 space-y-6 print:px-10">
-        <NewSection title="Fertility Information" icon={Baby} number={1}>
-          {renderFields(fertility, FERTILITY_FIELDS, 'fertility')}
-        </NewSection>
-
-        <NewSection title="Surrogacy Information" icon={Heart} number={2}>
-          {renderFields(surrogacy, SURROGACY_FIELDS, 'surrogacy')}
-        </NewSection>
-
-        {/* Per-person sections */}
-        {(['health', 'history']).map((secKey, idx) => {
-          const rawDefs = secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
-          // Exclude messageToSurrogate — renders as a special letter card below.
-          // Exclude qualities — rendered as green flags in the hero instead.
-          const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate' && f.key !== 'qualities')
-          // coupleField: ask BOTH IPs when partnered; never on singles.
-          const partneredFieldDefs = hasPartner ? fieldDefs : fieldDefs.filter(f => !f.coupleField)
-          const ip1FieldDefs = partneredFieldDefs
-          const ip2FieldDefs = partneredFieldDefs
-          const sectionLabel = secKey === 'health' ? 'Health Information' : 'Personal History'
-          const Icon = sectionIcons[secKey]
-          const sectionNum = 3 + idx
-
-          if (!hasPartner) {
-            return (
-              <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
-                {renderFields(ip1[secKey] || {}, ip1FieldDefs, `ip1.${secKey}`)}
-              </NewSection>
-            )
-          }
-
-          return (
-            <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-[#D4A853] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
-                  {renderFields(ip1[secKey] || {}, ip1FieldDefs, `ip1.${secKey}`)}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-[#D4A853] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
-                  {renderFields(ip2[secKey] || {}, ip2FieldDefs, `ip2.${secKey}`)}
-                </div>
-              </div>
-            </NewSection>
-          )
-        })}
-
-        {/* ── Letter to Surrogate (Dear Surrogate) ── */}
-        {(() => {
-          const ip1Msg = ip1?.history?.messageToSurrogate
-          const ip2Msg = hasPartner ? ip2?.history?.messageToSurrogate : null
-          const messages = []
-          if (ip1Msg) messages.push({ name: hasPartner ? ip1Name : primaryName, text: ip1Msg })
-          if (ip2Msg) messages.push({ name: ip2Name, text: ip2Msg })
-          if (messages.length === 0) return null
-          return (
-            <div className="mt-8 print:break-inside-avoid">
-              <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#D4A853]/20 shadow-sm print:shadow-none">
-                <div className="px-7 pt-6 pb-4">
-                  <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Surrogate,</p>
-                </div>
-                <div className="px-7 pb-7 space-y-5">
-                  {messages.map((m, i) => (
-                    <div key={i}>
-                      <p className="text-[15px] text-stone-700 leading-[1.75] whitespace-pre-wrap font-serif italic">{m.text}</p>
-                      <p className="text-right text-base font-heading font-bold mt-3" style={{ color: '#c2185b' }}>— {m.name}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )
-        })()}
+        <NarrativeProfileView
+          sections={IP_PROFILE_SECTIONS}
+          narrative={profile?.narrative || {}}
+          applicantFirstName={hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
+        />
       </div>
     </div>
 
@@ -773,9 +690,6 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 }
 
 export const SECTIONS = [
-  { key: 'fertility', label: 'Fertility Information', description: 'Embryos, donors, and fertility history', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
-  { key: 'surrogacy', label: 'Surrogacy Information', description: 'Preferences, expectations, and clinic details', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
-  { key: 'health', label: 'Health Information', description: 'Medical history and health conditions', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
   { key: 'narrative', label: 'Your Story', description: 'Share who you are, what brings you joy, and what you hope for', icon: BookOpen, narrative: true },
 ]
 

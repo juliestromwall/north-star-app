@@ -3256,15 +3256,7 @@ function GTPALChip({ label, value, color }) {
 
 // ── Profile section config ─────────────────────────────────
 const SECTION_DESCRIPTIONS = {
-  personal: 'Basic info, relationships, and household',
   pregnancyHistory: 'Previous pregnancies and deliveries',
-  fertility: 'Reproductive health and fertility details',
-  general: 'Housing, lifestyle, habits, and background',
-  health: 'Medical history, medications, and conditions',
-  employment: 'Work, income, and insurance details',
-  interests: 'Favorites, hobbies, and personality',
-  academic: 'Education and training',
-  experiencedSurrogate: 'Previous surrogacy journey details',
   narrative: 'Profile narrative — getting to know you, values, preferences',
 }
 
@@ -3341,70 +3333,8 @@ function isConditionalVisible(fieldKey, sectionData) {
 }
 
 const PROFILE_SECTIONS = [
-  { key: 'personal', title: 'Personal Information', fields: [
-    'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
-    'usCitizen',
-    'maritalStatus', 'monogamous', 'sexualPartners', 'relationshipLength', 'partnerName',
-    'partnerDob', 'partnerUsCitizen', 'householdMembers'
-  ] },
   { key: 'pregnancyHistory', title: 'Pregnancy History', fields: [
     'numberOfPregnancies', 'pregnancies'
-  ] },
-  { key: 'fertility', title: 'Fertility Information', fields: [
-    'breastfeeding', 'breastfeedingAdminNotes',
-    'sameBioFather', 'sameBioFatherDetails', 'pregnancyDetails',
-    'infertilityTreatment', 'infertilityTreatmentDetails',
-    'gynecologicalProblems', 'gynecologicalProblemsDetails',
-    'pregnancyMedication', 'pregnancyMedicationList',
-    'contraceptiveMethod'
-  ] },
-  { key: 'general', title: 'General Information', fields: [
-    'homeOwnership', 'homeDuration', 'childrenFullTime', 'childrenFullTimeDetails',
-    'divorcedRelationship',
-    'childrenSpecialNeeds', 'childrenSpecialNeedsDetails',
-    'planMoreChildren', 'planMoreChildrenDetails',
-    'smokeVape', 'smokingHistory', 'smokingHistoryDetails',
-    'householdSmoker', 'householdSmokerDetails',
-    'alcoholDrugs', 'alcoholDrugsDetails',
-    'gunsInHome', 'gunsInHomeAdminNotes',
-    'advisedLimitSubstances', 'advisedLimitDetails',
-    'householdControlledSubstances', 'householdSubstancesDetails', 'householdSubstancesPurpose',
-    'religiousBackground', 'comfortableDifferentReligion',
-    'typicalDiet', 'exerciseFrequency',
-    'piercingsTattoos',
-    'criminalHistory', 'criminalHistoryDetails',
-    'travelPlans', 'travelPlansDetails',
-    'reliableVehicle'
-  ] },
-  { key: 'health', title: 'Health Information', fields: [
-    'mentalHealthDiagnosis', 'mentalHealthDetails',
-    'mentalHealthHospitalization', 'mentalHealthHospDetails',
-    'mentalHealthMedication', 'mentalHealthMedDetails',
-    'counselingTherapy', 'counselingDetails',
-    'familyMentalHealth', 'familyMentalHealthDetails',
-    'domesticViolence', 'domesticViolenceDetails',
-    'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
-    'allergies', 'medicalConditions',
-    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails',
-    'openToVaccinations', 'vaccinesNotWilling', 'lastPap'
-  ] },
-  { key: 'employment', title: 'Employment Information', fields: [
-    'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
-    'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
-    'partnerEmployed', 'partnerOccupation', 'partnerWorkHours', 'partnerWeeklyIncome',
-    'governmentAssistance', 'governmentAssistanceDetails',
-    'healthInsurance', 'insuranceType'
-  ] },
-  { key: 'academic', title: 'Education', fields: [
-    'educationLevel', 'currentlyInSchool', 'currentlyInSchoolDetails'
-  ] },
-  { key: 'interests', title: 'Interests', fields: [
-    'favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
-    'favoriteColor', 'favoriteFlower', 'pets', 'catLitter',
-    'hobbies', 'collections', 'dreamTravel', 'qualities', 'personality'
-  ] },
-  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [
-    'previousSurrogate', 'surrogacyTimes', 'journeys', 'overallExperience'
   ] },
   { key: 'narrative', title: 'Profile Narrative', fields: [
     'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
