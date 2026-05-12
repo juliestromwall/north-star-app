@@ -59,8 +59,8 @@ export async function onRequestPost(context) {
   // domain (@northstarsurrogacy.com), send directly as them — otherwise fall back
   // to the default noreply and use Reply-To so replies still reach the admin.
   const cleanSenderEmail = (senderEmail || '').trim().toLowerCase()
-  const senderOnABCDomain = cleanSenderEmail.endsWith('@northstarsurrogacy.com')
-  const fromAddress = senderOnABCDomain ? cleanSenderEmail : fromEmail
+  const senderOnAgencyDomain = cleanSenderEmail.endsWith('@northstarsurrogacy.com')
+  const fromAddress = senderOnAgencyDomain ? cleanSenderEmail : fromEmail
   const fromDisplay = senderName
     ? `${senderName} (North Star Surrogacy)`
     : 'North Star Surrogacy'
