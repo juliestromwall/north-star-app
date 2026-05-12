@@ -1754,7 +1754,7 @@ function ProfilePhotosSection({ v, u }) {
           userId={userId}
           fallbackId={fallbackId}
           subfolder="portrait"
-          onPhotoChange={(url) => u('profilePhotos', 'profilePhotoUrl', url || '')}
+          onPhotoChange={(url) => u('profilePhotos', 'profilePhotoUrl')(url || '')}
         />
         <ProfilePhotoUpload
           label="Cover Image"
@@ -1762,7 +1762,7 @@ function ProfilePhotosSection({ v, u }) {
           userId={userId}
           fallbackId={fallbackId}
           subfolder="headshot"
-          onPhotoChange={(url) => u('profilePhotos', 'coverPhotoUrl', url || '')}
+          onPhotoChange={(url) => u('profilePhotos', 'coverPhotoUrl')(url || '')}
         />
       </div>
     </div>
