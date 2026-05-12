@@ -3335,35 +3335,22 @@ function isConditionalVisible(fieldKey, sectionData) {
   return parentVal === cond.showWhen || parentVal === true
 }
 
-// One card per CSV section. The structured Pregnancy History editor sits
-// immediately before "Pregnancy & Parenting Experience" so the two
-// pregnancy-related sections are adjacent. (User-facing surrogate profile
-// nests the pregnancy editor inside Pregnancy & Parenting Experience.)
+// One card per CSV section. The structured Pregnancy History editor is
+// embedded inline at the top of the "Pregnancy & Parenting Experience"
+// card (via the inlinePregnancyEditor block in the section render loop)
+// rather than appearing as a separate card.
 //
 // Narrative sections carry `narrative: true` so the edit/save flow sources
 // from / saves to `data.narrative` (a flat blob keyed by question id) rather
 // than `data[section.key]`.
-const PROFILE_SECTIONS = (() => {
-  const sections = []
-  for (const s of GC_PROFILE_SECTIONS) {
-    if (s.key === 'pregnancyExperience') {
-      sections.push({
-        key: 'pregnancyHistory',
-        title: 'Pregnancy History',
-        fields: ['numberOfPregnancies', 'pregnancies'],
-      })
-    }
-    sections.push({
-      key: s.key,
-      title: s.title,
-      narrative: true,
-      fields: s.questions
-        .filter(q => q.type !== 'pregnancyHistory')
-        .flatMap(q => q.followUp ? [q.id, `${q.id}_details`] : [q.id]),
-    })
-  }
-  return sections
-})()
+const PROFILE_SECTIONS = GC_PROFILE_SECTIONS.map(s => ({
+  key: s.key,
+  title: s.title,
+  narrative: true,
+  fields: s.questions
+    .filter(q => q.type !== 'pregnancyHistory')
+    .flatMap(q => q.followUp ? [q.id, `${q.id}_details`] : [q.id]),
+}))
 
 function normalizeStructuredList(value) {
   if (Array.isArray(value)) return value
@@ -3374,6 +3361,12 @@ function normalizeStructuredList(value) {
       .filter(Boolean)
   }
   return []
+}
+
+function isPregnancyComplete(p) {
+  if (!p?.outcome || !p?.dob || !p?.gestationWeeks || !p?.deliveryType) return false
+  if (p.outcome === 'Live Birth' && !p.weight) return false
+  return true
 }
 
 function countSectionFilled(data, section) {
@@ -3473,6 +3466,21 @@ function countSectionFilled(data, section) {
     const val = sData[f]
     if (val !== undefined && val !== '' && val !== null && !(Array.isArray(val) && val.length === 0)) filled++
   }
+
+  // pregnancyExperience embeds the structured pregnancy history — count
+  // numberOfPregnancies + per-pregnancy completeness alongside the narrative.
+  if (section.key === 'pregnancyExperience') {
+    const ph = data?.pregnancyHistory || {}
+    const numPreg = parseInt(ph.numberOfPregnancies) || 0
+    const pregnancies = Array.isArray(ph.pregnancies) ? ph.pregnancies : []
+    total++
+    if (numPreg > 0) filled++
+    if (numPreg > 0) {
+      total += numPreg
+      filled += pregnancies.filter(p => isPregnancyComplete(p)).length
+    }
+  }
+
   return { filled, total }
 }
 
@@ -4531,6 +4539,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const [sendBackOpen, setSendBackOpen] = useState(false)
   const [sendBackMessage, setSendBackMessage] = useState('')
   const [sendingBack, setSendingBack] = useState(false)
+  // Inline pregnancy editor (embedded inside the pregnancyExperience card)
+  // operates on its own state so it stays decoupled from editingSection /
+  // editData (which the narrative editor owns).
+  const [inlinePregnancyData, setInlinePregnancyData] = useState(null)
+  const inlinePregnancyTimer = useRef(null)
   const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
 
@@ -4759,6 +4772,20 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       autoSaveSection(targetKey, editData)
     }, 1500)
   }, [editData]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save the inline pregnancy editor (embedded inside pregnancyExperience)
+  // with the same debounce + remote-save semantics as autoSaveSection.
+  useEffect(() => {
+    if (!inlinePregnancyData) return
+    if (isApproved) return
+    if (inlinePregnancyTimer.current) clearTimeout(inlinePregnancyTimer.current)
+    inlinePregnancyTimer.current = setTimeout(async () => {
+      if (!surrogate.email) return
+      try {
+        await adminUpdateSurrogateProfile(surrogate.email, { ...data, pregnancyHistory: inlinePregnancyData })
+      } catch {}
+    }, 1500)
+  }, [inlinePregnancyData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveSectionEdit() {
     if (!editingSection) return
@@ -5118,12 +5145,13 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     )
   }
 
-  function renderPregnancyEdit(item, i, field, sourceData = editData) {
+  function renderPregnancyEdit(item, i, field, sourceData = editData, writeArray = null) {
     const updateItem = (k, val) => {
       if (isApproved) return
       const updated = [...(sourceData?.[field] || [])]
       updated[i] = { ...updated[i], [k]: val }
-      updateEditField(field, updated)
+      if (writeArray) writeArray(updated)
+      else updateEditField(field, updated)
     }
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
@@ -5806,6 +5834,55 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   <CardContent>
                     {sec.narrative ? (
                       <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
+                        {sec.key === 'pregnancyExperience' && (() => {
+                          const ph = inlinePregnancyData ?? (data.pregnancyHistory || {})
+                          const numPreg = parseInt(ph.numberOfPregnancies) || 0
+                          const pregnancies = Array.isArray(ph.pregnancies) ? ph.pregnancies : []
+                          const writeNumPreg = (v) => {
+                            const num = parseInt(v) || 0
+                            const current = [...pregnancies]
+                            let nextPregs = current
+                            if (num > current.length) {
+                              const slots = Array.from({ length: num - current.length }, () => ({
+                                outcome: '', wasSurrogacy: '', name: '', dob: '', gestationWeeks: '', gestationDays: '',
+                                deliveryType: '', sex: '', singleOrMultiples: '', weight: '', length: '', complications: '',
+                              }))
+                              nextPregs = [...current, ...slots]
+                            } else if (num < current.length) {
+                              nextPregs = current.slice(0, num)
+                            }
+                            setInlinePregnancyData({ ...ph, numberOfPregnancies: String(num), pregnancies: nextPregs })
+                            setProfileData(prev => ({ ...prev, pregnancyHistory: { ...ph, numberOfPregnancies: String(num), pregnancies: nextPregs } }))
+                          }
+                          const writePregnancies = (updatedArr) => {
+                            setInlinePregnancyData({ ...ph, pregnancies: updatedArr })
+                            setProfileData(prev => ({ ...prev, pregnancyHistory: { ...ph, pregnancies: updatedArr } }))
+                          }
+                          return (
+                            <div className="space-y-3 pb-2">
+                              <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-3">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">Pregnancy History</p>
+                                <div className="flex items-center gap-3">
+                                  <label className="text-sm text-stone-700">How many pregnancies have you had?</label>
+                                  <input
+                                    type="number" min="0" max="20"
+                                    className="w-24 rounded border border-gray-200 px-2 py-1 text-sm bg-white"
+                                    value={ph.numberOfPregnancies ?? ''}
+                                    disabled={isApproved}
+                                    onChange={e => writeNumPreg(e.target.value)}
+                                  />
+                                </div>
+                                {pregnancies.length > 0 && (
+                                  <div className="space-y-3 pt-1">
+                                    {pregnancies.map((p, i) =>
+                                      renderPregnancyEdit(p, i, 'pregnancies', { pregnancies }, writePregnancies)
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })()}
                         <NarrativeProfileEditor
                           bare
                           sections={GC_PROFILE_SECTIONS.filter(s => s.key === sec.key)}
