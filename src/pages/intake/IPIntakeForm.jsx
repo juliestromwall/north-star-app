@@ -188,7 +188,7 @@ export default function IPIntakeForm() {
       })
       const data = await res.json()
       if (!data.ok) { setSubmitError(data.error || 'Submission failed.'); setSubmitting(false); return }
-      navigate('/getstarted/confirmation', { state: { intakeType: 'ip', firstName: form.firstName, qualified: true } })
+      navigate('/getstarted/confirmation', { state: { type: 'ip', name: form.firstName, email: form.email.trim().toLowerCase(), qualified: true, answers: form } })
     } catch (err) {
       setSubmitError(err.message || 'Submission failed.'); setSubmitting(false)
     }
