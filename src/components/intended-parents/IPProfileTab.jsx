@@ -7,6 +7,8 @@ import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { IPProfilePreview, SortablePhoto, PhotoEditor, SECTIONS } from '@/pages/profile/IPProfilePage'
+import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { IP_PROFILE_SECTIONS } from '@/data/profileNarrative'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -341,6 +343,39 @@ function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isAppro
     onSave(section.key, updated)
   }
 
+  if (section.narrative) {
+    return (
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <Card className="rounded-2xl" id={id}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-[#1A3638]/10 flex items-center justify-center">
+                    <Icon className="size-5 text-[#1A3638]" />
+                  </div>
+                  <CardTitle className="text-base text-[#1A3638]">{section.label}</CardTitle>
+                </div>
+                <ChevronDown className={`size-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <fieldset disabled={isApproved} className="disabled:opacity-100">
+                <NarrativeProfileEditor
+                  sections={IP_PROFILE_SECTIONS}
+                  narrative={profile?.narrative || {}}
+                  onChange={updated => onSave('narrative', updated)}
+                />
+              </fieldset>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+    )
+  }
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <Card className="rounded-2xl" id={id}>
@@ -360,7 +395,7 @@ function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isAppro
         <CollapsibleContent>
           <CardContent className="pt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {section.fields.map(f => {
+              {(section.fields || []).map(f => {
                 const node = renderEditField(f, sectionData, handleFieldChange)
                 if (!node) return null
                 const path = `${section.key}.${f.key}`

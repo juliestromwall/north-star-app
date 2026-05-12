@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { US_STATES as US_STATES_FULL, FIELD_LABELS } from '@/components/profile/profileConstants'
+import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { GC_PROFILE_SECTIONS } from '@/data/profileNarrative'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import { useDrafts } from '@/context/DraftContext'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
@@ -5786,7 +5788,15 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                   <CardContent>
-                    {showEditLayout ? (
+                    {sec.key === 'narrative' ? (
+                      <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
+                        <NarrativeProfileEditor
+                          sections={GC_PROFILE_SECTIONS}
+                          narrative={activeEditData || {}}
+                          onChange={updated => setEditData(updated)}
+                        />
+                      </fieldset>
+                    ) : showEditLayout ? (
                       <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {scalarFields.map(field => {
