@@ -477,15 +477,25 @@ function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, fallbackId,
     async function load() {
       // Try userId first
       const photos = await listProfilePhotos(`${userId}/${subfolder}`).catch(() => [])
-      if (photos.length > 0) { setPhoto(photos[0]); return }
+      if (photos.length > 0) {
+        setPhoto(photos[0])
+        // Notify parent so the URL is reflected in profile data — without
+        // this, completion tracking thinks the photo is missing even when
+        // it's already uploaded to storage.
+        if (onPhotoChange) onPhotoChange(photos[0].url)
+        return
+      }
       // Try fallback ID (intake case ID)
       if (fallbackId && fallbackId !== userId) {
         const fallbackPhotos = await listProfilePhotos(`${fallbackId}/${subfolder}`).catch(() => [])
-        if (fallbackPhotos.length > 0) setPhoto(fallbackPhotos[0])
+        if (fallbackPhotos.length > 0) {
+          setPhoto(fallbackPhotos[0])
+          if (onPhotoChange) onPhotoChange(fallbackPhotos[0].url)
+        }
       }
     }
     load()
-  }, [userId, fallbackId, subfolder])
+  }, [userId, fallbackId, subfolder]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
