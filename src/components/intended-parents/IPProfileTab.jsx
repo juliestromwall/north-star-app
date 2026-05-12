@@ -344,6 +344,8 @@ function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isAppro
   }
 
   if (section.narrative) {
+    const targetKey = section.narrativeSectionKey || section.key
+    const narrativeSections = IP_PROFILE_SECTIONS.filter(s => s.key === targetKey)
     return (
       <Collapsible open={open} onOpenChange={setOpen}>
         <Card className="rounded-2xl" id={id}>
@@ -364,7 +366,8 @@ function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isAppro
             <CardContent className="pt-0">
               <fieldset disabled={isApproved} className="disabled:opacity-100">
                 <NarrativeProfileEditor
-                  sections={IP_PROFILE_SECTIONS}
+                  bare
+                  sections={narrativeSections}
                   narrative={profile?.narrative || {}}
                   onChange={updated => onSave('narrative', updated)}
                 />

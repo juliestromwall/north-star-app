@@ -1674,12 +1674,13 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 // Section body router
 // ─────────────────────────────────────────────────────────
 function SectionBody({ sectionKey, v, u, profile, setProfile }) {
-  switch (sectionKey) {
-    case 'pregnancyHistory': return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
-    case 'narrative': return <NarrativeSection profile={profile} setProfile={setProfile} />
-    case 'photos': return <PhotosSection v={v} u={u} />
-    default: return null
+  if (sectionKey === 'pregnancyHistory') return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
+  if (sectionKey === 'photos') return <PhotosSection v={v} u={u} />
+  // Any other key — assume it's a narrative section (gettingToKnowYou, etc.)
+  if (GC_PROFILE_SECTIONS.some(s => s.key === sectionKey)) {
+    return <NarrativeSection profile={profile} setProfile={setProfile} sectionKey={sectionKey} />
   }
+  return null
 }
 
 // ─────────────────────────────────────────────────────────
@@ -2467,13 +2468,17 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Profile Narrative — 12 sections of free-text Q&A
+// Profile Narrative — one section per call (filtered by sectionKey)
 // ─────────────────────────────────────────────────────────
-function NarrativeSection({ profile, setProfile }) {
+function NarrativeSection({ profile, setProfile, sectionKey }) {
   const narrative = profile?.narrative || {}
+  const sections = sectionKey
+    ? GC_PROFILE_SECTIONS.filter(s => s.key === sectionKey)
+    : GC_PROFILE_SECTIONS
   return (
     <NarrativeProfileEditor
-      sections={GC_PROFILE_SECTIONS}
+      bare
+      sections={sections}
       narrative={narrative}
       onChange={updated => setProfile(prev => ({ ...prev, narrative: updated }))}
     />

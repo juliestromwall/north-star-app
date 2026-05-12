@@ -689,9 +689,18 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   )
 }
 
-export const SECTIONS = [
-  { key: 'narrative', label: 'Your Story', description: 'Share who you are, what brings you joy, and what you hope for', icon: BookOpen, narrative: true },
-]
+// One section card per CSV section. Each IP narrative section reads/writes
+// `profile.narrative[questionId]`, so they share a flat blob; the per-section
+// cards just scope which subset of questions render in each card.
+const NARRATIVE_ICONS = { Heart, Star: Heart, Baby, MessageCircle: BookOpen, Sparkles: BookOpen, Shield: BookOpen, Users: User, CalendarDays: BookOpen, Mail: BookOpen }
+export const SECTIONS = IP_PROFILE_SECTIONS.map(s => ({
+  key: s.key,
+  label: s.title,
+  description: s.note || '',
+  icon: NARRATIVE_ICONS[s.icon] || BookOpen,
+  narrative: true,
+  narrativeSectionKey: s.key,
+}))
 
 // ── Completion helpers ──
 
@@ -711,10 +720,34 @@ function fillStats(fields, data) {
   return { filled, total }
 }
 
+function countNarrativeSection(profile, sectionKey) {
+  const sec = IP_PROFILE_SECTIONS.find(s => s.key === sectionKey)
+  if (!sec) return { filled: 0, total: 0, complete: false }
+  const narrative = profile?.narrative || {}
+  let filled = 0, total = 0
+  for (const q of sec.questions) {
+    total++
+    const val = narrative[q.id]
+    const hasVal = val !== undefined && val !== null && val !== ''
+    if (hasVal) filled++
+    if (q.followUp && hasVal) {
+      const show = q.followUp.when === 'any' || q.followUp.when === val
+      if (show) {
+        total++
+        if (narrative[`${q.id}_details`]) filled++
+      }
+    }
+  }
+  return { filled, total, complete: total > 0 && filled === total }
+}
+
 export function countCompletion(profile, hasPartner) {
   let filled = 0, total = 0
   for (const sec of SECTIONS) {
-    if (sec.perPerson) {
+    if (sec.narrative) {
+      const s = countNarrativeSection(profile, sec.narrativeSectionKey || sec.key)
+      filled += s.filled; total += s.total
+    } else if (sec.perPerson) {
       for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
         const s = fillStats(sec.fields, profile?.[person]?.[sec.key] || {})
         filled += s.filled; total += s.total
@@ -728,28 +761,8 @@ export function countCompletion(profile, hasPartner) {
 }
 
 function countSectionCompletion(profile, section, hasPartner) {
-  // Narrative sections count answers across all narrative questions.
   if (section.narrative) {
-    const narrative = profile?.narrative || {}
-    // Tally every question across IP_PROFILE_SECTIONS plus the follow-up
-    // textareas that are visible when the parent question's value matches.
-    let filled = 0, total = 0
-    for (const sec of IP_PROFILE_SECTIONS) {
-      for (const q of sec.questions) {
-        total++
-        const val = narrative[q.id]
-        const hasVal = val !== undefined && val !== null && val !== ''
-        if (hasVal) filled++
-        if (q.followUp && hasVal) {
-          const show = q.followUp.when === 'any' || q.followUp.when === val
-          if (show) {
-            total++
-            if (narrative[`${q.id}_details`]) filled++
-          }
-        }
-      }
-    }
-    return { filled, total, complete: total > 0 && filled === total }
+    return countNarrativeSection(profile, section.narrativeSectionKey || section.key)
   }
   let filled = 0, total = 0
   if (section.perPerson) {
@@ -1290,7 +1303,8 @@ export default function IPProfilePage() {
                 <CardContent>
                   {sec.narrative ? (
                     <NarrativeProfileEditor
-                      sections={IP_PROFILE_SECTIONS}
+                      bare
+                      sections={IP_PROFILE_SECTIONS.filter(s => s.key === (sec.narrativeSectionKey || sec.key))}
                       narrative={profile.narrative || {}}
                       onChange={updated => setProfile(prev => ({ ...prev, narrative: updated }))}
                     />

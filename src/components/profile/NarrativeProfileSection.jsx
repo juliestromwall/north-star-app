@@ -28,30 +28,45 @@ function SectionShell({ section, children }) {
 }
 
 // ─── Edit form ───────────────────────────────────────────────────────
-export function NarrativeProfileEditor({ sections, narrative = {}, onChange, pregnancyHistoryNode }) {
+// `bare` skips the inner SectionShell wrapper — useful when the caller
+// already wraps each section in its own Collapsible/Card.
+export function NarrativeProfileEditor({ sections, narrative = {}, onChange, pregnancyHistoryNode, bare = false }) {
   const set = (id, value) => onChange({ ...narrative, [id]: value })
+
+  const renderQuestions = (section) => section.questions.map(q => {
+    if (q.type === 'pregnancyHistory') {
+      return pregnancyHistoryNode ? <div key={q.id}>{pregnancyHistoryNode}</div> : null
+    }
+    return (
+      <QuestionEditor
+        key={q.id}
+        question={q}
+        value={narrative[q.id] ?? ''}
+        detailsValue={narrative[`${q.id}_details`] ?? ''}
+        onChange={v => set(q.id, v)}
+        onDetailsChange={v => set(`${q.id}_details`, v)}
+      />
+    )
+  })
+
+  if (bare) {
+    return (
+      <div className="space-y-5">
+        {sections.map(section => (
+          <div key={section.key} className="space-y-5">
+            {section.note && <p className="text-xs text-stone-500 leading-relaxed">{section.note}</p>}
+            {renderQuestions(section)}
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
       {sections.map(section => (
         <SectionShell key={section.key} section={section}>
-          {section.questions.map(q => {
-            // Special: pregnancy-history widget is rendered by the parent and
-            // passed in as a slot via pregnancyHistoryNode.
-            if (q.type === 'pregnancyHistory') {
-              return pregnancyHistoryNode ? <div key={q.id}>{pregnancyHistoryNode}</div> : null
-            }
-            return (
-              <QuestionEditor
-                key={q.id}
-                question={q}
-                value={narrative[q.id] ?? ''}
-                detailsValue={narrative[`${q.id}_details`] ?? ''}
-                onChange={v => set(q.id, v)}
-                onDetailsChange={v => set(`${q.id}_details`, v)}
-              />
-            )
-          })}
+          {renderQuestions(section)}
         </SectionShell>
       ))}
     </div>

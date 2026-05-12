@@ -1,7 +1,10 @@
 import {
   User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
-  Heart, Camera
+  Heart, Camera, MessageCircle, Sparkles, Shield, Users, CalendarDays, Mail, Star
 } from 'lucide-react'
+import { GC_PROFILE_SECTIONS } from '@/data/profileNarrative'
+
+const NARRATIVE_ICON_MAP = { Heart, Star, Baby, MessageCircle, Sparkles, Shield, Users, CalendarDays, Mail }
 
 // ─────────────────────────────────────────────────────────
 // Shared field labels — single source of truth for portal, admin, and preview
@@ -226,34 +229,29 @@ export const FIELD_LABELS = {
 
 const SECTION_META = [
   { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
-  { key: 'narrative', title: 'Profile Narrative', icon: Heart, description: 'Getting to know you, values, and preferences' },
+  ...GC_PROFILE_SECTIONS.map(s => ({
+    key: s.key,
+    title: s.title,
+    icon: NARRATIVE_ICON_MAP[s.icon] || Heart,
+    description: s.note || '',
+    narrative: true,
+  })),
   { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
 ]
 
-// Required fields per section for completion tracking
+// Required fields per section for completion tracking.
+// Each narrative section's required fields are its own question ids.
 const REQUIRED_FIELDS = {
   pregnancyHistory: ['numberOfPregnancies'],
-  narrative: [
-    'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
-    'whyConsider', 'excitedAbout', 'hopingToGain', 'beenSurrogateBefore', 'ipDrawnTo',
-    'previousPregnanciesNarrative', 'enjoyedPregnancy', 'complicationsNarrative', 'recoveryAfterBirth', 'motherhoodTaught',
-    'relationshipHope', 'communicationFreq', 'communicationStyle', 'conflictHandling', 'respectedSupported',
-    'importantValues', 'culturalReligiousBeliefs', 'majorDecisionsApproach', 'mutualRespect',
-    'dealBreakers', 'familyStructures', 'sensitiveTopicsView', 'areasFlexible', 'boundariesImportant',
-    'ipInvolvementDuringPregnancy', 'ipAttendingAppointments', 'deliveryHopes', 'whoPresentLaborDelivery', 'medicalInterventionsViews',
-    'supportSystemPeople', 'partnerFamilyFeelings', 'helpDuringPregnancyRecovery', 'selfCareDuringStress',
-    'openOtherStateCountry', 'travelComfort', 'workChildcareSchedule', 'schedulingConcerns',
-    'relationshipAfterBirth', 'openFutureContact', 'journeyRemembered',
-    'bestFitIPs', 'whatIPsToFeel',
-    'letterToIP',
-  ],
+  ...Object.fromEntries(GC_PROFILE_SECTIONS.map(s => [
+    s.key,
+    s.questions.filter(q => q.type !== 'pregnancyHistory').map(q => q.id),
+  ])),
   photos: [],
 }
 
 // Conditional required fields — only required if parent field has a specific value
-const CONDITIONAL_REQUIRED = {
-  narrative: {},
-}
+const CONDITIONAL_REQUIRED = {}
 
 function isPregnancyComplete(p) {
   if (!p.outcome || !p.dob || !p.gestationWeeks || !p.deliveryType) return false
@@ -301,9 +299,12 @@ function countCompleted(data, sectionKey) {
     return { filled, total, complete: filled === total }
   }
 
+  // Narrative sections all read from the shared `data.narrative` blob.
+  const isNarrativeSection = GC_PROFILE_SECTIONS.some(s => s.key === sectionKey)
+
   // Build list of active required fields (base + visible conditionals)
   const conditionals = CONDITIONAL_REQUIRED[sectionKey] || {}
-  const sectionData = data?.[sectionKey] || {}
+  const sectionData = isNarrativeSection ? (data?.narrative || {}) : (data?.[sectionKey] || {})
   const activeFields = [...fields]
 
   // Add conditional fields only when their parent triggers them

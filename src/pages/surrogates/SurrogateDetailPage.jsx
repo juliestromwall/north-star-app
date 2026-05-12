@@ -3257,9 +3257,10 @@ function GTPALChip({ label, value, color }) {
 }
 
 // ── Profile section config ─────────────────────────────────
+// Derive narrative section descriptions from the source-of-truth question set.
 const SECTION_DESCRIPTIONS = {
   pregnancyHistory: 'Previous pregnancies and deliveries',
-  narrative: 'Profile narrative — getting to know you, values, preferences',
+  ...Object.fromEntries(GC_PROFILE_SECTIONS.map(s => [s.key, s.note || `${s.questions.filter(q => q.type !== 'pregnancyHistory').length} question${s.questions.length === 1 ? '' : 's'}`])),
 }
 
 // Conditional fields: only show when parent field has a specific value
@@ -3334,24 +3335,20 @@ function isConditionalVisible(fieldKey, sectionData) {
   return parentVal === cond.showWhen || parentVal === true
 }
 
+// One card per CSV section: Pregnancy History (structured) + 12 narrative
+// sections from GC_PROFILE_SECTIONS. Narrative sections carry `narrative: true`
+// so the edit/save flow knows to source from / save to `data.narrative` (a
+// shared flat blob keyed by question id) rather than `data[section.key]`.
 const PROFILE_SECTIONS = [
-  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: [
-    'numberOfPregnancies', 'pregnancies'
-  ] },
-  { key: 'narrative', title: 'Profile Narrative', fields: [
-    'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
-    'whyConsider', 'excitedAbout', 'hopingToGain', 'beenSurrogateBefore', 'ipDrawnTo',
-    'previousPregnanciesNarrative', 'enjoyedPregnancy', 'complicationsNarrative', 'recoveryAfterBirth', 'motherhoodTaught',
-    'relationshipHope', 'communicationFreq', 'communicationStyle', 'conflictHandling', 'respectedSupported',
-    'importantValues', 'culturalReligiousBeliefs', 'majorDecisionsApproach', 'mutualRespect',
-    'dealBreakers', 'familyStructures', 'sensitiveTopicsView', 'areasFlexible', 'boundariesImportant',
-    'ipInvolvementDuringPregnancy', 'ipAttendingAppointments', 'deliveryHopes', 'whoPresentLaborDelivery', 'medicalInterventionsViews',
-    'supportSystemPeople', 'partnerFamilyFeelings', 'helpDuringPregnancyRecovery', 'selfCareDuringStress',
-    'openOtherStateCountry', 'travelComfort', 'workChildcareSchedule', 'schedulingConcerns',
-    'relationshipAfterBirth', 'openFutureContact', 'journeyRemembered',
-    'bestFitIPs', 'whatIPsToFeel',
-    'letterToIP',
-  ] },
+  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies', 'pregnancies'] },
+  ...GC_PROFILE_SECTIONS.map(s => ({
+    key: s.key,
+    title: s.title,
+    narrative: true,
+    fields: s.questions
+      .filter(q => q.type !== 'pregnancyHistory')
+      .flatMap(q => q.followUp ? [q.id, `${q.id}_details`] : [q.id]),
+  })),
 ]
 
 function normalizeStructuredList(value) {
@@ -3366,7 +3363,8 @@ function normalizeStructuredList(value) {
 }
 
 function countSectionFilled(data, section) {
-  const sData = data?.[section.key] || {}
+  // Narrative sections all share `data.narrative` (flat blob keyed by question id).
+  const sData = section.narrative ? (data?.narrative || {}) : (data?.[section.key] || {})
 
   // Map of "details" fields to their parent toggle fields
   // If the parent is 'no'/empty, the detail field is not required
@@ -4697,7 +4695,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   function startSectionEdit(sec) {
     if (isApproved) return
-    setEditData(buildSectionEditData(sec, data[sec.key] || {}))
+    // Narrative sections all read/write the shared `data.narrative` blob.
+    const source = sec.narrative ? (data.narrative || {}) : (data[sec.key] || {})
+    setEditData(buildSectionEditData(sec, source))
     setEditingSection(sec)
     setTimeout(() => {
       document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -4740,8 +4740,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   useEffect(() => {
     if (!editData || !editingSection) return
     if (adminSaveTimer.current) clearTimeout(adminSaveTimer.current)
+    const targetKey = editingSection.narrative ? 'narrative' : editingSection.key
     adminSaveTimer.current = setTimeout(() => {
-      autoSaveSection(editingSection.key, editData)
+      autoSaveSection(targetKey, editData)
     }, 1500)
   }, [editData]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -4757,7 +4758,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     }
     setSaving(true)
     try {
-      const updated = { ...data, [editingSection.key]: editData }
+      const targetKey = editingSection.narrative ? 'narrative' : editingSection.key
+      const updated = { ...data, [targetKey]: editData }
       await adminUpdateSurrogateProfile(surrogate.email, updated)
       setProfileData(updated)
       // Sync shared fields back to intake_submissions so hero/quiz stay in sync
@@ -5788,10 +5790,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                   <CardContent>
-                    {sec.key === 'narrative' ? (
+                    {sec.narrative ? (
                       <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
                         <NarrativeProfileEditor
-                          sections={GC_PROFILE_SECTIONS}
+                          bare
+                          sections={GC_PROFILE_SECTIONS.filter(s => s.key === sec.key)}
                           narrative={activeEditData || {}}
                           onChange={updated => setEditData(updated)}
                         />
