@@ -588,7 +588,7 @@ import {
   countCompleted as sharedCountCompleted,
   isPregnancyComplete,
 } from '@/components/profile/profileConstants'
-import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { NarrativeProfileEditor, NarrativeProfileView } from '@/components/profile/NarrativeProfileSection'
 import { GC_PROFILE_SECTIONS } from '@/data/profileNarrative'
 
 // Filter out followUp — those are application/admin questions, not portal profile sections
@@ -1845,69 +1845,12 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           </PVSection>
         )}
 
-        {/* Journey Hopes & Wishes */}
-        <PVSection title="Journey Hopes & Wishes" icon={Heart} number={10}>
-          <div className="space-y-4">
-            <PVField label="Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?" value={hopes.reasonForSurrogacy} fp="hopesWishes.reasonForSurrogacy" />
-            <PVField label="How do you plan to use the money that you make from being a surrogate?" value={hopes.compensationUse} fp="hopesWishes.compensationUse" />
-            <PVField label="Please explain how you see surrogacy fitting into your life" value={hopes.surrogacyFit} fp="hopesWishes.surrogacyFit" />
-            <PVField label="Who will be your resource to help with your children for appointments / possible bed rest etc.?" value={hopes.supportSystem} fp="hopesWishes.supportSystem" />
-          </div>
-          <div className="mt-5 pt-4 border-t border-gray-50 space-y-1">
-            <PVYesNo label="Are you willing to have 3 transfer attempts with the same IP if that is what it takes to achieve a pregnancy?" value={hopes.threeTransferAttempts} fp="hopesWishes.threeTransferAttempts" />
-            <PVYesNo label="Are you willing to reduce the amount of caffeine and soda you consume during the pregnancy?" value={hopes.reduceCaffeine} fp="hopesWishes.reduceCaffeine" />
-            <PVField label="Are you open to making other lifestyle changes at the request of the Intended Parents?" value={hopes.lifestyleChanges} fp="hopesWishes.lifestyleChanges" />
-            <PVField label="Are you open to pumping colostrum and breast milk for your IP if they were to request this?" value={hopes.pumpBreastmilk} fp="hopesWishes.pumpBreastmilk" />
-            <PVField label="Would you be willing to have the Intended Parents at doctor appointments and in delivery room?" value={hopes.ipsAtAppointments} fp="hopesWishes.ipsAtAppointments" />
-            {hopes.ipsAtAppointments === 'No' && hopes.ipsAtAppointmentsDetails && <PVField label="Please explain" value={hopes.ipsAtAppointmentsDetails} fp="hopesWishes.ipsAtAppointmentsDetails" />}
-            <PVYesNo label="Are you willing to match with Intended Parents who already have children?" value={hopes.ipsWithChildren} fp="hopesWishes.ipsWithChildren" />
-            <PVYesNo label="Are you open to matching with LGBTQ+ individual/couples?" value={hopes.openLGBTQ} fp="hopesWishes.openLGBTQ" />
-            <PVYesNo label="Are you willing to match with a single Intended Parent?" value={hopes.openSingleIP} fp="hopesWishes.openSingleIP" />
-            <PVYesNo label="Are you willing to have the embryo transfer in another state?" value={hopes.transferAnotherState} fp="hopesWishes.transferAnotherState" />
-            {hopes.transferAnotherState === 'no' && hopes.transferAnotherStateDetails && (
-              <PVField label="Please explain" value={hopes.transferAnotherStateDetails} fp="hopesWishes.transferAnotherStateDetails" />
-            )}
-            <PVYesNo label="Are you willing to match with Intended Parents who live outside of the U.S.?" value={hopes.ipsOutsideUS} fp="hopesWishes.ipsOutsideUS" />
-            <PVYesNo label="If recommended by a physician, would you be willing to undergo CVS, amniocentesis or other diagnostic testing?" value={hopes.cvsAmnio} fp="hopesWishes.cvsAmnio" />
-            {hopes.cvsAmnio === 'no' && hopes.cvsAmnioDetails && <PVField label="Please explain" value={hopes.cvsAmnioDetails} fp="hopesWishes.cvsAmnioDetails" />}
-            <PVField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={hopes.willingnessToTerminate} fp="hopesWishes.willingnessToTerminate" />
-            {hasPartner && <PVYesNo label="Would your spouse or support person support the decision for termination?" value={hopes.partnerAgreesTermination} fp="hopesWishes.partnerAgreesTermination" />}
-            <PVYesNo label="Are there any specific conditions where you would not terminate a pregnancy?" value={hopes.conditionsWontTerminate} fp="hopesWishes.conditionsWontTerminate" />
-            {hopes.conditionsWontTerminate === 'yes' && hopes.conditionsWontTerminateDetails && (
-              <PVField label="Please explain" value={hopes.conditionsWontTerminateDetails} fp="hopesWishes.conditionsWontTerminateDetails" />
-            )}
-            <PVField label="How many embryos are you in agreement to transfer at a time?" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
-            {hopes.embryosToTransfer === '1' && (
-              <PVYesNo label="If the 1 transferred embryo splits, would you be in agreement to carrying twins?" value={hopes.carryTwins} fp="hopesWishes.carryTwins" />
-            )}
-          </div>
-          <div className="space-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Describe your ideal intended parent(s) for whom you would like to be a surrogate" value={hopes.idealIPs} fp="hopesWishes.idealIPs" />
-            <PVField label="What is the best form of communication that you are comfortable using?" value={hopes.preferredCommunication} fp="hopesWishes.preferredCommunication" />
-            <PVField label="How much involvement from the Intended Parents do you want during the pregnancy?" value={hopes.ipInvolvement} fp="hopesWishes.ipInvolvement" />
-            <PVField label="When are you ready to begin?" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
-            {hopes.adminNotes && <PVField label="Agency Notes" value={hopes.adminNotes} fp="hopesWishes.adminNotes" />}
-            <PVField label="Ideal relationship with Intended Parent(s) post birth" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
-            <PVField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={hopes.deliveryRoomOthers} fp="hopesWishes.deliveryRoomOthers" />
-            <PVField label="How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?" value={hopes.ipsCantAttend} fp="hopesWishes.ipsCantAttend" />
-            <PVField label="Who will care for your child(ren) when you need to travel for surrogacy?" value={hopes.childCareTraveling} fp="hopesWishes.childCareTraveling" />
-          </div>
-        </PVSection>
-
-        {/* ── Letter to Intended Parents (full-width standout card) ── */}
-        {hopes.additionalComments && (
-          <div className="mt-8 print:break-inside-avoid">
-            <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#D4A853]/20 shadow-sm print:shadow-none">
-              <div className="px-7 pt-6 pb-4">
-                <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Intended Parent(s),</p>
-              </div>
-              <div className="px-7 pb-7">
-                <p className="text-[15px] text-stone-700 leading-[1.75] whitespace-pre-wrap font-serif italic">{hopes.additionalComments}</p>
-                <p className="text-right text-base font-heading font-bold mt-5" style={{ color: '#c2185b' }}>— {firstName}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Narrative profile sections (Getting to Know You, Journey, etc.) */}
+        <NarrativeProfileView
+          sections={GC_PROFILE_SECTIONS}
+          narrative={profile?.narrative || {}}
+          applicantFirstName={firstName}
+        />
 
         {/* Print-only photo gallery at bottom */}
         {photos?.length > 1 && (
@@ -2014,7 +1957,7 @@ function FollowUpSection({ v, u, profile }) {
     const followUpVal = v(s, key)
     if (followUpVal !== undefined && followUpVal !== '' && followUpVal !== null) return followUpVal
     // Check original sections for migration
-    for (const origSection of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'hopesWishes']) {
+    for (const origSection of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'narrative']) {
       const origVal = profile?.[origSection]?.[key]
       if (origVal !== undefined && origVal !== '' && origVal !== null) return origVal
     }

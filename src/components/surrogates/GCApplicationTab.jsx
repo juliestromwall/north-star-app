@@ -1535,7 +1535,7 @@ function FollowUpQuestionsSection({ surrogate, answers, profileData, onSaved, se
 
   function getProfileVal(key) {
     if (profileData?.followUp?.[key] !== undefined && profileData.followUp[key] !== '') return profileData.followUp[key]
-    for (const sec of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'hopesWishes']) {
+    for (const sec of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'narrative']) {
       if (profileData?.[sec]?.[key] !== undefined && profileData[sec][key] !== '') return profileData[sec][key]
     }
     return ''

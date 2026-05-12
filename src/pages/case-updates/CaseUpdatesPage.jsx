@@ -847,7 +847,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                           } else if (row.dataField === 'profileComplete') {
                             const profile = allProfiles[s.id]
                             if (profile) {
-                              const REQ = { personal: ['firstName','city','state','heightFt','weight','maritalStatus'], pregnancyHistory: ['numberOfPregnancies'], fertility: ['sameBioFather'], general: ['smokeVape','alcoholDrugs','typicalDiet','exerciseFrequency'], health: ['mentalHealthDiagnosis'], employment: ['currentlyEmployed'], interests: ['personality'], hopesWishes: ['reasonForSurrogacy','whenReadyToBegin','desiredCompensation'] }
+                              const REQ = { personal: ['firstName','city','state','heightFt','weight','maritalStatus'], pregnancyHistory: ['numberOfPregnancies'], fertility: ['sameBioFather'], general: ['smokeVape','alcoholDrugs','typicalDiet','exerciseFrequency'], health: ['mentalHealthDiagnosis'], employment: ['currentlyEmployed'], interests: ['personality'], narrative: ['whyConsider','relationshipHope','letterToIP'] }
                               let filled = 0, total = 0
                               for (const [sec, fields] of Object.entries(REQ)) {
                                 for (const f of fields) { total++; const v = profile[sec]?.[f]; if (v !== undefined && v !== '' && v !== null) filled++ }

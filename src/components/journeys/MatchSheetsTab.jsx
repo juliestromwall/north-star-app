@@ -383,7 +383,10 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
   const pd = profileData || {}
   const personal = pd.personal || {}
   const employment = pd.employment || {}
-  const hopes = pd.hopesWishes || {}
+  // North Star: narrative profile (free-text) doesn't carry the structured
+  // cvsAmnio/embryosToTransfer/carryTwins fields. Admin fills these manually
+  // via the editable controls below — leave as empty so msData drives them.
+  const hopes = {}
   const pregnancyHistory = pd.pregnancyHistory || {}
   const color = '#1A3638'
 

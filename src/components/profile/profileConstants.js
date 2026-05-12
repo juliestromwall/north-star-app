@@ -235,7 +235,7 @@ const SECTION_META = [
   { key: 'academic', title: 'Education', icon: Apple, description: 'Education and current schooling' },
   { key: 'interests', title: 'Interests', icon: Heart, description: 'Favorites, hobbies, and personality' },
   { key: 'experiencedSurrogate', title: 'Experienced Surrogate Information', icon: Stethoscope, description: 'Previous surrogacy journey details' },
-  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', icon: Heart, description: 'Your surrogacy goals, preferences, and compensation' },
+  { key: 'narrative', title: 'Profile Narrative', icon: Heart, description: 'Getting to know you, values, and preferences' },
   { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
 ]
 
@@ -259,14 +259,20 @@ const REQUIRED_FIELDS = {
     'favoriteColor', 'favoriteFlower', 'pets', 'catLitter', 'hobbies', 'dreamTravel', 'personality'],
   academic: ['educationLevel', 'currentlyInSchool'],
   experiencedSurrogate: ['previousSurrogate'],
-  hopesWishes: ['reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
-    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'pumpBreastmilk',
-    'idealIPs', 'preferredCommunication', 'ipInvolvement', 'ipsAtAppointments',
-    'deliveryRoomOthers', 'ipsCantAttend',
-    'ipsWithChildren', 'openLGBTQ', 'openSingleIP', 'transferAnotherState', 'ipsOutsideUS',
-    'childCareTraveling', 'whenReadyToBegin', 'postBirthRelationship',
-    'cvsAmnio', 'willingnessToTerminate', 'conditionsWontTerminate',
-    'embryosToTransfer', 'desiredCompensation'],
+  narrative: [
+    'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
+    'whyConsider', 'excitedAbout', 'hopingToGain', 'beenSurrogateBefore', 'ipDrawnTo',
+    'previousPregnanciesNarrative', 'enjoyedPregnancy', 'complicationsNarrative', 'recoveryAfterBirth', 'motherhoodTaught',
+    'relationshipHope', 'communicationFreq', 'communicationStyle', 'conflictHandling', 'respectedSupported',
+    'importantValues', 'culturalReligiousBeliefs', 'majorDecisionsApproach', 'mutualRespect',
+    'dealBreakers', 'familyStructures', 'sensitiveTopicsView', 'areasFlexible', 'boundariesImportant',
+    'ipInvolvementDuringPregnancy', 'ipAttendingAppointments', 'deliveryHopes', 'whoPresentLaborDelivery', 'medicalInterventionsViews',
+    'supportSystemPeople', 'partnerFamilyFeelings', 'helpDuringPregnancyRecovery', 'selfCareDuringStress',
+    'openOtherStateCountry', 'travelComfort', 'workChildcareSchedule', 'schedulingConcerns',
+    'relationshipAfterBirth', 'openFutureContact', 'journeyRemembered',
+    'bestFitIPs', 'whatIPsToFeel',
+    'letterToIP',
+  ],
   photos: [],
 }
 
@@ -316,11 +322,7 @@ const CONDITIONAL_REQUIRED = {
     governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
     insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
   },
-  hopesWishes: {
-    cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
-    ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
-    carryTwins: { parent: 'embryosToTransfer', showWhen: '1' },
-  },
+  narrative: {},
   academic: {
     currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
   },
@@ -457,8 +459,6 @@ const FOLLOW_UP_FIELDS = [
   { key: 'partnerFdaTests', type: 'yesno', section: 'general' },
   // From Health
   { key: 'lastPhysical', type: 'text', section: 'health' },
-  // From Hopes & Wishes
-  { key: 'compensationNegotiable', type: 'yesno', section: 'hopesWishes' },
 ]
 
 export {

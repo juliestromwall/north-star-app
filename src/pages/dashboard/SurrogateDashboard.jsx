@@ -31,7 +31,6 @@ function mergeProfileData(supabaseData, localData) {
     merged.personal = { ...merged.about, ...merged.family, ...merged.personal }
   }
   if (merged.lifestyle && !merged.general) merged.general = merged.lifestyle
-  if (merged.preferences && !merged.hopesWishes) merged.hopesWishes = merged.preferences
   if (localData) {
     for (const [section, fields] of Object.entries(localData)) {
       if (!merged[section]) merged[section] = fields

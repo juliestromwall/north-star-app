@@ -3265,7 +3265,7 @@ const SECTION_DESCRIPTIONS = {
   interests: 'Favorites, hobbies, and personality',
   academic: 'Education and training',
   experiencedSurrogate: 'Previous surrogacy journey details',
-  hopesWishes: 'Surrogacy goals, preferences, and compensation',
+  narrative: 'Profile narrative — getting to know you, values, preferences',
 }
 
 // Conditional fields: only show when parent field has a specific value
@@ -3406,23 +3406,19 @@ const PROFILE_SECTIONS = [
   { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [
     'previousSurrogate', 'surrogacyTimes', 'journeys', 'overallExperience'
   ] },
-  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: [
-    'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
-    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'lifestyleChangesDetails',
-    'pumpBreastmilk',
-    'idealIPs', 'preferredCommunication', 'ipInvolvement',
-    'ipsAtAppointments', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers', 'ipsCantAttend',
-    'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
-    'transferAnotherState', 'transferAnotherStateDetails',
-    'ipsOutsideUS',
-    'childCareTraveling',
-    'whenReadyToBegin', 'adminNotes', 'postBirthRelationship',
-    'cvsAmnio', 'cvsAmnioDetails',
-    'willingnessToTerminate',
-    'partnerAgreesTermination',
-    'conditionsWontTerminate', 'conditionsWontTerminateDetails',
-    'embryosToTransfer', 'carryTwins',
-    'desiredCompensation', 'additionalComments'
+  { key: 'narrative', title: 'Profile Narrative', fields: [
+    'aboutYouAndFamily', 'typicalDay', 'hobbies', 'howOthersDescribe', 'familyMeans', 'mostJoy',
+    'whyConsider', 'excitedAbout', 'hopingToGain', 'beenSurrogateBefore', 'ipDrawnTo',
+    'previousPregnanciesNarrative', 'enjoyedPregnancy', 'complicationsNarrative', 'recoveryAfterBirth', 'motherhoodTaught',
+    'relationshipHope', 'communicationFreq', 'communicationStyle', 'conflictHandling', 'respectedSupported',
+    'importantValues', 'culturalReligiousBeliefs', 'majorDecisionsApproach', 'mutualRespect',
+    'dealBreakers', 'familyStructures', 'sensitiveTopicsView', 'areasFlexible', 'boundariesImportant',
+    'ipInvolvementDuringPregnancy', 'ipAttendingAppointments', 'deliveryHopes', 'whoPresentLaborDelivery', 'medicalInterventionsViews',
+    'supportSystemPeople', 'partnerFamilyFeelings', 'helpDuringPregnancyRecovery', 'selfCareDuringStress',
+    'openOtherStateCountry', 'travelComfort', 'workChildcareSchedule', 'schedulingConcerns',
+    'relationshipAfterBirth', 'openFutureContact', 'journeyRemembered',
+    'bestFitIPs', 'whatIPsToFeel',
+    'letterToIP',
   ] },
 ]
 
