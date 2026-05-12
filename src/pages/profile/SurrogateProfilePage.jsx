@@ -1581,22 +1581,19 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
       {/* ── All Sections ── */}
       <div className="px-8 sm:px-12 py-6 space-y-6 print:px-10">
 
-        {/* Pregnancy History */}
-        <PVSection title="Pregnancy History" icon={Baby} number={1}>
-          {pregnancies.length > 0 && (
-            <div className="mt-4 space-y-4">
-              {pregnancies.map((pr, i) => (
-                <PregnancyCard key={i} pregnancy={pr} index={i} />
-              ))}
-            </div>
-          )}
-        </PVSection>
-
-        {/* Narrative profile sections (Getting to Know You, Journey, etc.) */}
+        {/* Narrative profile sections — pregnancy history widget embeds
+            inside the Pregnancy & Parenting Experience section via slot. */}
         <NarrativeProfileView
           sections={GC_PROFILE_SECTIONS}
           narrative={profile?.narrative || {}}
           applicantFirstName={firstName}
+          pregnancyHistoryNode={pregnancies.length > 0 ? (
+            <div className="space-y-4">
+              {pregnancies.map((pr, i) => (
+                <PregnancyCard key={i} pregnancy={pr} index={i} />
+              ))}
+            </div>
+          ) : null}
         />
 
         {/* Print-only photo gallery at bottom */}
@@ -1678,17 +1675,8 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 // ─────────────────────────────────────────────────────────
 function SectionBody({ sectionKey, v, u, profile, setProfile }) {
   switch (sectionKey) {
-    case 'personal': return <PersonalSection v={v} u={u} />
-    case 'followUp': return <FollowUpSection v={v} u={u} profile={profile} />
     case 'pregnancyHistory': return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
-    case 'fertility': return <FertilitySection v={v} u={u} profile={profile} />
-    case 'general': return <GeneralSection v={v} u={u} profile={profile} />
-    case 'health': return <HealthSection v={v} u={u} />
-    case 'employment': return <EmploymentSection v={v} u={u} profile={profile} />
-    case 'interests': return <InterestsSection v={v} u={u} />
-    case 'academic': return <AcademicSection v={v} u={u} />
-    case 'experiencedSurrogate': return <ExperiencedSurrogateSection v={v} u={u} profile={profile} setProfile={setProfile} />
-    case 'hopesWishes': return <HopesWishesSection v={v} u={u} profile={profile} setProfile={setProfile} />
+    case 'narrative': return <NarrativeSection profile={profile} setProfile={setProfile} />
     case 'photos': return <PhotosSection v={v} u={u} />
     default: return null
   }
@@ -2479,9 +2467,9 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// 10. Journey Hopes & Wishes
+// Profile Narrative — 12 sections of free-text Q&A
 // ─────────────────────────────────────────────────────────
-function HopesWishesSection({ profile, setProfile }) {
+function NarrativeSection({ profile, setProfile }) {
   const narrative = profile?.narrative || {}
   return (
     <NarrativeProfileEditor

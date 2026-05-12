@@ -37,8 +37,8 @@ export const GC_PROFILE_SECTIONS = [
     key: 'pregnancyExperience',
     title: 'Pregnancy & Parenting Experience',
     icon: 'Baby',
-    note: 'Your structured pregnancy history (dates, weeks gestated, complications, etc.) is captured in the Pregnancy History section. The questions below are for the narrative side — sharing what those experiences felt like.',
     questions: [
+      { id: 'pregnancyHistoryWidget', type: 'pregnancyHistory' },
       { id: 'previousPregnanciesNarrative', label: 'Tell us about your previous pregnancies and births.', type: 'textarea' },
       { id: 'enjoyedPregnancy', label: 'What did you enjoy most about pregnancy?', type: 'textarea' },
       { id: 'complicationsNarrative', label: 'Were there any complications during your pregnancies or deliveries?', type: 'textarea' },
