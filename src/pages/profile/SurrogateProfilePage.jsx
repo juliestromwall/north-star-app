@@ -1674,6 +1674,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 // Section body router
 // ─────────────────────────────────────────────────────────
 function SectionBody({ sectionKey, v, u, profile, setProfile }) {
+  if (sectionKey === 'profilePhotos') return <ProfilePhotosSection v={v} u={u} />
   if (sectionKey === 'photos') return <PhotosSection v={v} u={u} />
   if (GC_PROFILE_SECTIONS.some(s => s.key === sectionKey)) {
     // pregnancyExperience embeds the structured pregnancy editor at the top.
@@ -1690,6 +1691,50 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
     )
   }
   return null
+}
+
+// ─────────────────────────────────────────────────────────
+// Profile Photo & Cover Image — top-of-profile section. Mirrors the
+// hero treatment in the preview: portrait + cover image.
+// ─────────────────────────────────────────────────────────
+function ProfilePhotosSection({ v, u }) {
+  const { currentUser } = useRole()
+  const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [fallbackId, setFallbackId] = useState(null)
+  useEffect(() => {
+    if (!currentUser?.email || !supabase) return
+    supabase.from('intake_submissions').select('id')
+      .eq('applicant_email', currentUser.email.trim().toLowerCase())
+      .order('submitted_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data?.id) setFallbackId(String(data.id)) })
+      .catch(() => {})
+  }, [currentUser?.email])
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-stone-500 leading-relaxed">
+        These two images appear at the top of your profile. Your <strong>profile photo</strong> is a portrait of just you; the <strong>cover image</strong> is the banner behind your name — pick something that captures who you are.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ProfilePhotoUpload
+          label="Profile Photo"
+          hint="A favorite recent photo of just you"
+          userId={userId}
+          fallbackId={fallbackId}
+          subfolder="portrait"
+          onPhotoChange={(url) => u('profilePhotos', 'profilePhotoUrl', url || '')}
+        />
+        <ProfilePhotoUpload
+          label="Cover Image"
+          hint="A favorite picture of you with your family, kids, or somewhere meaningful"
+          userId={userId}
+          fallbackId={fallbackId}
+          subfolder="headshot"
+          onPhotoChange={(url) => u('profilePhotos', 'coverPhotoUrl', url || '')}
+        />
+      </div>
+    </div>
+  )
 }
 
 // ─────────────────────────────────────────────────────────

@@ -228,6 +228,7 @@ export const FIELD_LABELS = {
 // ─────────────────────────────────────────────────────────
 
 const SECTION_META = [
+  { key: 'profilePhotos', title: 'Profile Photo & Cover Image', icon: Camera, description: 'Your portrait and the banner image at the top of your profile' },
   ...GC_PROFILE_SECTIONS.map(s => ({
     key: s.key,
     title: s.title,
@@ -241,6 +242,7 @@ const SECTION_META = [
 // Required fields per section for completion tracking.
 // Each narrative section's required fields are its own question ids.
 const REQUIRED_FIELDS = {
+  profilePhotos: ['profilePhotoUrl', 'coverPhotoUrl'],
   ...Object.fromEntries(GC_PROFILE_SECTIONS.map(s => [
     s.key,
     s.questions.filter(q => q.type !== 'pregnancyHistory').map(q => q.id),
