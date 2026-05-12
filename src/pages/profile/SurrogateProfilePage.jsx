@@ -588,6 +588,8 @@ import {
   countCompleted as sharedCountCompleted,
   isPregnancyComplete,
 } from '@/components/profile/profileConstants'
+import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { GC_PROFILE_SECTIONS } from '@/data/profileNarrative'
 
 // Filter out followUp — those are application/admin questions, not portal profile sections
 const SECTION_META = SHARED_SECTION_META.filter(s => s.key !== 'followUp')
@@ -1996,7 +1998,7 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
     case 'interests': return <InterestsSection v={v} u={u} />
     case 'academic': return <AcademicSection v={v} u={u} />
     case 'experiencedSurrogate': return <ExperiencedSurrogateSection v={v} u={u} profile={profile} setProfile={setProfile} />
-    case 'hopesWishes': return <HopesWishesSection v={v} u={u} profile={profile} />
+    case 'hopesWishes': return <HopesWishesSection v={v} u={u} profile={profile} setProfile={setProfile} />
     case 'photos': return <PhotosSection v={v} u={u} />
     default: return null
   }
@@ -2789,104 +2791,14 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
 // ─────────────────────────────────────────────────────────
 // 10. Journey Hopes & Wishes
 // ─────────────────────────────────────────────────────────
-function HopesWishesSection({ v, u, profile }) {
-  const s = 'hopesWishes'
-  const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(profile?.personal?.maritalStatus)
+function HopesWishesSection({ profile, setProfile }) {
+  const narrative = profile?.narrative || {}
   return (
-    <div className="space-y-6">
-      <div className="p-4 rounded-xl bg-pink-50/50 border border-pink-100">
-        <h4 className="font-medium text-[#1A3638] mb-3">Your Motivation</h4>
-        <div className="space-y-4">
-          <TextAreaField label="Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?" value={v(s, 'reasonForSurrogacy')} onChange={u(s, 'reasonForSurrogacy')}
-            placeholder="Please be specific with your answer" rows={4} />
-          <TextAreaField label="How do you plan to use the money that you make from being a surrogate?" value={v(s, 'compensationUse')} onChange={u(s, 'compensationUse')} rows={2} />
-          <TextAreaField label="Please explain how you see surrogacy fitting into your life" value={v(s, 'surrogacyFit')} onChange={u(s, 'surrogacyFit')} rows={2} />
-          <TextAreaField label="Who will be your resource to help with your children for appointments / possible bed rest etc.? Please provide specific details on your support system." value={v(s, 'supportSystem')} onChange={u(s, 'supportSystem')} rows={3} />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h4 className="font-medium text-[#1A3638]">Willingness</h4>
-        <YesNoField label="Are you willing to have 3 transfer attempts with the same IP if that is what it takes to achieve a pregnancy?" value={v(s, 'threeTransferAttempts')} onChange={u(s, 'threeTransferAttempts')} />
-        <YesNoField label="Are you willing to reduce the amount of caffeine and soda you consume during the pregnancy?" value={v(s, 'reduceCaffeine')} onChange={u(s, 'reduceCaffeine')} />
-        <TextAreaField label="Are you open to making other lifestyle changes at the request of the Intended Parents?" value={v(s, 'lifestyleChanges')} onChange={u(s, 'lifestyleChanges')} rows={2} placeholder="Please explain..." />
-        {false && (
-          <TextAreaField label="Please explain" value={v(s, 'lifestyleChangesDetails')} onChange={u(s, 'lifestyleChangesDetails')} rows={2} />
-        )}
-        <SelectField label="Are you open to pumping colostrum and breast milk for your IP if they were to request this?" value={v(s, 'pumpBreastmilk')} onChange={u(s, 'pumpBreastmilk')}
-          options={['Yes', 'No', 'Willing to try', 'Undecided']} />
-      </div>
-
-      <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-        <h4 className="font-medium text-[#1A3638] mb-3">Ideal Match & Communication</h4>
-        <div className="space-y-4">
-          <TextAreaField label="Describe ideal intended parent(s) for whom you would like to be a surrogate" value={v(s, 'idealIPs')} onChange={u(s, 'idealIPs')} rows={3} />
-          <SelectField label="What is the best form of communication that you are comfortable using?" value={v(s, 'preferredCommunication')} onChange={u(s, 'preferredCommunication')}
-            options={['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything']} />
-          <SelectField label="How much involvement from the Intended Parents do you want during the pregnancy?" value={v(s, 'ipInvolvement')} onChange={u(s, 'ipInvolvement')}
-            options={['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal']} />
-          <SelectField label="Would you be willing to have the Intended Parents at doctor appointments and in delivery room?" value={v(s, 'ipsAtAppointments')} onChange={u(s, 'ipsAtAppointments')}
-            options={['Yes', 'No', 'Undecided']} />
-          {v(s, 'ipsAtAppointments') === 'No' && (
-            <TextAreaField label="Please explain" value={v(s, 'ipsAtAppointmentsDetails')} onChange={u(s, 'ipsAtAppointmentsDetails')} rows={2} />
-          )}
-          <TextAreaField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={v(s, 'deliveryRoomOthers')} onChange={u(s, 'deliveryRoomOthers')} rows={2} />
-          <TextAreaField label="How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?" value={v(s, 'ipsCantAttend')} onChange={u(s, 'ipsCantAttend')} rows={2} />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h4 className="font-medium text-[#1A3638]">Matching Preferences</h4>
-        <YesNoField label="Are you willing to match with Intended Parents who already have children?" value={v(s, 'ipsWithChildren')} onChange={u(s, 'ipsWithChildren')} />
-        <YesNoField label="Are you open to matching with LGBTQ+ individual/couples?" value={v(s, 'openLGBTQ')} onChange={u(s, 'openLGBTQ')} />
-        <YesNoField label="Are you willing to match with a single Intended Parent?" value={v(s, 'openSingleIP')} onChange={u(s, 'openSingleIP')} />
-        <YesNoField label="Are you willing to have the embryo transfer in another state?" value={v(s, 'transferAnotherState')} onChange={u(s, 'transferAnotherState')} />
-        {v(s, 'transferAnotherState') === 'no' && (
-          <TextAreaField label="Please explain" value={v(s, 'transferAnotherStateDetails')} onChange={u(s, 'transferAnotherStateDetails')} rows={2} />
-        )}
-        <YesNoField label="Are you willing to match with Intended Parents who live outside of the U.S.?" value={v(s, 'ipsOutsideUS')} onChange={u(s, 'ipsOutsideUS')} />
-        <TextAreaField label="Who will care for your child(ren) when you need to travel for surrogacy?" value={v(s, 'childCareTraveling')} onChange={u(s, 'childCareTraveling')} rows={2} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SelectField label="When are you ready to begin?" value={v(s, 'whenReadyToBegin')} onChange={u(s, 'whenReadyToBegin')}
-          options={['Immediately', 'Within 1-3 months', 'Within 3-6 months', 'Within 6-12 months', '1+ year']} />
-        <TextAreaField label="Ideal relationship with Intended Parent(s) post birth" value={v(s, 'postBirthRelationship')} onChange={u(s, 'postBirthRelationship')} rows={2} placeholder="Describe your ideal post-birth relationship..." />
-      </div>
-
-      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-        <h4 className="font-medium text-[#1A3638] mb-3">Medical Decisions</h4>
-        <div className="space-y-4">
-          <YesNoField label="If recommended by a physician, would you be willing to undergo CVS, amniocentesis or other diagnostic testing?" value={v(s, 'cvsAmnio')} onChange={u(s, 'cvsAmnio')} />
-          {v(s, 'cvsAmnio') === 'no' && (
-            <TextAreaField label="Please explain" value={v(s, 'cvsAmnioDetails')} onChange={u(s, 'cvsAmnioDetails')} rows={2} />
-          )}
-          <TextAreaField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={v(s, 'willingnessToTerminate')} onChange={u(s, 'willingnessToTerminate')} rows={2} />
-          {hasPartner && (
-            <YesNoField label="Would your spouse or support person support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
-          )}
-          <YesNoField label="Are there any specific conditions where you would not terminate a pregnancy?" value={v(s, 'conditionsWontTerminate')} onChange={u(s, 'conditionsWontTerminate')} />
-          {v(s, 'conditionsWontTerminate') === 'yes' && (
-            <TextAreaField label="Please explain" value={v(s, 'conditionsWontTerminateDetails')} onChange={u(s, 'conditionsWontTerminateDetails')} rows={2} />
-          )}
-          <SelectField label="How many embryos are you in agreement to transfer at a time?" value={v(s, 'embryosToTransfer')} onChange={u(s, 'embryosToTransfer')}
-            options={['1', '2', 'Doctor recommendation', 'Open to discussion']} />
-          {v(s, 'embryosToTransfer') === '1' && (
-            <YesNoField label="If the 1 transferred embryo splits, would you be in agreement to carrying twins?" value={v(s, 'carryTwins')} onChange={u(s, 'carryTwins')} />
-          )}
-        </div>
-      </div>
-
-      <div className="p-4 rounded-xl bg-[#1A3638]/5 border border-[#1A3638]/10">
-        <h4 className="font-medium text-[#1A3638] mb-3">Compensation</h4>
-        <div className="space-y-4">
-          <CurrencyField label="Surrogate base fee" value={v(s, 'desiredCompensation')} onChange={u(s, 'desiredCompensation')} />
-        </div>
-      </div>
-
-      <TextAreaField label="What would you like to add or say to potential Intended Parent(s) who are considering working with you as their surrogate?" value={v(s, 'additionalComments')} onChange={u(s, 'additionalComments')}
-        placeholder="Help them get to know you better or reassure them" rows={4} />
-    </div>
+    <NarrativeProfileEditor
+      sections={GC_PROFILE_SECTIONS}
+      narrative={narrative}
+      onChange={updated => setProfile(prev => ({ ...prev, narrative: updated }))}
+    />
   )
 }
 

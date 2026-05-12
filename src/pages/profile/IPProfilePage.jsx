@@ -15,6 +15,8 @@ import Cropper from 'react-easy-crop'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, createCaseTask } from '@/lib/db'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
+import { IP_PROFILE_SECTIONS } from '@/data/profileNarrative'
 
 // ── Field definitions ──
 
@@ -774,7 +776,7 @@ export const SECTIONS = [
   { key: 'fertility', label: 'Fertility Information', description: 'Embryos, donors, and fertility history', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
   { key: 'surrogacy', label: 'Surrogacy Information', description: 'Preferences, expectations, and clinic details', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
   { key: 'health', label: 'Health Information', description: 'Medical history and health conditions', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
-  { key: 'history', label: 'Personal History', description: 'Interests, favorites, and personality', icon: BookOpen, fields: HISTORY_FIELDS, perPerson: true },
+  { key: 'narrative', label: 'Your Story', description: 'Share who you are, what brings you joy, and what you hope for', icon: BookOpen, narrative: true },
 ]
 
 // ── Completion helpers ──
@@ -812,6 +814,29 @@ export function countCompletion(profile, hasPartner) {
 }
 
 function countSectionCompletion(profile, section, hasPartner) {
+  // Narrative sections count answers across all narrative questions.
+  if (section.narrative) {
+    const narrative = profile?.narrative || {}
+    // Tally every question across IP_PROFILE_SECTIONS plus the follow-up
+    // textareas that are visible when the parent question's value matches.
+    let filled = 0, total = 0
+    for (const sec of IP_PROFILE_SECTIONS) {
+      for (const q of sec.questions) {
+        total++
+        const val = narrative[q.id]
+        const hasVal = val !== undefined && val !== null && val !== ''
+        if (hasVal) filled++
+        if (q.followUp && hasVal) {
+          const show = q.followUp.when === 'any' || q.followUp.when === val
+          if (show) {
+            total++
+            if (narrative[`${q.id}_details`]) filled++
+          }
+        }
+      }
+    }
+    return { filled, total, complete: total > 0 && filled === total }
+  }
   let filled = 0, total = 0
   if (section.perPerson) {
     for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
@@ -1349,7 +1374,13 @@ export default function IPProfilePage() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent>
-                  {sec.perPerson ? (
+                  {sec.narrative ? (
+                    <NarrativeProfileEditor
+                      sections={IP_PROFILE_SECTIONS}
+                      narrative={profile.narrative || {}}
+                      onChange={updated => setProfile(prev => ({ ...prev, narrative: updated }))}
+                    />
+                  ) : sec.perPerson ? (
                     <PerPersonFields
                       section={sec}
                       profile={profile}
