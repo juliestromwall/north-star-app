@@ -79,7 +79,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
   if (type === 'textarea') {
     return (
       <div className="space-y-2">
-        {!isLetterBody && <Label className="text-sm font-medium text-stone-800">{label}</Label>}
+        {!isLetterBody && <Label className="text-sm font-semibold text-[#1A3638] leading-snug">{label}</Label>}
         {isLetterBody && (
           <p className="text-xs text-stone-500 italic">
             Anything you'd like to share from the heart — this will be shown as a letter signed from you.
@@ -89,7 +89,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
           value={value}
           onChange={e => onChange(e.target.value)}
           rows={isLetterBody ? 8 : 4}
-          className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:border-[#1F3A3C] focus:ring-1 focus:ring-[#1F3A3C]/30 leading-relaxed"
+          className="w-full text-sm border-2 border-stone-200 rounded-xl px-3.5 py-3 bg-[#fdf8f3]/40 focus:outline-none focus:border-[#D4A853] focus:bg-white focus:ring-2 focus:ring-[#D4A853]/20 leading-relaxed transition-colors"
         />
       </div>
     )
@@ -103,7 +103,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
     )
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-800">{label}</Label>
+        <Label className="text-sm font-semibold text-[#1A3638] leading-snug">{label}</Label>
         <div className="flex gap-2">
           {['yes', 'no'].map(v => (
             <button
@@ -126,7 +126,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
               value={detailsValue}
               onChange={e => onDetailsChange(e.target.value)}
               rows={3}
-              className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-[#1F3A3C] focus:ring-1 focus:ring-[#1F3A3C]/30"
+              className="w-full text-sm border-2 border-stone-200 rounded-xl px-3 py-2.5 bg-[#fdf8f3]/40 focus:outline-none focus:border-[#D4A853] focus:bg-white focus:ring-2 focus:ring-[#D4A853]/20 transition-colors"
             />
           </div>
         )}
@@ -137,7 +137,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
   if (type === 'select') {
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-800">{label}</Label>
+        <Label className="text-sm font-semibold text-[#1A3638] leading-snug">{label}</Label>
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select…" /></SelectTrigger>
           <SelectContent>
@@ -151,7 +151,7 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
               value={detailsValue}
               onChange={e => onDetailsChange(e.target.value)}
               rows={2}
-              className="w-full text-sm border border-stone-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-[#1F3A3C] focus:ring-1 focus:ring-[#1F3A3C]/30"
+              className="w-full text-sm border-2 border-stone-200 rounded-xl px-3 py-2.5 bg-[#fdf8f3]/40 focus:outline-none focus:border-[#D4A853] focus:bg-white focus:ring-2 focus:ring-[#D4A853]/20 transition-colors"
             />
           </div>
         )}

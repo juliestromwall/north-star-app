@@ -962,42 +962,45 @@ export default function SurrogateProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/60">
+    <div className="min-h-screen bg-[#fdf8f3]">
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-5">
 
         {/* ── Page Header ── */}
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <div className="px-6 py-5 border-b border-stone-100 flex flex-col sm:flex-row items-center gap-5">
+        <div className="bg-white rounded-2xl border border-[#D4A853]/30 shadow-sm shadow-[#1A3638]/5 overflow-hidden">
+          {/* Gold accent stripe */}
+          <div className="h-1 bg-gradient-to-r from-[#D4A853] via-[#88C0C4] to-[#1F3A3C]" />
+          <div className="px-6 py-5 border-b border-[#fdf8f3] flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-br from-white via-[#fdf8f3]/40 to-[#88C0C4]/5">
             <ProgressRing percent={overallCompletion} />
             <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h1 className="text-xl font-bold text-[#1A3638]">My Surrogate Profile</h1>
-              <p className="text-stone-400 text-sm mt-0.5">Complete your matching profile so intended parents can get to know you.</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#D4A853] mb-1">North Star Surrogacy</p>
+              <h1 className="text-2xl font-heading font-black text-[#1A3638]">My Profile</h1>
+              <p className="text-stone-500 text-sm mt-1">Complete your matching profile so intended parents can get to know you.</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-stone-300 text-stone-600 hover:text-[#1A3638] hover:border-[#1A3638]/30">
+              <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-[#1A3638]/20 text-[#1A3638] hover:text-[#1A3638] hover:border-[#D4A853] hover:bg-[#D4A853]/10">
                 <Eye className="w-3.5 h-3.5" /> {previewOpen ? 'Edit' : 'Preview'}
               </Button>
               {!profileApproved && !profileSubmitted && overallCompletion === 100 && (
                 <Button
                   size="sm"
                   onClick={() => setShowSubmitModal(true)}
-                  className="gap-1.5 rounded-lg"
-                  style={{ backgroundColor: '#1A3638', color: '#fff' }}
+                  className="gap-1.5 rounded-lg shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)', color: '#fff' }}
                 >
                   <Send className="w-3.5 h-3.5" /> Submit
                 </Button>
               )}
             </div>
           </div>
-          <div className="px-6 py-3 bg-stone-50/50">
+          <div className="px-6 py-3.5 bg-gradient-to-r from-[#fdf8f3] via-white to-[#fdf8f3]">
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-1.5 bg-stone-200/60 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-[#1A3638]/8 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#1F3A3C] to-[#5A9EA2] rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-[#D4A853] via-[#5A9EA2] to-[#1F3A3C] rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(212,168,83,0.4)]"
                   style={{ width: `${overallCompletion}%` }}
                 />
               </div>
-              <span className="text-[11px] font-semibold text-stone-400 tabular-nums">{overallCompletion}%</span>
+              <span className="text-xs font-bold tabular-nums text-[#1A3638]">{overallCompletion}%</span>
             </div>
           </div>
         </div>
@@ -1042,28 +1045,47 @@ export default function SurrogateProfilePage() {
               const isOpen = !!openSections[sec.key]
 
               const isLocked = profileApproved || profileSubmitted
+              const inProgress = filled > 0 && !complete
               return (
                 <Collapsible key={sec.key} open={isLocked ? false : isOpen} onOpenChange={() => !isLocked && toggleSection(sec.key)}>
-                  <div id={`section-${sec.key}`} className={`bg-white rounded-xl border border-stone-200 overflow-hidden ${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div
+                    id={`section-${sec.key}`}
+                    className={`bg-white rounded-2xl border overflow-hidden shadow-sm shadow-[#1A3638]/5 transition-colors ${
+                      isLocked ? 'opacity-50 pointer-events-none border-stone-200' :
+                      complete ? 'border-emerald-200/70' :
+                      inProgress ? 'border-[#D4A853]/40' :
+                      'border-[#1A3638]/15'
+                    }`}
+                  >
                     <CollapsibleTrigger asChild>
-                      <button className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-stone-50/60'}`}>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          complete ? 'bg-emerald-50' : 'bg-[#1A3638]/5'
+                      <button className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-[#fdf8f3]'}`}>
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          complete ? 'bg-emerald-50' :
+                          inProgress ? 'bg-gradient-to-br from-[#D4A853]/20 to-[#88C0C4]/15' :
+                          'bg-gradient-to-br from-[#D4A853]/10 to-[#1A3638]/5'
                         }`}>
-                          <Icon className={`w-4 h-4 ${complete ? 'text-emerald-500' : 'text-[#1A3638]/70'}`} />
+                          <Icon className={`size-4.5 ${
+                            complete ? 'text-emerald-600' :
+                            inProgress ? 'text-[#D4A853]' :
+                            'text-[#1A3638]'
+                          }`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-800">{sec.title}</p>
-                          <p className="text-[11px] text-stone-400 mt-0.5">{sec.description}</p>
+                          <p className="text-sm font-bold text-[#1A3638]">{sec.title}</p>
+                          {sec.description && <p className="text-[11px] text-stone-500 mt-0.5">{sec.description}</p>}
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0">
                           {total > 0 && (
-                            <span className={`text-[11px] font-medium tabular-nums ${complete ? 'text-emerald-500' : 'text-stone-400'}`}>{filled}/{total}</span>
+                            <span className={`text-[11px] font-semibold tabular-nums ${
+                              complete ? 'text-emerald-600' :
+                              inProgress ? 'text-[#D4A853]' :
+                              'text-stone-400'
+                            }`}>{filled}/{total}</span>
                           )}
                           {complete ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           ) : total > 0 ? (
-                            <Circle className="w-4 h-4 text-stone-300" />
+                            <Circle className={`w-4 h-4 ${inProgress ? 'text-[#D4A853]/60' : 'text-stone-300'}`} />
                           ) : null}
                           <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                         </div>
