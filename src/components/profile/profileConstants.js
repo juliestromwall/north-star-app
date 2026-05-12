@@ -228,7 +228,6 @@ export const FIELD_LABELS = {
 // ─────────────────────────────────────────────────────────
 
 const SECTION_META = [
-  { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
   ...GC_PROFILE_SECTIONS.map(s => ({
     key: s.key,
     title: s.title,
@@ -242,7 +241,6 @@ const SECTION_META = [
 // Required fields per section for completion tracking.
 // Each narrative section's required fields are its own question ids.
 const REQUIRED_FIELDS = {
-  pregnancyHistory: ['numberOfPregnancies'],
   ...Object.fromEntries(GC_PROFILE_SECTIONS.map(s => [
     s.key,
     s.questions.filter(q => q.type !== 'pregnancyHistory').map(q => q.id),
@@ -263,14 +261,30 @@ function countCompleted(data, sectionKey) {
   const fields = REQUIRED_FIELDS[sectionKey] || []
   if (fields.length === 0) return { filled: 0, total: 0, complete: false }
 
-  // Special: pregnancy section requires all pregnancy details filled
-  if (sectionKey === 'pregnancyHistory') {
+  // Special: pregnancyExperience also factors in the embedded structured
+  // pregnancy history (numberOfPregnancies + per-pregnancy completeness)
+  // alongside its narrative questions.
+  if (sectionKey === 'pregnancyExperience') {
     const numPreg = parseInt(data?.pregnancyHistory?.numberOfPregnancies) || 0
     const pregnancies = data?.pregnancyHistory?.pregnancies || []
-    if (numPreg < 1) return { filled: 0, total: 1, complete: false }
-    const completedPregs = pregnancies.filter(p => isPregnancyComplete(p)).length
-    const allPregsComplete = completedPregs >= numPreg
-    return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
+    const phTotal = numPreg < 1 ? 1 : numPreg + 1
+    const phFilled = numPreg < 1
+      ? 0
+      : (() => {
+          const done = pregnancies.filter(p => isPregnancyComplete(p)).length
+          return done >= numPreg ? numPreg + 1 : done
+        })()
+
+    const narrative = data?.narrative || {}
+    const narrativeFields = REQUIRED_FIELDS.pregnancyExperience || []
+    let narrFilled = 0
+    for (const f of narrativeFields) {
+      const val = narrative[f]
+      if (val !== undefined && val !== '' && val !== null) narrFilled++
+    }
+    const total = phTotal + narrativeFields.length
+    const filled = phFilled + narrFilled
+    return { filled, total, complete: total > 0 && filled === total }
   }
 
   // Special: experienced surrogate — when previousSurrogate === 'yes', every journey must have all fields filled

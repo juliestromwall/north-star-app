@@ -3335,21 +3335,35 @@ function isConditionalVisible(fieldKey, sectionData) {
   return parentVal === cond.showWhen || parentVal === true
 }
 
-// One card per CSV section: Pregnancy History (structured) + 12 narrative
-// sections from GC_PROFILE_SECTIONS. Narrative sections carry `narrative: true`
-// so the edit/save flow knows to source from / save to `data.narrative` (a
-// shared flat blob keyed by question id) rather than `data[section.key]`.
-const PROFILE_SECTIONS = [
-  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies', 'pregnancies'] },
-  ...GC_PROFILE_SECTIONS.map(s => ({
-    key: s.key,
-    title: s.title,
-    narrative: true,
-    fields: s.questions
-      .filter(q => q.type !== 'pregnancyHistory')
-      .flatMap(q => q.followUp ? [q.id, `${q.id}_details`] : [q.id]),
-  })),
-]
+// One card per CSV section. The structured Pregnancy History editor sits
+// immediately before "Pregnancy & Parenting Experience" so the two
+// pregnancy-related sections are adjacent. (User-facing surrogate profile
+// nests the pregnancy editor inside Pregnancy & Parenting Experience.)
+//
+// Narrative sections carry `narrative: true` so the edit/save flow sources
+// from / saves to `data.narrative` (a flat blob keyed by question id) rather
+// than `data[section.key]`.
+const PROFILE_SECTIONS = (() => {
+  const sections = []
+  for (const s of GC_PROFILE_SECTIONS) {
+    if (s.key === 'pregnancyExperience') {
+      sections.push({
+        key: 'pregnancyHistory',
+        title: 'Pregnancy History',
+        fields: ['numberOfPregnancies', 'pregnancies'],
+      })
+    }
+    sections.push({
+      key: s.key,
+      title: s.title,
+      narrative: true,
+      fields: s.questions
+        .filter(q => q.type !== 'pregnancyHistory')
+        .flatMap(q => q.followUp ? [q.id, `${q.id}_details`] : [q.id]),
+    })
+  }
+  return sections
+})()
 
 function normalizeStructuredList(value) {
   if (Array.isArray(value)) return value

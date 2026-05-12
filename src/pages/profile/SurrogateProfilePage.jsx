@@ -1674,11 +1674,20 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 // Section body router
 // ─────────────────────────────────────────────────────────
 function SectionBody({ sectionKey, v, u, profile, setProfile }) {
-  if (sectionKey === 'pregnancyHistory') return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
   if (sectionKey === 'photos') return <PhotosSection v={v} u={u} />
-  // Any other key — assume it's a narrative section (gettingToKnowYou, etc.)
   if (GC_PROFILE_SECTIONS.some(s => s.key === sectionKey)) {
-    return <NarrativeSection profile={profile} setProfile={setProfile} sectionKey={sectionKey} />
+    // pregnancyExperience embeds the structured pregnancy editor at the top.
+    const pregnancyHistoryNode = sectionKey === 'pregnancyExperience'
+      ? <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
+      : null
+    return (
+      <NarrativeSection
+        profile={profile}
+        setProfile={setProfile}
+        sectionKey={sectionKey}
+        pregnancyHistoryNode={pregnancyHistoryNode}
+      />
+    )
   }
   return null
 }
@@ -2469,8 +2478,10 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
 
 // ─────────────────────────────────────────────────────────
 // Profile Narrative — one section per call (filtered by sectionKey)
+// The pregnancyExperience section embeds the structured pregnancy history
+// editor inline as its first item (via the pregnancyHistoryNode slot).
 // ─────────────────────────────────────────────────────────
-function NarrativeSection({ profile, setProfile, sectionKey }) {
+function NarrativeSection({ profile, setProfile, sectionKey, pregnancyHistoryNode }) {
   const narrative = profile?.narrative || {}
   const sections = sectionKey
     ? GC_PROFILE_SECTIONS.filter(s => s.key === sectionKey)
@@ -2481,6 +2492,7 @@ function NarrativeSection({ profile, setProfile, sectionKey }) {
       sections={sections}
       narrative={narrative}
       onChange={updated => setProfile(prev => ({ ...prev, narrative: updated }))}
+      pregnancyHistoryNode={pregnancyHistoryNode}
     />
   )
 }
