@@ -4720,8 +4720,22 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     )
   }
 
+  // Force-flush any pending autosave from the currently-edited section so we
+  // don't lose edits when the user switches sections (the 1500ms debounce
+  // timer gets clobbered when editData changes to a new section's data).
+  function flushPendingSectionSave() {
+    if (!editingSection || !editData) return
+    if (adminSaveTimer.current) {
+      clearTimeout(adminSaveTimer.current)
+      adminSaveTimer.current = null
+    }
+    const prevTargetKey = editingSection.narrative ? 'narrative' : editingSection.key
+    autoSaveSection(prevTargetKey, editData)
+  }
+
   function startSectionEdit(sec) {
     if (isApproved) return
+    flushPendingSectionSave()
     // Narrative sections all read/write the shared `data.narrative` blob.
     const source = sec.narrative ? (data.narrative || {}) : (data[sec.key] || {})
     setEditData(buildSectionEditData(sec, source))
@@ -5809,7 +5823,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   const newOpen = !isOpen
                   setOpenAdminSections(prev => ({ ...prev, [sec.key]: newOpen }))
                   if (newOpen && !isEditing && !isApproved) startSectionEdit(sec)
-                  if (!newOpen && isEditing) setEditingSection(null)
+                  if (!newOpen && isEditing) {
+                    // Flush any pending autosave before clearing the active edit state.
+                    flushPendingSectionSave()
+                    setEditingSection(null)
+                  }
                 }}>
                 <Card
                   id={`admin-sec-${sec.key}`}
