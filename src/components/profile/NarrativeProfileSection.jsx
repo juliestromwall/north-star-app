@@ -163,8 +163,13 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
 }
 
 // ─── Read-only view ──────────────────────────────────────────────────
-// Magazine-style preview: numbered section headers with gold underline,
-// cream-tinted answer cards for textareas, colored pill values for Yes/No.
+// Magazine-style preview. Section headers stay consistent across all
+// sections; the QUESTION BODIES cycle through three layout variants so
+// the page has visual rhythm:
+//   cards     — each Q&A in its own white-bordered card (default)
+//   editorial — no card borders; italic gold question labels with
+//               flowing answer text, separated by hairline gold rules
+//   grid      — compact 2-column grid of small tinted cards
 export function NarrativeProfileView({ sections, narrative = {}, applicantFirstName, pregnancyHistoryNode, startNumber = 1 }) {
   return (
     <div className="space-y-7">
@@ -172,6 +177,7 @@ export function NarrativeProfileView({ sections, narrative = {}, applicantFirstN
         if (section.isLetter) {
           return <LetterView key={section.key} section={section} narrative={narrative} applicantFirstName={applicantFirstName} />
         }
+        const bodyVariant = ['cards', 'editorial', 'grid'][idx % 3]
         return (
           <PreviewSection
             key={section.key}
@@ -179,6 +185,7 @@ export function NarrativeProfileView({ sections, narrative = {}, applicantFirstN
             number={startNumber + idx}
             narrative={narrative}
             pregnancyHistoryNode={pregnancyHistoryNode}
+            bodyVariant={bodyVariant}
           />
         )
       })}
@@ -186,8 +193,42 @@ export function NarrativeProfileView({ sections, narrative = {}, applicantFirstN
   )
 }
 
-function PreviewSection({ section, number, narrative, pregnancyHistoryNode }) {
+function PreviewSection({ section, number, narrative, pregnancyHistoryNode, bodyVariant = 'cards' }) {
   const Icon = ICONS[section.icon] || Heart
+  // pregnancyHistory widget always renders as a block at the top
+  const widgetNode = section.questions.find(q => q.type === 'pregnancyHistory') && pregnancyHistoryNode
+
+  const answerQuestions = section.questions.filter(q => q.type !== 'pregnancyHistory')
+
+  let body
+  if (bodyVariant === 'editorial') {
+    body = (
+      <div className="divide-y divide-[#D4A853]/20">
+        {answerQuestions.map((q, i) => (
+          <div key={q.id} className={i === 0 ? 'pb-4' : 'py-4'}>
+            <AnswerView question={q} narrative={narrative} variant="editorial" />
+          </div>
+        ))}
+      </div>
+    )
+  } else if (bodyVariant === 'grid') {
+    body = (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {answerQuestions.map(q => (
+          <AnswerView key={q.id} question={q} narrative={narrative} variant="grid" />
+        ))}
+      </div>
+    )
+  } else {
+    body = (
+      <div className="space-y-2.5">
+        {answerQuestions.map(q => (
+          <AnswerView key={q.id} question={q} narrative={narrative} variant="cards" />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="print:break-inside-avoid">
       {/* Magazine header: 01 + icon + title + gold underline */}
@@ -203,25 +244,120 @@ function PreviewSection({ section, number, narrative, pregnancyHistoryNode }) {
       {section.note && (
         <p className="text-xs italic text-stone-500 mb-3 leading-relaxed">{section.note}</p>
       )}
-      <div className="space-y-2.5">
-        {section.questions.map(q => {
-          if (q.type === 'pregnancyHistory') {
-            return pregnancyHistoryNode ? <div key={q.id}>{pregnancyHistoryNode}</div> : null
-          }
-          return <AnswerView key={q.id} question={q} narrative={narrative} />
-        })}
-      </div>
+      {widgetNode && <div className="mb-4">{widgetNode}</div>}
+      {body}
     </div>
   )
 }
 
-function AnswerView({ question, narrative }) {
+function AnswerView({ question, narrative, variant = 'cards' }) {
   const { id, label, type, options, followUp } = question
   const value = narrative[id]
   const details = narrative[`${id}_details`]
   const hasValue = value !== undefined && value !== null && value !== ''
 
-  // yes/no: render as a pill-style row even when empty so admin can spot gaps
+  // ─── EDITORIAL — no card borders, magazine prose feel ──────────────
+  if (variant === 'editorial') {
+    if (type === 'yesno') {
+      const isYes = hasValue && (value === 'yes' || value === 'Yes')
+      const isNo = hasValue && (value === 'no' || value === 'No')
+      return (
+        <div>
+          <div className="flex items-baseline gap-3">
+            <p className="text-xs uppercase tracking-[0.15em] font-semibold flex-1 leading-snug" style={{ color: GOLD }}>{label}</p>
+            <span className={`text-sm font-bold uppercase tracking-wider shrink-0 ${
+              isYes ? 'text-emerald-600' : isNo ? 'text-rose-500' : 'text-stone-300'
+            }`}>{isYes ? 'Yes' : isNo ? 'No' : '—'}</span>
+          </div>
+          {hasValue && details && (
+            <p className="text-[15px] text-stone-700 whitespace-pre-wrap leading-relaxed mt-2 font-serif italic">{details}</p>
+          )}
+        </div>
+      )
+    }
+    if (type === 'select') {
+      const opt = options?.find(o => o.value === value)
+      return (
+        <div>
+          <p className="text-xs uppercase tracking-[0.15em] font-semibold mb-1.5 leading-snug" style={{ color: GOLD }}>{label}</p>
+          <p className="text-[15px] font-medium" style={{ color: ACCENT }}>{hasValue ? (opt?.label || value) : '—'}</p>
+          {hasValue && details && (
+            <p className="text-[15px] text-stone-700 whitespace-pre-wrap leading-relaxed mt-2 font-serif italic">{details}</p>
+          )}
+        </div>
+      )
+    }
+    // textarea
+    return (
+      <div>
+        <p className="text-xs uppercase tracking-[0.15em] font-semibold mb-2 leading-snug" style={{ color: GOLD }}>{label}</p>
+        {hasValue ? (
+          <p className="text-[15px] text-stone-700 whitespace-pre-wrap leading-[1.75] font-serif">{value}</p>
+        ) : (
+          <p className="text-sm italic text-stone-300">Not yet answered</p>
+        )}
+      </div>
+    )
+  }
+
+  // ─── GRID — compact 2-column tinted cards ──────────────────────────
+  if (variant === 'grid') {
+    if (type === 'yesno') {
+      const isYes = hasValue && (value === 'yes' || value === 'Yes')
+      const isNo = hasValue && (value === 'no' || value === 'No')
+      const cellClass = isYes ? 'bg-emerald-50/50 border-emerald-200/60' :
+                        isNo ? 'bg-rose-50/50 border-rose-200/60' :
+                        'bg-[#fdf8f3]/60 border-[#D4A853]/20'
+      const detailsSpansFull = hasValue && details
+      return (
+        <div className={detailsSpansFull ? 'sm:col-span-2 space-y-1.5' : ''}>
+          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 print:break-inside-avoid ${cellClass}`}>
+            <span className="text-xs text-stone-700 flex-1 leading-snug">{label}</span>
+            <span className={`text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+              isYes ? 'text-emerald-600' : isNo ? 'text-rose-500' : 'text-stone-300'
+            }`}>{isYes ? 'Yes' : isNo ? 'No' : '—'}</span>
+          </div>
+          {detailsSpansFull && (
+            <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-500 mb-1">{followUp?.label || 'Details'}</p>
+              <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{details}</p>
+            </div>
+          )}
+        </div>
+      )
+    }
+    if (type === 'select') {
+      const opt = options?.find(o => o.value === value)
+      return (
+        <div className={hasValue && details ? 'sm:col-span-2 space-y-1.5' : ''}>
+          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 ${hasValue ? 'bg-[#88C0C4]/10 border-[#88C0C4]/30' : 'bg-[#fdf8f3]/60 border-[#D4A853]/20'}`}>
+            <span className="text-xs text-stone-700 flex-1 leading-snug">{label}</span>
+            <span className={`text-[10px] font-bold shrink-0 ${hasValue ? 'text-[#1F3A3C]' : 'text-stone-300'}`}>{hasValue ? (opt?.label || value) : '—'}</span>
+          </div>
+          {hasValue && details && (
+            <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-500 mb-1">{followUp?.label || 'Details'}</p>
+              <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{details}</p>
+            </div>
+          )}
+        </div>
+      )
+    }
+    // textarea — longer answers span both columns
+    const isLong = hasValue && (value?.length || 0) > 140
+    return (
+      <div className={`${isLong ? 'sm:col-span-2' : ''} rounded-lg border border-[#D4A853]/20 bg-[#fdf8f3]/60 px-3 py-2.5 print:break-inside-avoid`}>
+        <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-500 mb-1">{label}</p>
+        {hasValue ? (
+          <p className="text-sm text-stone-800 whitespace-pre-wrap leading-relaxed">{value}</p>
+        ) : (
+          <p className="text-xs italic text-stone-300">Not yet answered</p>
+        )}
+      </div>
+    )
+  }
+
+  // ─── CARDS (default) — white bordered cards ────────────────────────
   if (type === 'yesno') {
     const isYes = hasValue && (value === 'yes' || value === 'Yes')
     const isNo = hasValue && (value === 'no' || value === 'No')
@@ -272,7 +408,7 @@ function AnswerView({ question, narrative }) {
     )
   }
 
-  // textarea (default): cream-tinted card with bold label + flowing answer
+  // textarea (default)
   return (
     <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 print:break-inside-avoid">
       <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{label}</p>
