@@ -4721,8 +4721,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   // Force-flush any pending autosave from the currently-edited section so we
-  // don't lose edits when the user switches sections (the 1500ms debounce
-  // timer gets clobbered when editData changes to a new section's data).
+  // don't lose edits when the user switches sections. Critical: writes
+  // straight through (no timer) — the editData useEffect for the *new*
+  // section clears adminSaveTimer.current on the very next render, so
+  // anything we put on that timer here would be wiped out before firing.
   function flushPendingSectionSave() {
     if (!editingSection || !editData) return
     if (adminSaveTimer.current) {
@@ -4730,7 +4732,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       adminSaveTimer.current = null
     }
     const prevTargetKey = editingSection.narrative ? 'narrative' : editingSection.key
-    autoSaveSection(prevTargetKey, editData)
+    const newData = { ...data, [prevTargetKey]: editData }
+    setProfileData(newData)
+    if (surrogate.email) {
+      adminUpdateSurrogateProfile(surrogate.email, newData).catch(() => {})
+    }
   }
 
   function startSectionEdit(sec) {
