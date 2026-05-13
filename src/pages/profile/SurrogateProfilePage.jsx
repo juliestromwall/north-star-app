@@ -5,7 +5,7 @@ import {
   Ruler, Scale, CalendarDays, MapPin, Upload,
   Loader2, X, RotateCw, Crop as CropIcon, Eye, Send, AlertTriangle,
   Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon,
-  DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX, Flag
+  DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX, Flag, Star
 } from 'lucide-react'
 
 export const QUALITIES_OPTIONS = [
@@ -972,19 +972,28 @@ export default function SurrogateProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf8f3]">
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-5">
+    <div className="min-h-screen bg-[#fdf8f3] relative overflow-hidden">
+      {/* Decorative background washes */}
+      <div className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-[0.07]" style={{ background: 'radial-gradient(circle, #D4A853 0%, transparent 70%)' }} />
+      <div className="pointer-events-none absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #5A9EA2 0%, transparent 70%)' }} />
+
+      <div className="relative px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-5">
 
         {/* ── Page Header ── */}
-        <div className="bg-white rounded-2xl border border-[#D4A853]/30 shadow-sm shadow-[#1A3638]/5 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#D4A853]/30 shadow-md shadow-[#1A3638]/10 overflow-hidden">
           {/* Gold accent stripe */}
-          <div className="h-1 bg-gradient-to-r from-[#D4A853] via-[#88C0C4] to-[#1F3A3C]" />
-          <div className="px-6 py-5 border-b border-[#fdf8f3] flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-br from-white via-[#fdf8f3]/40 to-[#88C0C4]/5">
+          <div className="h-1.5 bg-gradient-to-r from-[#D4A853] via-[#88C0C4] to-[#1F3A3C]" />
+          <div className="relative px-6 py-7 border-b border-[#fdf8f3] flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-br from-white via-[#fdf8f3]/40 to-[#88C0C4]/5">
+            {/* Star decoration */}
+            <Star className="absolute top-5 right-5 w-5 h-5 text-[#D4A853]/40" fill="currentColor" />
             <ProgressRing percent={overallCompletion} />
             <div className="flex-1 min-w-0 text-center sm:text-left">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#D4A853] mb-1">North Star Surrogacy</p>
-              <h1 className="text-2xl font-heading font-black text-[#1A3638]">My Profile</h1>
-              <p className="text-stone-500 text-sm mt-1">Complete your matching profile so intended parents can get to know you.</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#D4A853] mb-1.5 flex items-center justify-center sm:justify-start gap-1.5">
+                <span className="inline-block w-6 h-[1px] bg-[#D4A853]" />
+                North Star Surrogacy
+              </p>
+              <h1 className="text-3xl font-heading font-black text-[#1A3638] tracking-tight leading-tight">My Profile</h1>
+              <p className="text-stone-500 text-sm mt-2 max-w-md">Complete your matching profile so intended parents can get to know <em className="not-italic font-medium text-[#1A3638]">you</em>.</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-[#1A3638]/20 text-[#1A3638] hover:text-[#1A3638] hover:border-[#D4A853] hover:bg-[#D4A853]/10">
@@ -994,7 +1003,7 @@ export default function SurrogateProfilePage() {
                 <Button
                   size="sm"
                   onClick={() => setShowSubmitModal(true)}
-                  className="gap-1.5 rounded-lg shadow-sm"
+                  className="gap-1.5 rounded-lg shadow-md"
                   style={{ background: 'linear-gradient(135deg, #1F3A3C, #5A9EA2)', color: '#fff' }}
                 >
                   <Send className="w-3.5 h-3.5" /> Submit
@@ -1002,7 +1011,7 @@ export default function SurrogateProfilePage() {
               )}
             </div>
           </div>
-          <div className="px-6 py-3.5 bg-gradient-to-r from-[#fdf8f3] via-white to-[#fdf8f3]">
+          <div className="px-6 py-4 bg-gradient-to-r from-[#fdf8f3] via-white to-[#fdf8f3]">
             <div className="flex items-center gap-3">
               <div className="flex-1 h-2 bg-[#1A3638]/8 rounded-full overflow-hidden">
                 <div
@@ -1049,53 +1058,70 @@ export default function SurrogateProfilePage() {
         ) : (
           /* ── Section Cards ── */
           <>
-            {SECTION_META.map(sec => {
+            {SECTION_META.map((sec, idx) => {
               const { filled, total, complete } = countCompleted(profile, sec.key)
               const Icon = sec.icon
               const isOpen = !!openSections[sec.key]
 
               const isLocked = profileApproved || profileSubmitted
               const inProgress = filled > 0 && !complete
+              const sectionNum = String(idx + 1).padStart(2, '0')
               return (
                 <Collapsible key={sec.key} open={isLocked ? false : isOpen} onOpenChange={() => !isLocked && toggleSection(sec.key)}>
                   <div
                     id={`section-${sec.key}`}
-                    className={`bg-white rounded-2xl border overflow-hidden shadow-sm shadow-[#1A3638]/5 transition-colors ${
+                    className={`bg-white rounded-2xl border overflow-hidden shadow-sm shadow-[#1A3638]/5 transition-all ${
                       isLocked ? 'opacity-50 pointer-events-none border-stone-200' :
-                      complete ? 'border-emerald-200/70' :
-                      inProgress ? 'border-[#D4A853]/40' :
-                      'border-[#1A3638]/15'
+                      complete ? 'border-emerald-200/70 shadow-emerald-100/30' :
+                      inProgress ? 'border-[#D4A853]/40 shadow-[#D4A853]/10' :
+                      'border-[#1A3638]/15 hover:border-[#D4A853]/40 hover:shadow-md'
                     }`}
                   >
+                    {/* Top accent stripe — colored by status */}
+                    {!isLocked && (
+                      <div className={`h-[3px] ${
+                        complete ? 'bg-gradient-to-r from-emerald-400 to-emerald-200' :
+                        inProgress ? 'bg-gradient-to-r from-[#D4A853] to-[#D4A853]/40' :
+                        'bg-gradient-to-r from-[#1A3638]/30 via-[#88C0C4]/30 to-transparent'
+                      }`} />
+                    )}
                     <CollapsibleTrigger asChild>
-                      <button className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-[#fdf8f3]'}`}>
-                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          complete ? 'bg-emerald-50' :
-                          inProgress ? 'bg-gradient-to-br from-[#D4A853]/20 to-[#88C0C4]/15' :
-                          'bg-gradient-to-br from-[#D4A853]/10 to-[#1A3638]/5'
+                      <button className={`w-full flex items-center gap-4 px-5 py-5 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-[#fdf8f3]/70'}`}>
+                        {/* Magazine-style section number */}
+                        <div className="flex flex-col items-center shrink-0">
+                          <span className={`text-2xl font-heading font-black leading-none tabular-nums ${
+                            complete ? 'text-emerald-500/70' :
+                            inProgress ? 'text-[#D4A853]/80' :
+                            'text-[#1A3638]/30'
+                          }`}>{sectionNum}</span>
+                        </div>
+                        <div className={`size-11 rounded-2xl flex items-center justify-center shrink-0 ring-1 ${
+                          complete ? 'bg-emerald-50 ring-emerald-200/60' :
+                          inProgress ? 'bg-gradient-to-br from-[#D4A853]/20 to-[#88C0C4]/15 ring-[#D4A853]/30' :
+                          'bg-gradient-to-br from-[#fdf8f3] to-white ring-[#1A3638]/10'
                         }`}>
-                          <Icon className={`size-4.5 ${
+                          <Icon className={`size-5 ${
                             complete ? 'text-emerald-600' :
                             inProgress ? 'text-[#D4A853]' :
                             'text-[#1A3638]'
                           }`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-[#1A3638]">{sec.title}</p>
-                          {sec.description && <p className="text-[11px] text-stone-500 mt-0.5">{sec.description}</p>}
+                          <p className="text-base font-heading font-bold text-[#1A3638] tracking-tight">{sec.title}</p>
+                          {sec.description && <p className="text-xs text-stone-500 mt-1 leading-relaxed">{sec.description}</p>}
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0">
                           {total > 0 && (
-                            <span className={`text-[11px] font-semibold tabular-nums ${
-                              complete ? 'text-emerald-600' :
-                              inProgress ? 'text-[#D4A853]' :
-                              'text-stone-400'
+                            <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${
+                              complete ? 'bg-emerald-50 text-emerald-600' :
+                              inProgress ? 'bg-[#D4A853]/15 text-[#1A3638]' :
+                              'bg-stone-100 text-stone-400'
                             }`}>{filled}/{total}</span>
                           )}
                           {complete ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                           ) : total > 0 ? (
-                            <Circle className={`w-4 h-4 ${inProgress ? 'text-[#D4A853]/60' : 'text-stone-300'}`} />
+                            <Circle className={`w-5 h-5 ${inProgress ? 'text-[#D4A853]/60' : 'text-stone-300'}`} />
                           ) : null}
                           <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                         </div>
