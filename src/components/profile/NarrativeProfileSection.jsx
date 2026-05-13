@@ -163,24 +163,54 @@ function QuestionEditor({ question, value, detailsValue, onChange, onDetailsChan
 }
 
 // ─── Read-only view ──────────────────────────────────────────────────
-export function NarrativeProfileView({ sections, narrative = {}, applicantFirstName, pregnancyHistoryNode }) {
+// Magazine-style preview: numbered section headers with gold underline,
+// cream-tinted answer cards for textareas, colored pill values for Yes/No.
+export function NarrativeProfileView({ sections, narrative = {}, applicantFirstName, pregnancyHistoryNode, startNumber = 1 }) {
   return (
-    <div className="space-y-5">
-      {sections.map(section => {
+    <div className="space-y-7">
+      {sections.map((section, idx) => {
         if (section.isLetter) {
           return <LetterView key={section.key} section={section} narrative={narrative} applicantFirstName={applicantFirstName} />
         }
         return (
-          <SectionShell key={section.key} section={section}>
-            {section.questions.map(q => {
-              if (q.type === 'pregnancyHistory') {
-                return pregnancyHistoryNode ? <div key={q.id}>{pregnancyHistoryNode}</div> : null
-              }
-              return <AnswerView key={q.id} question={q} narrative={narrative} />
-            })}
-          </SectionShell>
+          <PreviewSection
+            key={section.key}
+            section={section}
+            number={startNumber + idx}
+            narrative={narrative}
+            pregnancyHistoryNode={pregnancyHistoryNode}
+          />
         )
       })}
+    </div>
+  )
+}
+
+function PreviewSection({ section, number, narrative, pregnancyHistoryNode }) {
+  const Icon = ICONS[section.icon] || Heart
+  return (
+    <div className="print:break-inside-avoid">
+      {/* Magazine header: 01 + icon + title + gold underline */}
+      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#D4A853]/25 print:break-after-avoid">
+        <span className="text-4xl font-heading font-black leading-none tabular-nums" style={{ color: `${GOLD}99` }}>
+          {String(number).padStart(2, '0')}
+        </span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Icon className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+          <h3 className="text-xl font-heading font-black tracking-tight" style={{ color: ACCENT }}>{section.title}</h3>
+        </div>
+      </div>
+      {section.note && (
+        <p className="text-xs italic text-stone-500 mb-3 leading-relaxed">{section.note}</p>
+      )}
+      <div className="space-y-2.5">
+        {section.questions.map(q => {
+          if (q.type === 'pregnancyHistory') {
+            return pregnancyHistoryNode ? <div key={q.id}>{pregnancyHistoryNode}</div> : null
+          }
+          return <AnswerView key={q.id} question={q} narrative={narrative} />
+        })}
+      </div>
     </div>
   )
 }
@@ -189,51 +219,70 @@ function AnswerView({ question, narrative }) {
   const { id, label, type, options, followUp } = question
   const value = narrative[id]
   const details = narrative[`${id}_details`]
+  const hasValue = value !== undefined && value !== null && value !== ''
 
-  if (!value && !details) {
-    return (
-      <div>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-400 mb-1">{label}</p>
-        <p className="text-sm italic text-stone-300">Not yet answered</p>
-      </div>
-    )
-  }
-
-  if (type === 'textarea') {
-    return (
-      <div>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{label}</p>
-        <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{value}</p>
-      </div>
-    )
-  }
+  // yes/no: render as a pill-style row even when empty so admin can spot gaps
   if (type === 'yesno') {
+    const isYes = hasValue && (value === 'yes' || value === 'Yes')
+    const isNo = hasValue && (value === 'no' || value === 'No')
     return (
-      <div>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{label}</p>
-        <p className="text-sm font-semibold capitalize" style={{ color: ACCENT }}>{value}</p>
-        {details && (
-          <>
-            <p className="text-[11px] text-stone-400 mt-2 mb-1">{followUp?.label || 'Details'}</p>
+      <>
+        <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 print:break-inside-avoid transition-colors ${
+          isYes ? 'bg-emerald-50/60 border-emerald-200/70' :
+          isNo ? 'bg-rose-50/60 border-rose-200/70' :
+          'bg-stone-50/40 border-stone-200'
+        }`}>
+          <span className="text-sm text-stone-700 flex-1 leading-snug">{label}</span>
+          <span className={`text-xs font-bold uppercase tracking-wider shrink-0 ${
+            isYes ? 'text-emerald-600' :
+            isNo ? 'text-rose-500' :
+            'text-stone-300'
+          }`}>{isYes ? 'Yes' : isNo ? 'No' : '—'}</span>
+        </div>
+        {hasValue && details && (
+          <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 -mt-1.5">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{followUp?.label || 'Details'}</p>
             <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{details}</p>
-          </>
+          </div>
         )}
-      </div>
+      </>
     )
   }
+
   if (type === 'select') {
     const opt = options?.find(o => o.value === value)
+    const display = opt?.label || value
     return (
-      <div>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{label}</p>
-        <p className="text-sm font-medium" style={{ color: ACCENT }}>{opt?.label || value}</p>
-        {details && (
-          <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed mt-2">{details}</p>
+      <>
+        <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 print:break-inside-avoid ${
+          hasValue ? 'bg-[#88C0C4]/10 border-[#88C0C4]/30' : 'bg-stone-50/40 border-stone-200'
+        }`}>
+          <span className="text-sm text-stone-700 flex-1 leading-snug">{label}</span>
+          <span className={`text-xs font-bold shrink-0 ${hasValue ? 'text-[#1F3A3C]' : 'text-stone-300'}`}>
+            {hasValue ? display : '—'}
+          </span>
+        </div>
+        {hasValue && details && (
+          <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 -mt-1.5">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{followUp?.label || 'Details'}</p>
+            <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{details}</p>
+          </div>
         )}
-      </div>
+      </>
     )
   }
-  return null
+
+  // textarea (default): cream-tinted card with bold label + flowing answer
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 print:break-inside-avoid">
+      <p className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 mb-1.5">{label}</p>
+      {hasValue ? (
+        <p className="text-[15px] text-stone-800 whitespace-pre-wrap leading-relaxed">{value}</p>
+      ) : (
+        <p className="text-sm italic text-stone-300">Not yet answered</p>
+      )}
+    </div>
+  )
 }
 
 function LetterView({ section, narrative, applicantFirstName }) {
