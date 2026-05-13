@@ -4546,6 +4546,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const inlinePregnancyTimer = useRef(null)
   const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
+  // Always-fresh snapshot of profileData so save helpers don't read a
+  // stale closure value when multiple setProfileData calls land back-to-back.
+  const profileDataRef = useRef(null)
+  useEffect(() => { profileDataRef.current = profileData }, [profileData])
 
   // Fetch the profile record's user_id (auth UUID used for photo storage)
   useEffect(() => {
@@ -4590,11 +4594,33 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     return ordered
   }
 
+  // Build the next profile_data blob, merging section edits in correctly.
+  // For narrative sections we MERGE only the section's own fields into the
+  // shared `narrative` blob — otherwise editData's stale snapshot of other
+  // sections' answers would clobber edits made elsewhere. Reads from
+  // profileDataRef so back-to-back saves all see the freshest state.
+  function applySectionSave(section, sectionData) {
+    const current = profileDataRef.current || data || {}
+    let next
+    if (section?.narrative) {
+      const onlyMine = {}
+      for (const f of (section.fields || [])) {
+        if (sectionData[f] !== undefined) onlyMine[f] = sectionData[f]
+      }
+      next = { ...current, narrative: { ...(current.narrative || {}), ...onlyMine } }
+    } else {
+      next = { ...current, [section?.key || 'unknown']: sectionData }
+    }
+    profileDataRef.current = next
+    setProfileData(next)
+    return next
+  }
+
   // Auto-save a section's data with debounce
   function autoSaveSection(sectionKey, sectionData) {
     if (isApproved) return
-    const newData = { ...data, [sectionKey]: sectionData }
-    setProfileData(newData)
+    const section = PROFILE_SECTIONS.find(s => s.key === sectionKey) || { key: sectionKey }
+    const newData = applySectionSave(section, sectionData)
     if (adminSaveTimer.current) clearTimeout(adminSaveTimer.current)
     adminSaveTimer.current = setTimeout(async () => {
       if (!surrogate.email) return
@@ -4731,9 +4757,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       clearTimeout(adminSaveTimer.current)
       adminSaveTimer.current = null
     }
-    const prevTargetKey = editingSection.narrative ? 'narrative' : editingSection.key
-    const newData = { ...data, [prevTargetKey]: editData }
-    setProfileData(newData)
+    const newData = applySectionSave(editingSection, editData)
     if (surrogate.email) {
       adminUpdateSurrogateProfile(surrogate.email, newData).catch(() => {})
     }
@@ -4819,10 +4843,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     }
     setSaving(true)
     try {
-      const targetKey = editingSection.narrative ? 'narrative' : editingSection.key
-      const updated = { ...data, [targetKey]: editData }
+      const updated = applySectionSave(editingSection, editData)
       await adminUpdateSurrogateProfile(surrogate.email, updated)
-      setProfileData(updated)
       // Sync shared fields back to intake_submissions so hero/quiz stay in sync
       if (editingSection.key === 'personal' && surrogate.id) {
         const syncFields = {}
