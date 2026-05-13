@@ -5795,7 +5795,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
           <div className="space-y-4">
             {PROFILE_SECTIONS.map(sec => {
-              const sectionData = data[sec.key] || {}
+              // Narrative sections all share data.narrative; non-narrative
+              // sections each live under their own key in profile_data.
+              const sectionData = sec.narrative ? (data.narrative || {}) : (data[sec.key] || {})
               const isEditing = editingSection?.key === sec.key
               const isOpen = openAdminSections[sec.key]
               const showEditLayout = isEditing || isApproved
