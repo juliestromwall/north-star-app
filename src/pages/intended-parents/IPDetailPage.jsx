@@ -693,7 +693,7 @@ export default function IPDetailPage() {
         <TabsContent value="overview" className="space-y-6 mt-4">
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
-            const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Consultation'
+            const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Intake'
             const allSteps = getChecklistSteps('ip', currentStageId)
             return (
               <JourneyChecklistView
