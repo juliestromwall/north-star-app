@@ -21,23 +21,23 @@
 
 ## Journey Stages
 
-Every surrogate moves through 6 stages, each with configurable statuses:
+Surrogates and IPs share the same three forward-funnel stages, plus shared "off-ramp" states. Stage **IDs** remain the same as the legacy ABC fork (`pre-qualification`, `screening`, `matching`, `journey-oversight`) — only the display labels were renamed for North Star, so existing stage_status rows are unaffected.
 
-| Stage | Purpose | Default Statuses |
-|-------|---------|-----------------|
-| Pre-Qualification | Initial contact and screening calls | New, 1st/2nd/3rd Reach Out, Screening Call Scheduled/Complete, Pending Profile Completion, Profile Complete, Zoom Call Scheduled |
-| Screening | Medical, psych, background verification | Documents Requested/Received, Medical/Psych Scheduled/Complete, Background In Progress/Complete |
-| Matching | Finding and confirming IP-surrogate match | Awaiting Match, Profile Shared, Meeting Scheduled/Complete, Match Confirmed |
-| Holding | Temporarily paused cases | Admin-configurable |
-| Not Qualified | Cases that don't meet requirements | Admin-configurable (blocks portal access) |
-| Withdrawn | Applicants who opted out | Admin-configurable (blocks portal access) |
+| Stage ID | Surrogate label | IP label | Purpose | Default Statuses |
+|----------|-----------------|----------|---------|------------------|
+| pre-qualification | **Intake** | **Intake** | Initial contact and screening calls | New, 1st/2nd/3rd Reach Out, Screening Call Scheduled/Complete, Pending Profile Completion, Profile Complete, Zoom Call Scheduled |
+| screening | **Screening** | **Screening** | Medical, psych, background verification | Documents Requested/Received, Medical/Psych Scheduled/Complete, Background In Progress/Complete |
+| matching | **Matching** | **Matching** | Finding and confirming IP-surrogate match | Awaiting Match, Profile Shared, Meeting Scheduled/Complete, Match Confirmed |
+| holding | Holding | Holding | Temporarily paused cases | Admin-configurable |
+| not-qualified | Not Qualified | — | Cases that don't meet requirements | Admin-configurable (blocks portal access) |
+| withdrawn | Withdrawn | Withdrawn | Applicants who opted out | Admin-configurable (blocks portal access) |
+| journey-oversight | **Case Management** | **Case Management** | Active matched surrogacy journey (hidden from intake list, surfaced on /journeys) | Legal Review, Medical Clearance, Transfer Prep, Pregnant, Monitoring |
 
-Journey stages (under /journeys, not on surrogate list):
-| Journey Oversight | Active surrogacy journey management | Legal Review, Medical Clearance, Transfer Prep, Pregnant, Monitoring |
+Journey-level wrap stages (under /journeys, not on intake lists):
 | Journey Ending | Delivery and wrap-up | Delivery Scheduled, Delivered, Post-Partum, Final Payments, Wrap-Up |
 | Journey Closed | Case complete or withdrawn | Closed — Complete, Closed — Withdrawn, Closed — Disqualified |
 
-Admins can add/edit/delete statuses per stage via Settings. New surrogates default to Pre-Qualification / New.
+Admins can add/edit/delete statuses per stage via Settings. New surrogates and IPs default to Intake / New.
 Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and blocks portal access.
 "Active Cases" button on list pages excludes Holding, Not Qualified, and Withdrawn.
 
