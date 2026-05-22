@@ -1312,7 +1312,7 @@ export default function SurrogateDetailPage() {
         <TabsContent value="overview" className="space-y-6 mt-4">
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
-            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
+            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Intake'
             const allSteps = getChecklistSteps('gc', currentStageId).filter(s => s.type !== 'info_row')
             return (
               <JourneyChecklistView

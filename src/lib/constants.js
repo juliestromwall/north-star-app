@@ -68,29 +68,31 @@ export const MARKETING_ROLES = [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER
 
 // ── Surrogate Journey Stages ──────────────────────────────
 export const SURROGATE_STAGES = [
-  { id: 'pre-qualification', label: 'Pre-Qualification', color: '#D4A853', order: 1 },
-  { id: 'screening',         label: 'Screening',         color: '#c4219a', order: 2 },
-  { id: 'matching',          label: 'Matching',           color: '#9b2ea7', order: 3 },
-  { id: 'holding',           label: 'Holding',            color: '#fb923c', order: 4 },
-  { id: 'not-qualified',     label: 'Not Qualified',      color: '#dc2626', order: 5 },
-  { id: 'withdrawn',         label: 'Withdrawn',          color: '#000000', order: 6 },
+  { id: 'pre-qualification', label: 'Intake',          color: '#D4A853', order: 1 },
+  { id: 'screening',         label: 'Screening',       color: '#c4219a', order: 2 },
+  { id: 'matching',          label: 'Matching',        color: '#9b2ea7', order: 3 },
+  { id: 'holding',           label: 'Holding',         color: '#fb923c', order: 4 },
+  { id: 'not-qualified',     label: 'Not Qualified',   color: '#dc2626', order: 5 },
+  { id: 'withdrawn',         label: 'Withdrawn',       color: '#000000', order: 6 },
   // journey-oversight kept for journey pages (not shown on surrogate list)
-  { id: 'journey-oversight', label: 'Matched Journey',    color: '#723bb4', order: 99, hidden: true },
+  { id: 'journey-oversight', label: 'Case Management', color: '#723bb4', order: 99, hidden: true },
 ]
 
-// IP-specific stages — only 4 stages for IPs
+// IP stages mirror the surrogate side (Intake / Screening / Matching).
 export const IP_STAGES = [
-  { id: 'pre-qualification', label: 'Consultation', color: '#1A3638', order: 1 },
-  { id: 'matching',          label: 'Matching',     color: '#9b2ea7', order: 2 },
-  { id: 'holding',           label: 'Holding',      color: '#fb923c', order: 3 },
-  { id: 'withdrawn',         label: 'Withdrawn',    color: '#000000', order: 4 },
-  { id: 'journey-oversight', label: 'Matched Journey', color: '#723bb4', order: 99, hidden: true },
+  { id: 'pre-qualification', label: 'Intake',          color: '#1A3638', order: 1 },
+  { id: 'screening',         label: 'Screening',       color: '#c4219a', order: 2 },
+  { id: 'matching',          label: 'Matching',        color: '#9b2ea7', order: 3 },
+  { id: 'holding',           label: 'Holding',         color: '#fb923c', order: 4 },
+  { id: 'withdrawn',         label: 'Withdrawn',       color: '#000000', order: 5 },
+  { id: 'journey-oversight', label: 'Case Management', color: '#723bb4', order: 99, hidden: true },
 ]
 
-// IP-specific stage label overrides (for backward compat)
+// IP-specific stage label overrides (for backward compat with any older
+// references that imported from this map directly).
 export const IP_STAGE_LABELS = {
-  'pre-qualification': 'Consultation',
-  'screening': 'Holding',
+  'pre-qualification': 'Intake',
+  'screening': 'Screening',
 }
 
 export const DEFAULT_STATUSES_BY_STAGE = {
