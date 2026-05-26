@@ -113,7 +113,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Header -->
   <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #1A3638;">
-    <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="height: 50px; margin-bottom: 4px;" onerror="this.style.display='none'" />
+    <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="height: 90px; margin-bottom: 4px;" onerror="this.style.display='none'" />
     <p style="color: #1A3638; font-size: 16px; font-weight: 700; margin: 0;">North Star Surrogacy</p>
     <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 818-321-9329 | F: 323-843-9433</p>
     <p style="font-size: 14px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>
