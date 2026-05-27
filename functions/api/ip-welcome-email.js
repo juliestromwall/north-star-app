@@ -62,9 +62,9 @@ export async function onRequestPost(context) {
 
         <div style="text-align: center; margin: 24px 0;">
           <p style="margin: 0 0 12px; font-size: 15px; color: #1A3638; font-weight: 600;">
-            Owners Nicole Lawson &amp; Julie Allgood
+            Owner Jenn Maatman
           </p>
-          <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="Owners Nicole Lawson & Julie Allgood" style="max-width: 100%; border-radius: 12px;" />
+          <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="Owner Jenn Maatman" style="max-width: 100%; border-radius: 12px;" />
         </div>
 
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">

@@ -69,7 +69,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="font-size: 14px; color: #44403c; line-height: 1.6; margin: 20px 0 0;">
-          Please let Nicole know if you have any questions.
+          Please let Jenn know if you have any questions.
         </p>
         <p style="font-size: 14px; color: #44403c; margin: 8px 0 0;">
           Thank you!
