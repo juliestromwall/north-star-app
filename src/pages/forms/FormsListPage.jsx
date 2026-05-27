@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
@@ -7,18 +7,66 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mockFormDefinitions } from '@/data/mock/forms'
-import { Plus, Pencil, Eye, FileBarChart, FileText } from 'lucide-react'
+import { fetchFormTemplates, seedFormTemplatesIfEmpty } from '@/lib/db'
+import { Plus, Pencil, Eye, FileBarChart, FileText, Loader2 } from 'lucide-react'
+
+// Normalize Supabase row → mock-shape so the rest of the page works
+// without changes. Supabase uses snake_case + jsonb columns.
+function normalizeDbRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    submissionCount: row.submission_count ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    assignedRoles: row.assigned_roles || [],
+    sections: row.sections || [],
+  }
+}
 
 export default function FormsListPage() {
   const { isAdmin, currentUser } = useRole()
-  const [forms] = useState(mockFormDefinitions)
+  const [forms, setForms] = useState(null) // null = loading; [] = empty; [...] = loaded
+
+  // Try Supabase; fall back to mock if the table doesn't exist yet (i.e.
+  // the migration hasn't been run) or Supabase isn't configured. Admins
+  // get a first-visit seed so the GC Application lands in the DB
+  // automatically once the migration runs.
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (isAdmin) {
+        await seedFormTemplatesIfEmpty(mockFormDefinitions)
+      }
+      const dbRows = await fetchFormTemplates()
+      if (cancelled) return
+      if (dbRows && dbRows.length > 0) {
+        setForms(dbRows.map(normalizeDbRow))
+      } else {
+        setForms(mockFormDefinitions)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [isAdmin])
 
   // Non-admins only see forms explicitly assigned to them (none yet — no backend)
   // When backend is connected, this will fetch user-specific form assignments
   const visibleForms = useMemo(() => {
+    if (forms == null) return null
     if (isAdmin) return forms
     return [] // No forms until admin assigns them via backend
   }, [forms, isAdmin])
+
+  if (visibleForms == null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-stone-400" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

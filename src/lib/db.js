@@ -1283,3 +1283,72 @@ export async function deleteCaseTask(id) {
   const { error } = await supabase.from('case_tasks').delete().eq('id', id)
   if (error) throw error
 }
+
+// ── Form Templates (in-app form builder) ────────────────
+// Backs /forms, /forms/builder, /forms/:id/submit. Schema:
+//   { id, title, description, status, sections (jsonb), assigned_roles[],
+//     submission_count, created_at, updated_at }
+// Returns null when Supabase is unavailable OR the table doesn't exist
+// yet (so callers fall back to mockFormDefinitions until the migration
+// scripts/20260527-add-form-templates.sql is run).
+
+export async function fetchFormTemplates() {
+  const result = await withTimeout(
+    () => supabase.from('form_templates').select('*').order('updated_at', { ascending: false })
+  )
+  if (!result || result.error) return null
+  return result.data || []
+}
+
+export async function fetchFormTemplate(id) {
+  if (!id) return null
+  const result = await withTimeout(
+    () => supabase.from('form_templates').select('*').eq('id', id).single()
+  )
+  if (!result || result.error) return null
+  return result.data
+}
+
+export async function upsertFormTemplate(template) {
+  if (!supabase || !template?.id) return null
+  const row = {
+    id: template.id,
+    title: template.title || 'Untitled Form',
+    description: template.description || null,
+    status: template.status || 'draft',
+    sections: template.sections || [],
+    assigned_roles: template.assignedRoles || template.assigned_roles || [],
+    submission_count: template.submissionCount || template.submission_count || 0,
+  }
+  const { data, error } = await supabase.from('form_templates').upsert(row, { onConflict: 'id' }).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteFormTemplate(id) {
+  if (!supabase || !id) return
+  const { error } = await supabase.from('form_templates').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Seed the table from the in-repo mock when it's empty. Idempotent —
+// only inserts if no rows exist. Called by FormsListPage on first admin
+// visit so the GC Application is available immediately after the
+// migration runs without requiring a manual import step.
+export async function seedFormTemplatesIfEmpty(mockTemplates) {
+  if (!supabase || !Array.isArray(mockTemplates) || mockTemplates.length === 0) return
+  const existing = await fetchFormTemplates()
+  if (!existing) return // table doesn't exist or fetch failed — nothing to do
+  if (existing.length > 0) return
+  const rows = mockTemplates.map(t => ({
+    id: t.id,
+    title: t.title || 'Untitled Form',
+    description: t.description || null,
+    status: t.status || 'draft',
+    sections: t.sections || [],
+    assigned_roles: t.assignedRoles || [],
+    submission_count: t.submissionCount || 0,
+  }))
+  const { error } = await supabase.from('form_templates').insert(rows)
+  if (error) console.error('Failed to seed form_templates:', error.message)
+}

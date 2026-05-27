@@ -1,18 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import PageHeader from '@/components/shared/PageHeader'
 import FormFieldRenderer, { passesShowWhen } from '@/components/forms/FormFieldRenderer'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { mockFormDefinitions } from '@/data/mock/forms'
-import { ArrowLeft, ArrowRight, Send, Save } from 'lucide-react'
+import { fetchFormTemplate } from '@/lib/db'
+import { ArrowLeft, ArrowRight, Send, Save, Loader2 } from 'lucide-react'
 
 export default function FormSubmissionPage() {
   const { formId } = useParams()
-  const form = mockFormDefinitions.find(f => f.id === formId)
+  const [form, setForm] = useState(undefined) // undefined = loading; null = not found; obj = loaded
   const [currentSection, setCurrentSection] = useState(0)
   const [answers, setAnswers] = useState({})
   const [submitted, setSubmitted] = useState(false)
+
+  // Try Supabase first; fall back to in-repo mock if the table doesn't
+  // exist yet or the form isn't in it. Mock fallback keeps the page
+  // usable on environments where the migration hasn't run.
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const dbRow = await fetchFormTemplate(formId)
+      if (cancelled) return
+      if (dbRow) {
+        setForm({
+          id: dbRow.id,
+          title: dbRow.title,
+          description: dbRow.description,
+          sections: dbRow.sections || [],
+        })
+        return
+      }
+      setForm(mockFormDefinitions.find(f => f.id === formId) || null)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [formId])
+
+  if (form === undefined) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-stone-400" />
+      </div>
+    )
+  }
 
   if (!form) {
     return (

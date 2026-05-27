@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import PageHeader from '@/components/shared/PageHeader'
 import FormFieldRenderer from '@/components/forms/FormFieldRenderer'
@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { mockFormDefinitions } from '@/data/mock/forms'
+import { fetchFormTemplate, upsertFormTemplate } from '@/lib/db'
 import {
-  ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Save, Eye, EyeOff, GripVertical,
+  ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, Save, Eye, EyeOff, GripVertical, Loader2,
 } from 'lucide-react'
 
 const FIELD_TYPES = [
@@ -35,17 +36,39 @@ function makeId() {
 
 export default function FormBuilderPage() {
   const { formId } = useParams()
-  const existingForm = formId ? mockFormDefinitions.find(f => f.id === formId) : null
 
-  const [formTitle, setFormTitle] = useState(existingForm?.title || '')
-  const [formDescription, setFormDescription] = useState(existingForm?.description || '')
-  const [sections, setSections] = useState(
-    existingForm?.sections || [
-      { id: makeId(), title: 'Section 1', fields: [] },
-    ]
-  )
+  const [formTitle, setFormTitle] = useState('')
+  const [formDescription, setFormDescription] = useState('')
+  const [sections, setSections] = useState([{ id: makeId(), title: 'Section 1', fields: [] }])
   const [preview, setPreview] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(!!formId)
+
+  // Load existing form (Supabase first, then mock fallback). Skipped for
+  // brand-new forms (no formId).
+  useEffect(() => {
+    if (!formId) return
+    let cancelled = false
+    async function load() {
+      const dbRow = await fetchFormTemplate(formId)
+      const source = dbRow
+        ? {
+            id: dbRow.id,
+            title: dbRow.title,
+            description: dbRow.description,
+            sections: dbRow.sections || [],
+          }
+        : mockFormDefinitions.find(f => f.id === formId)
+      if (cancelled || !source) { setLoading(false); return }
+      setFormTitle(source.title || '')
+      setFormDescription(source.description || '')
+      setSections(source.sections?.length ? source.sections : [{ id: makeId(), title: 'Section 1', fields: [] }])
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [formId])
 
   const addSection = () => {
     setSections(prev => [...prev, {
@@ -109,9 +132,36 @@ export default function FormBuilderPage() {
     }))
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      // Reuse the existing formId for edits; generate a stable one for new
+      // forms so they're addressable by URL after save.
+      const id = formId || `form-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+      await upsertFormTemplate({
+        id,
+        title: formTitle || 'Untitled Form',
+        description: formDescription,
+        status: 'draft',
+        sections,
+        assignedRoles: [],
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Failed to save form template:', err)
+      alert('Failed to save. Make sure the form_templates table exists (run scripts/20260527-add-form-templates.sql).')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-stone-400" />
+      </div>
+    )
   }
 
   const needsOptions = (type) => ['select', 'multi-select', 'radio'].includes(type)
@@ -186,8 +236,9 @@ export default function FormBuilderPage() {
             <Button variant="outline" onClick={() => setPreview(true)}>
               <Eye className="size-4" /> Preview
             </Button>
-            <Button onClick={handleSave}>
-              <Save className="size-4" /> {saved ? 'Saved!' : 'Save'}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+              {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
             </Button>
           </div>
         }
