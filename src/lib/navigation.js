@@ -179,6 +179,12 @@ const nav = [
         roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN],
       },
       {
+        label: 'Forms',
+        icon: FileText,
+        path: '/forms',
+        roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN],
+      },
+      {
         label: 'Case Import',
         icon: Upload,
         path: '/case-import',
