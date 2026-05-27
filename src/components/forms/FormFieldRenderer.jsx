@@ -5,6 +5,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 
+// Conditional-visibility predicate. field.showWhen = { field, op, value }
+// where op is 'equals' | 'notEquals'. Returns true when the field should
+// be visible (no condition is treated as always-visible).
+export function passesShowWhen(field, answers) {
+  const w = field.showWhen
+  if (!w?.field) return true
+  const observed = answers ? answers[w.field] : undefined
+  if (w.op === 'notEquals') return observed !== w.value
+  return observed === w.value
+}
+
+// Dot-path lookup for prefillFrom. Example:
+//   resolvePrefill({ profile: { narrative: { x: 'a' } } }, 'profile.narrative.x') → 'a'
+export function resolvePrefill(source, path) {
+  if (!source || !path) return undefined
+  return path.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), source)
+}
+
 export default function FormFieldRenderer({ field, value, onChange, disabled = false }) {
   const handleChange = (val) => {
     if (onChange) onChange(field.id, val)
@@ -119,6 +137,35 @@ export default function FormFieldRenderer({ field, value, onChange, disabled = f
             disabled={disabled}
           />
           <Label htmlFor={field.id} className="text-sm font-normal">{field.placeholder || 'Yes'}</Label>
+        </div>
+      )}
+
+      {field.type === 'yesno' && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleChange('yes')}
+            className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
+              value === 'yes' || value === true
+                ? 'bg-emerald-500 text-white'
+                : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+            }`}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => handleChange('no')}
+            className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors ${
+              value === 'no' || value === false
+                ? 'bg-red-500 text-white'
+                : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+            }`}
+          >
+            No
+          </button>
         </div>
       )}
 

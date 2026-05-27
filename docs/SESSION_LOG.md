@@ -1,5 +1,74 @@
 # Session Log
 
+## 2026-05-26 (afternoon) — Second pivot: don't build a new template system, extend the existing /forms builder
+
+**Worked on:** After landing the FormRenderer + template-driven GC application earlier in the day, user asked the right question: *"Why am I testing this if your purpose is to build the admin UI for creating application pieces?"* — meaning the real deliverable is a builder, not a specific application's output. Re-scoped the session around that. While starting to build a fresh `/templates` admin page, discovered the codebase **already has** a form-builder system at `/forms/builder` (FormBuilderPage, 326 lines: add/remove/move sections + fields, 10 field types, preview toggle, save) backed by `mockFormDefinitions`. Don't reinvent — extend it. Reverted the GC swap on PortalApplicationPage (production surrogates back on the legacy hand-coded forms), deleted the duplicate FormRenderer, and added the four features the existing builder was missing to make it usable for the GC application long-term: `yesno` field type, `group` visual subsections, `prefillFrom` dot-path attribute, and `showWhen` conditional visibility.
+
+**Changes made:**
+
+- **Reverted** `src/pages/portal/PortalApplicationPage.jsx` to its pre-session state via `git checkout`. Production surrogates keep using the legacy hand-coded forms. Nothing user-visible changed today.
+- **Deleted** `src/components/forms/FormRenderer.jsx` (the parallel renderer I built earlier in the session — superseded by extending the existing `FormFieldRenderer`).
+- **Kept** `src/data/formTemplates/applicationGc.js` and `docs/GC_APPLICATION_SPEC.md`. The template object is a clean encoding of the 124-field GC application — useful as **seed data** when next session migrates it into the builder-managed template system. Spec doc is still the source of truth for what the new GC application should look like.
+- **`src/components/forms/FormFieldRenderer.jsx`** — added `yesno` field type (pill buttons matching the styling used in PortalApplicationPage's YesNoButtons component). Exported two new helpers: `passesShowWhen(field, answers)` (the `field.showWhen = { field, op: 'equals'|'notEquals', value }` predicate) and `resolvePrefill(source, path)` (dot-path lookup for `prefillFrom`).
+- **`src/pages/forms/FormBuilderPage.jsx`**:
+  - Added `yesno` to `FIELD_TYPES`.
+  - Per-field editor gained three new attribute rows: **Group** (text input — visual subsection label), **Prefill from** (text input — dot-path like `profile.narrative.fieldId`), and **Show only when...** (3-input row: field dropdown of every other field in the form, op dropdown `equals`/`does not equal`, value text input, with a "Clear condition" link when set).
+  - Preview mode: doesn't filter by `showWhen` (admins want to see every field). Adds a small amber "CONDITIONAL" badge next to fields that have a showWhen rule, plus group dividers above the first field of each new group.
+- **`src/pages/forms/FormSubmissionPage.jsx`** — applies `passesShowWhen` to filter visible fields in real time (so conditional fields appear/disappear as the user answers prior questions). Renders the same group-divider pattern as preview.
+- Build verification: `npm run build` ✓ in 10.49s.
+
+**Deferred to next session(s):**
+1. **Supabase persistence.** `mockFormDefinitions` is still in-memory — saves don't persist. Need a `form_templates` table (id, title, description, sections JSON, status, agency_id?, created_at, updated_at) + db.js helpers + migration. Templates need to survive deploys + ideally support per-agency variants (ABC vs North Star).
+2. **Wire `prefillFrom` end-to-end.** Schema + builder UI shipped today. Submission page needs to actually load profile data and pass it to FormFieldRenderer as the initial value when the field hasn't been answered. (Helper `resolvePrefill` is already exported.)
+3. **Replace hand-coded forms with builder-managed templates.** Once persistence + prefill are live: seed the GC application from `applicationGc.js` into the database as a template, mark it `published`, route `PortalApplicationPage` to render via `<FormFieldRenderer>`-driven sections instead of the hand-coded `PersonalInfoForm`/etc. Same for `GCApplicationTab` admin side.
+4. **CSV importer.** Drop an XLSX (like the one user sent today) → builder scaffolds a template from the tabs + question column. Eliminates the manual translation step entirely. Probably a new "Import from spreadsheet" button on `/forms` list page.
+5. **Section header in builder** — currently group is just a per-field attribute; auto-grouping consecutive same-group fields under one divider works in the renderer, but the builder UI doesn't show grouping visually. Minor polish.
+6. **Drag-drop field reordering** — current builder has up/down arrows. Drag-drop is nicer.
+
+**Open questions:**
+- Multi-tenancy: when we add Supabase persistence, do we partition templates per agency (`agency_id` column, ABC vs North Star get separate templates), or share globally with overrides? The user explicitly wants this feature for both apps — worth a discussion before the table design.
+- `_applicationAvailable` gating: when GC application moves to builder-managed templates, do we keep the per-surrogate "admin released" gate, or move that to a template-level `status: 'published-to-released-only'` concept?
+- Old hand-coded section components in PortalApplicationPage.jsx (PersonalInfoForm etc.) — keep until builder-managed app is proven, then delete (~1,500 lines of cleanup).
+
+## 2026-05-26 (GC Application: pivoted from hand-coded rebuild to template-driven FormRenderer)
+
+**Worked on:** Started this session intending to do a hand-coded rebuild of the GC application — North Star's new XLSX of 124 fields across 7 tabs (Personal Info, Employment & Education, Social & Family, Background, Pregnancy History, Health History, Surrogacy Journey Expectations), plus keeping the existing Clinic & Hospital section as section 8. After spending the first half of the session on planning + spec doc + the first hand-coded section (which orphaned 400 lines of legacy code due to a bad bulk-Edit), pivoted to the smarter long-term play: build a **template-driven form system** so any future "client wants different Qs" moment (for North Star, ABC, or any future agency template) is a JSON edit, not a code rebuild. User explicitly wanted this for ABC too — long-deferred wish, not a shiny new idea.
+
+**Why pivot:** The work to hand-code 124 fields × portal + admin = ~2,500 lines of new React code, and every CSV change after this one is the same grind. A FormRenderer + JSON template pays off forever — and the spec doc work (`docs/GC_APPLICATION_SPEC.md`) translates directly into the template structure.
+
+**Changes made:**
+
+- `docs/GC_APPLICATION_SPEC.md` — full field-by-field spec for the new 8-section application: storage keys, field types, required flags, profile-prefill mappings (35 duplicate Qs identified), removed-section decisions. Locked in user decisions on the spec: wipe legacy data, fully remove References + Payment Preference + Social Media Release, Pregnancy History as read-only summary derived from profile widget, Clinic & Hospital moved to last position, drop SSN/insurance card uploads/DL uploads/spouse contact/structured adult household members/emergency contact strictly per CSV ("operational gap" tradeoff accepted by user — addable back later as the data lives in `intake_submissions.answers` JSON).
+- `src/data/formTemplates/applicationGc.js` — the GC application as a template. 8 sections, 124 fields. Helper builders (`yn`, `ynDetail`, `ta`, `txt`) compress the field definitions to ~270 lines total. Field schema documented at top of file. Special `pregnancySummary` field type for the derived read-only Pregnancy History summary. `customComponent: 'ClinicHospitalForm'` escape hatch for section 8 (the per-pregnancy structured widget stays hand-coded).
+- `src/components/forms/FormRenderer.jsx` — generic renderer (~280 lines). Reads template + answers + profileData + onSave. Renders each section as a `Card` + `Collapsible` matching the existing portal visual. Handles field types (text/textarea/yesno/select/date/email/tel/number/pregnancySummary), `showWhen` conditional visibility (`{ field, equals|notEquals|in|notIn }`), `prefillFrom` dot-path initial value, `group` visual subsections with dividers, `span: 'full'` for full-width fields, required validation (only for visible fields), per-section save button, completion-check icon in the card header. Exports `isSectionComplete(section, sectionData, profileData)` so parent components can compute progress.
+- `src/pages/portal/PortalApplicationPage.jsx`:
+  - Imports `FormRenderer` + `applicationGcTemplate` + `fetchSurrogateProfileByEmail`.
+  - `FORM_SECTIONS` now derived from `applicationGcTemplate.sections.map(s => ({ key: s.key, label: s.title, description: s.description }))` — single source of truth.
+  - New `profileData` state. `loadData()` now loads both `findCaseByEmail` and `fetchSurrogateProfileByEmail` in parallel.
+  - GC render block (the `<> ... </>` with 6 hand-coded section components) replaced with a single `<FormRenderer ... />` driven by the template. `ClinicHospitalForm` passed in via `customComponents.ClinicHospitalForm`.
+  - `isSectionComplete(key)` now short-circuits to `templateSectionComplete(templateSection, d, profileData)` for any key in the template; falls through to legacy logic for `_clinicHospital` (custom widget) and IP keys.
+  - Legacy hand-coded section components (`PersonalInfoForm`, `ProfileFollowUpForm`, `PaymentPreferenceForm`, `ReferencesForm`, `ConfidentialForm`, `SocialMediaForm`, `SignaturePad`) are still in the file but unreferenced — left in place for git-diff clarity, can be deleted in a follow-up cleanup.
+- `docs/FEATURES.md` — new "Form Templates" section at the top documenting the FormRenderer + template approach + the "edit applicationGc.js to change questions" workflow. Changelog entry for 2026-05-26.
+- Build verification: `npm run build` ✓ in 16.23s.
+
+**What the user gets today:**
+- GC application is fully rebuilt on the new 8-section structure via the template.
+- Surrogate portal renders the new form. Profile→application prefill works for ~35 duplicate Qs.
+- Conditional fields (spouse fields when not Single, detail textareas when yes, safeInHome detail when no) work via `showWhen`.
+- Clinic & Hospital section still renders the legacy per-pregnancy widget (sits in section 8 position).
+
+**Next steps (priority order):**
+1. **Browser verification.** Build passed but no UI test yet. Need to log in as a surrogate with `_applicationAvailable: true` and walk through each new section. Test save, progress bar, completion icon, conditional fields, prefill from profile, submit flow. Recommend staging first.
+2. **Admin tab mirror.** `src/components/surrogates/GCApplicationTab.jsx` (1700 lines) is still hand-coded for the OLD sections. Migrate to FormRenderer (or a sister component if admin needs richer search/edit UX). Until then, admins viewing a surrogate's GC application see the OLD section components, which won't reflect the new data being saved by surrogates.
+3. **Legacy data UX.** Surrogates who already submitted under the old form (`_applicationSubmitted: true`) will now see the new template's empty sections in read-only mode. Decide: reset their submitted state, migrate old `_application` → new `_personalInfo` keys, or accept the UX.
+4. **Delete legacy section components in `PortalApplicationPage.jsx`.** Once everything is verified, drop the ~1,000 lines of unused PersonalInfoForm/ProfileFollowUpForm/etc.
+5. **CSV importer.** A script that takes an XLSX and generates a template JSON file — eliminates the manual translation step entirely (was originally planned as session 2 of the form-builder arc).
+6. **Migrate IP application + profiles to the same system.** Lower priority — profiles were rebuilt 4 days ago and are working.
+
+**Open questions:**
+- Should we revisit the dropped operational fields (SSN/insurance/DL/etc.) as a separate "Identity & Verification" template, or wait for someone to actually need them and add then?
+- Admin tab migration: refactor in place or build `<FormRendererAdmin>` separately? Admin side has different needs (search filter, always-open accordion, view-vs-edit toggle per role).
+
 ## 2026-05-22 (North Star narrative profile rebuild — per-section cards, magazine preview, embedded pregnancy widget, admin save fixes, stage rename)
 
 **Worked on:** Long arc rebuilding the North Star surrogate + IP profile editor and preview from scratch off ABC's fork. Started by stripping every ABC section except Pregnancy History and dropping in the 12 GC / 10 IP narrative sections from `src/data/profileNarrative.js`. Then broke each Column A section into its own collapsible card on both the user-facing edit page and the admin Profile tab. Embedded the structured Pregnancy History editor inline at the top of "Pregnancy & Parenting Experience" (parameterized `renderPregnancyEdit` with a `writeArray` callback so the same UI works in two save flows). Built a new top-level "Profile Photo & Cover Image" section that reuses `ProfilePhotoUpload` and writes URLs back via the curried `u()` setter. Hunted a long-running admin save bug — editData was being built from a stale snapshot of `data.narrative`, so each per-section save was overwriting the whole blob with that snapshot and wiping edits made elsewhere; fixed with `applySectionSave(section, sectionData)` that MERGES only the section's own fields into `data.narrative` via a `profileDataRef` so back-to-back saves stay fresh. Redesigned the read-only preview to look like ABC's magazine layout with North Star branding — numbered section headers (01 / 02 / 03) with a gold underline, then three rotating BODY variants (cards / editorial / 2-column grid) so the rhythm shifts every section. Plus a bunch of supporting fixes: Supabase storage bucket SQL (profile-photos, case-documents, esign-documents) and `surrogate_profiles` `UNIQUE(user_id)` + `id` default to unblock writes, photo completion check (existing-on-load notifications), flush-on-section-switch, and renamed stage labels to Intake / Screening / Matching / Case Management.

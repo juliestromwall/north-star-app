@@ -20,6 +20,7 @@ const FIELD_TYPES = [
   { value: 'textarea', label: 'Text Area' },
   { value: 'number', label: 'Number' },
   { value: 'date', label: 'Date' },
+  { value: 'yesno', label: 'Yes / No' },
   { value: 'select', label: 'Dropdown' },
   { value: 'multi-select', label: 'Multi-Select' },
   { value: 'checkbox', label: 'Checkbox' },
@@ -134,9 +135,33 @@ export default function FormBuilderPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {section.fields.map(field => (
-                  <FormFieldRenderer key={field.id} field={field} disabled />
-                ))}
+                {(() => {
+                  let lastGroup = null
+                  return section.fields.map(field => {
+                    // In preview we don't apply showWhen — admins want to
+                    // see every field. We mark conditional ones with a
+                    // small badge so they're easy to spot.
+                    const showGroup = field.group && field.group !== lastGroup
+                    if (showGroup) lastGroup = field.group
+                    return (
+                      <div key={field.id} className="space-y-4">
+                        {showGroup && (
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t first:border-t-0 first:pt-0">
+                            {field.group}
+                          </p>
+                        )}
+                        <div className="space-y-2">
+                          {field.showWhen?.field && (
+                            <span className="inline-block text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              Conditional
+                            </span>
+                          )}
+                          <FormFieldRenderer field={field} disabled />
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
                 {section.fields.length === 0 && (
                   <p className="text-sm text-muted-foreground italic">No fields in this section</p>
                 )}
@@ -306,6 +331,97 @@ export default function FormBuilderPage() {
                       onCheckedChange={(val) => updateField(sIdx, fIdx, { required: val })}
                     />
                     <Label className="text-xs">Required</Label>
+                  </div>
+
+                  {/* Group + Prefill From — both new attributes for the
+                      template system: group draws a visual subsection
+                      divider in the rendered form; prefillFrom is a
+                      dot-path into the submitter's profile/intake data
+                      so we don't ask duplicate questions. */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">
+                        Group <span className="text-muted-foreground font-normal">(visual subsection)</span>
+                      </Label>
+                      <Input
+                        value={field.group || ''}
+                        onChange={(e) => updateField(sIdx, fIdx, { group: e.target.value })}
+                        placeholder="e.g. Identity"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">
+                        Prefill from <span className="text-muted-foreground font-normal">(dot-path)</span>
+                      </Label>
+                      <Input
+                        value={field.prefillFrom || ''}
+                        onChange={(e) => updateField(sIdx, fIdx, { prefillFrom: e.target.value })}
+                        placeholder="profile.narrative.fieldId"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Conditional visibility — only show this field when
+                      another field has a matching value. Useful for
+                      yes/no follow-ups, spouse fields when not Single,
+                      etc. */}
+                  <div className="space-y-2 rounded-lg bg-stone-50 border border-stone-100 p-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">
+                        Show only when... <span className="text-muted-foreground font-normal">(optional)</span>
+                      </Label>
+                      {field.showWhen?.field && (
+                        <button
+                          type="button"
+                          className="text-[11px] text-muted-foreground hover:text-foreground underline"
+                          onClick={() => updateField(sIdx, fIdx, { showWhen: null })}
+                        >
+                          Clear condition
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Select
+                        value={field.showWhen?.field || ''}
+                        onValueChange={(v) => updateField(sIdx, fIdx, {
+                          showWhen: { field: v, op: field.showWhen?.op || 'equals', value: field.showWhen?.value || '' },
+                        })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Field" /></SelectTrigger>
+                        <SelectContent>
+                          {sections.flatMap(s =>
+                            s.fields
+                              .filter(f => f.id !== field.id && f.type !== 'section-header')
+                              .map(f => (
+                                <SelectItem key={f.id} value={f.id}>
+                                  {s.title} → {f.label || f.id}
+                                </SelectItem>
+                              ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={field.showWhen?.op || 'equals'}
+                        onValueChange={(v) => updateField(sIdx, fIdx, {
+                          showWhen: { ...(field.showWhen || {}), field: field.showWhen?.field || '', op: v, value: field.showWhen?.value || '' },
+                        })}
+                        disabled={!field.showWhen?.field}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="equals">equals</SelectItem>
+                          <SelectItem value="notEquals">does not equal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={field.showWhen?.value || ''}
+                        onChange={(e) => updateField(sIdx, fIdx, {
+                          showWhen: { field: field.showWhen?.field || '', op: field.showWhen?.op || 'equals', value: e.target.value },
+                        })}
+                        placeholder="value"
+                        disabled={!field.showWhen?.field}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}

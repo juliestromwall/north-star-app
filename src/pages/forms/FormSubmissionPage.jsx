@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import PageHeader from '@/components/shared/PageHeader'
-import FormFieldRenderer from '@/components/forms/FormFieldRenderer'
+import FormFieldRenderer, { passesShowWhen } from '@/components/forms/FormFieldRenderer'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { mockFormDefinitions } from '@/data/mock/forms'
@@ -100,14 +100,30 @@ export default function FormSubmissionPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {section.fields.map(field => (
-              <FormFieldRenderer
-                key={field.id}
-                field={field}
-                value={answers[field.id]}
-                onChange={handleFieldChange}
-              />
-            ))}
+            {(() => {
+              let lastGroup = null
+              return section.fields
+                .filter(f => passesShowWhen(f, answers))
+                .map(field => {
+                  // Emit a group divider when the group label changes.
+                  const showGroup = field.group && field.group !== lastGroup
+                  if (showGroup) lastGroup = field.group
+                  return (
+                    <div key={field.id} className="space-y-4">
+                      {showGroup && (
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t first:border-t-0 first:pt-0">
+                          {field.group}
+                        </p>
+                      )}
+                      <FormFieldRenderer
+                        field={field}
+                        value={answers[field.id]}
+                        onChange={handleFieldChange}
+                      />
+                    </div>
+                  )
+                })
+            })()}
           </div>
         </CardContent>
       </Card>
