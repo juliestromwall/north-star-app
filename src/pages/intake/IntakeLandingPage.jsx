@@ -95,13 +95,19 @@ export default function IntakeLandingPage() {
       <div className="max-w-3xl mx-auto px-5 pb-20 grid sm:grid-cols-2 gap-5">
         <PathCard
           onClick={() => navigate('/getstarted/surrogate')}
+          emoji="🤰"
           eyebrow="For Surrogates"
+          accent="#D4A853"
+          accentSoft="rgba(212, 168, 83, 0.16)"
           title="I'd like to be a surrogate"
           body="Help an intended family welcome a baby into the world. You'll be supported, respected, and well-compensated every step of the way."
         />
         <PathCard
           onClick={() => navigate('/getstarted/intendedparent')}
+          emoji="👪"
           eyebrow="For Intended Parents"
+          accent="#2C6E70"
+          accentSoft="rgba(44, 110, 112, 0.16)"
           title="I'm hoping to grow my family"
           body="Begin the path to parenthood with a trauma-informed agency built on lived experience and clinical insight."
         />
@@ -115,22 +121,31 @@ export default function IntakeLandingPage() {
   )
 }
 
-function PathCard({ onClick, eyebrow, title, body }) {
+function PathCard({ onClick, emoji, eyebrow, accent, accentSoft, title, body }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group text-left rounded-2xl p-7 transition-all duration-200 hover:shadow-xl"
-      style={{ background: 'rgba(255, 255, 255, 0.95)' }}
+      className="group text-left rounded-2xl p-7 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+      style={{ background: 'rgba(255, 255, 255, 0.95)', borderTop: `5px solid ${accent}` }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.25em] mb-4" style={{ color: '#D4A853' }}>{eyebrow}</p>
-      <h2 className="text-xl mb-3 leading-snug" style={{ fontFamily: "'Libre Franklin', sans-serif", color: '#1A3638', fontWeight: 600 }}>
+      <span
+        className="inline-flex items-center rounded-full px-3.5 py-1.5 mb-4 text-xs font-bold uppercase tracking-[0.18em]"
+        style={{ color: accent, backgroundColor: accentSoft }}
+      >
+        {eyebrow}
+      </span>
+      <h2
+        className="text-xl mb-3 leading-snug flex items-center gap-2.5"
+        style={{ fontFamily: "'Libre Franklin', sans-serif", color: '#1A3638', fontWeight: 600 }}
+      >
+        <span aria-hidden="true" className="text-2xl leading-none shrink-0">{emoji}</span>
         {title}
       </h2>
       <p className="text-sm leading-relaxed mb-6" style={{ color: '#1A3638', opacity: 0.7 }}>
         {body}
       </p>
-      <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#1F3A3C' }}>
+      <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: accent }}>
         Get started
         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
       </div>
