@@ -60,6 +60,9 @@ export async function onRequestPost(context) {
         password: tempPassword,
         email_confirm: true,
         user_metadata: { full_name: name || '', role: role || 'surrogate' },
+        // app_metadata is NOT user-editable — it's the trusted source for RLS
+        // policies (e.g. intake_submissions visibility). Keep it in sync.
+        app_metadata: { role: role || 'surrogate' },
       }),
     })
     const createData = await createRes.json()

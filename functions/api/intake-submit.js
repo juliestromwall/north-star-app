@@ -156,5 +156,72 @@ export async function onRequestPost(context) {
     return json({ ok: false, error: insertData?.message || 'Insert failed' }, 500)
   }
 
+  // ── Notifications: applicant welcome + North Star admin notification ──
+  // Fired only after a successful save. Non-blocking (waitUntil) so an email
+  // problem never fails the submission; each email function logs its own errors.
+  try {
+    const origin = new URL(request.url).origin
+    const a = submission.answers || {}
+    const fire = (path, body) =>
+      context.waitUntil(
+        fetch(`${origin}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).catch((err) => console.error(`notify ${path} failed:`, err)),
+      )
+
+    if (submission.intake_type === 'ip') {
+      // Welcome email to the intended parent
+      fire('/api/ip-welcome-email', {
+        email: submission.applicant_email,
+        firstName: a.firstName,
+      })
+      // Admin notification to North Star
+      const partnered = a.relationshipStatus === 'Married' || a.relationshipStatus === 'Domestic Partnership'
+      fire('/api/notify-ip-application', {
+        answers: {
+          primaryFirstName: a.firstName,
+          primaryLastName: a.lastName,
+          email: submission.applicant_email,
+          phone: submission.applicant_phone,
+          hasPartner: partnered,
+          ip2FirstName: a.spouseFirstName,
+          ip2LastName: a.spouseLastName,
+          ip2Email: a.spouseEmail,
+          country: submission.country,
+          city: submission.city,
+          stateProv: submission.state_region,
+          hasRE: a.workingWithClinic,
+          hasFrozenEmbryos: a.hasEmbryos,
+          frozenEmbryoDetails: a.embryoCount,
+        },
+      })
+    } else if (submission.intake_type === 'gc') {
+      // Welcome + portal setup only for qualified surrogates
+      if (submission.qualified) {
+        fire('/api/welcome-email', {
+          email: submission.applicant_email,
+          firstName: a.firstName,
+          lastName: a.lastName,
+        })
+      }
+      // Admin notification to North Star (for both qualified and disqualified)
+      fire('/api/notify-new-application', {
+        applicantName: submission.applicant_name,
+        applicantEmail: submission.applicant_email,
+        applicantPhone: submission.applicant_phone,
+        state: submission.state_region,
+        qualified: submission.qualified,
+        dqReasons: submission.dq_reasons,
+        hearAboutUs: a.hearAboutUs,
+        referralName: a.referralName,
+        hearAboutUsOther: a.hearAboutUsOther,
+      })
+    }
+  } catch (err) {
+    console.error('notification dispatch error:', err)
+  }
+
   return json({ ok: true, accepted: true, data: insertData })
 }
