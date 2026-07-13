@@ -56,6 +56,9 @@ export async function onRequestPost(context) {
     }
     if (role !== undefined) {
       updates.user_metadata = { ...(updates.user_metadata || {}), role }
+      // Keep app_metadata.role in sync — it's the trusted (non-user-editable)
+      // claim used by RLS policies for applicant visibility.
+      updates.app_metadata = { ...(updates.app_metadata || {}), role }
     }
     if (email !== undefined) {
       updates.email = email

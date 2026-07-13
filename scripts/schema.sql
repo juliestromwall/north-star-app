@@ -146,14 +146,18 @@ alter table intake_submissions enable row level security;
 create policy "Anyone can insert intake submissions"
   on intake_submissions for insert with check (true);
 
-create policy "Master admins can view intake submissions"
+-- Staff roles are read from app_metadata (NOT user_metadata, which is
+-- user-editable). invite.js / update-admin.js keep app_metadata.role in sync.
+create policy "Staff can view intake submissions"
   on intake_submissions for select using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in
+      ('master_admin', 'super_admin', 'office_admin', 'admin', 'records_admin')
   );
 
-create policy "Master admins can update intake submissions"
+create policy "Staff can update intake submissions"
   on intake_submissions for update using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
+    (auth.jwt() -> 'app_metadata' ->> 'role') in
+      ('master_admin', 'super_admin', 'office_admin', 'admin', 'records_admin')
   );
 
 -- ── Case Documents ──────────────────────────────────────────
