@@ -139,7 +139,7 @@ export function HoneypotField({ value, onChange }) {
  * Cloudflare Turnstile widget — only renders if VITE_TURNSTILE_SITE_KEY is set.
  * Loads the script on mount and renders the challenge.
  */
-export function TurnstileWidget({ onToken }) {
+export function TurnstileWidget({ onVerify }) {
   const containerRef = useRef(null)
   const widgetIdRef = useRef(null)
 
@@ -161,9 +161,9 @@ export function TurnstileWidget({ onToken }) {
 
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
-        callback: (token) => onToken(token),
-        'error-callback': () => onToken(null),
-        'expired-callback': () => onToken(null),
+        callback: (token) => onVerify(token),
+        'error-callback': () => onVerify(null),
+        'expired-callback': () => onVerify(null),
         theme: 'light',
         size: 'flexible',
       })
@@ -183,7 +183,7 @@ export function TurnstileWidget({ onToken }) {
         widgetIdRef.current = null
       }
     }
-  }, [onToken])
+  }, [onVerify])
 
   if (!TURNSTILE_SITE_KEY) return null
 
