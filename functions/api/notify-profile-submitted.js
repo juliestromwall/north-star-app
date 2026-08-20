@@ -1,6 +1,6 @@
 // Cloudflare Pages Function — POST /api/notify-profile-submitted
 // Notifies admin team when a surrogate submits their profile for review
-// Also logs "Profile Complete" on the checklist as "reviewing"
+// Also logs "Profile Complete" on the checklist as "Submitted"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,8 +132,12 @@ export async function onRequestPost(context) {
         const existingTracking = currentAnswers._recordTracking || {}
         const today = new Date().toISOString().split('T')[0]
         const stepData = existingTracking[profileStepId] || { history: [] }
+        // 'complete' with a "Submitted" display label — mirrors
+        // markAutoStepSubmitted() in src/lib/checklistAutoStatus.js. Kept
+        // inline rather than imported because this runs as a Pages Function.
         const trackingEntry = {
-          status: 'reviewing',
+          status: 'complete',
+          optionLabel: 'Submitted',
           date: today,
           note: 'Submitted by Applicant',
           by: 'System',
@@ -142,7 +146,8 @@ export async function onRequestPost(context) {
           ...existingTracking,
           [profileStepId]: {
             ...stepData,
-            status: 'reviewing',
+            status: 'complete',
+            _optionLabel: 'Submitted',
             history: [...(stepData.history || []), trackingEntry],
           },
         }

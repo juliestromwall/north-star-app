@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, upsertInsurance, ensureIntakeForProfile, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
+import { markAutoStepStarted } from '@/lib/checklistAutoStatus'
 import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -822,12 +823,30 @@ export default function SurrogateProfilePage() {
     }).catch(() => {})
   }, [currentUser?.id, currentUser?.email])
 
+  // Flip the Intake checklist's "Profile Complete" step to In Progress the
+  // first time the surrogate edits anything. Held in a ref so updateSection
+  // stays referentially stable, and fire-and-forget so a failed bookkeeping
+  // write can never interfere with the profile save itself.
+  const profileStartLogged = useRef(false)
+  const autoStepCtx = useRef({ caseId: null, locked: true })
+  useEffect(() => {
+    autoStepCtx.current = { caseId: intakeCaseId, locked: profileApproved || profileSubmitted }
+  }, [intakeCaseId, profileApproved, profileSubmitted])
+
+  const markProfileStarted = useCallback(() => {
+    const { caseId, locked } = autoStepCtx.current
+    if (profileStartLogged.current || locked || !caseId) return
+    profileStartLogged.current = true
+    markAutoStepStarted(caseId, 'profile').catch(() => {})
+  }, [])
+
   const updateSection = useCallback((section, field, value) => {
+    markProfileStarted()
     setProfile(prev => ({
       ...prev,
       [section]: { ...prev[section], [field]: value }
     }))
-  }, [])
+  }, [markProfileStarted])
 
   const getVal = useCallback((section, field) => {
     return profile?.[section]?.[field] ?? ''

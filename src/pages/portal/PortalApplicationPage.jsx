@@ -12,6 +12,7 @@ import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Uploa
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { createCaseTask, findCaseByEmail, uploadCaseDocument } from '@/lib/db'
+import { resolveAutoStepId, buildTrackingUpdate } from '@/lib/checklistAutoStatus'
 import { DollarSign } from 'lucide-react'
 
 const US_STATES = [
@@ -1828,6 +1829,19 @@ export default function PortalApplicationPage() {
       const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
       const currentAnswers = fresh?.answers || answers
       const updatedAnswers = { ...currentAnswers, [sectionKey]: { ...(currentAnswers[sectionKey] || {}), ...formData } }
+      // Flip the "Application Complete" checklist step to In Progress as soon
+      // as the applicant saves anything. Folded into this same write so it
+      // can't race the answers update or cost an extra round trip;
+      // buildTrackingUpdate returns null (no-op) once the step has moved on.
+      if (!updatedAnswers._applicationSubmitted) {
+        const startedTracking = buildTrackingUpdate(updatedAnswers._recordTracking, resolveAutoStepId('application', isIP ? 'ip' : 'gc'), {
+          status: 'in_progress',
+          optionLabel: 'In Progress',
+          note: 'Started by Applicant',
+          noDowngrade: true,
+        })
+        if (startedTracking) updatedAnswers._recordTracking = startedTracking
+      }
       const { error } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', caseId)
       if (error) throw error
       setAnswers(updatedAnswers)
@@ -1873,23 +1887,15 @@ export default function PortalApplicationPage() {
       const currentAnswers = fresh?.answers || answers
       const reviewTaskAssignee = fresh?.assigned_to || assignedTo || (isIP ? '' : 'intake@northstarsurrogacy.com')
 
-      // Build checklist update inline (avoids separate read/write + RLS issues)
+      // Build checklist update inline (avoids separate read/write + RLS issues).
+      // Stored as 'complete' with a "Submitted" label so the step both reads
+      // as Submitted and counts toward the checklist's progress bar.
       const existingTracking = currentAnswers._recordTracking || {}
-      const currentAppStep = existingTracking.app_complete || { history: [] }
-      const trackingEntry = {
-        status: 'reviewing',
-        date: new Date().toISOString().split('T')[0],
+      const updatedTracking = buildTrackingUpdate(existingTracking, resolveAutoStepId('application', isIP ? 'ip' : 'gc'), {
+        status: 'complete',
+        optionLabel: 'Submitted',
         note: 'Submitted by Applicant',
-        by: 'System',
-      }
-      const updatedTracking = {
-        ...existingTracking,
-        app_complete: {
-          ...currentAppStep,
-          status: 'reviewing',
-          history: [...(currentAppStep.history || []), trackingEntry],
-        },
-      }
+      }) || existingTracking
 
       const updated = {
         ...currentAnswers,
