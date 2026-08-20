@@ -230,14 +230,19 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
 
       <div className="space-y-3">
         {(() => { let n = 0; return sections.map(section => {
-          // Untitled runs of standalone steps don't consume a section number —
-          // the gold numbering tracks the admin's named sections only.
-          if (!section._isStandalone) n += 1
+          // One continuous sequence over every top-level item, in config
+          // order: a named section takes one number for its header, and each
+          // standalone step takes its own (rendered on the row itself, since
+          // those runs have no header to hang it on).
+          const startNumber = n + 1
+          n += section._isStandalone
+            ? section.cards.length + (subtasksByParent[section.id]?.length || 0)
+            : 1
           return (
           <ChecklistSection
             key={section.id}
             section={section}
-            sectionNumber={n}
+            sectionNumber={startNumber}
             subtasksByParent={subtasksByParent}
             tracking={tracking}
             onUpdate={onUpdate}
@@ -444,6 +449,7 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
               <div key={step.id} className="divide-y divide-stone-100">
                 <StepRow
                   step={step}
+                  stepNumber={sectionNumber + i}
                   tracking={tracking}
                   onUpdate={onUpdate}
                   onStatusLog={onStatusLog}
@@ -601,7 +607,7 @@ function buildSections(steps) {
   return sections
 }
 
-function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false, childStepIds = [] }) {
+function StepRow({ step, stepNumber = null, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false, childStepIds = [] }) {
   const entry = tracking[step.id] || {}
   const status = entry.status || 'not_started'
   const colors = statusColors(status)
@@ -816,6 +822,13 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
         }}
       >
         {indented && <CornerDownRight className="size-3.5 text-stone-400 shrink-0 -ml-2" />}
+        {/* Standalone steps carry their own number — same gold treatment as a
+            named section's header, just scaled to sit on a single row. */}
+        {stepNumber !== null && (
+          <span className={`text-lg font-heading font-black leading-none tabular-nums shrink-0 inline-block w-6 text-center ${isComplete ? 'text-emerald-500/70' : 'text-[#D4A853]/60'}`}>
+            {stepNumber}
+          </span>
+        )}
         {/* Title (auto width) followed immediately by status pill — they sit
             together on the left, no awkward stretched empty space in between.
             Hover affordances drift to the far right via ml-auto. */}
