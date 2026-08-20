@@ -229,11 +229,15 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
       </div>
 
       <div className="space-y-3">
-        {sections.map((section, sectionIdx) => (
+        {(() => { let n = 0; return sections.map(section => {
+          // Untitled runs of standalone steps don't consume a section number —
+          // the gold numbering tracks the admin's named sections only.
+          if (!section._isStandalone) n += 1
+          return (
           <ChecklistSection
             key={section.id}
             section={section}
-            sectionNumber={sectionIdx + 1}
+            sectionNumber={n}
             subtasksByParent={subtasksByParent}
             tracking={tracking}
             onUpdate={onUpdate}
@@ -241,7 +245,8 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
             currentUserName={currentUserName}
             isDefaultExpanded={section.id === defaultExpandedSectionId}
           />
-        ))}
+          )
+        }) })()}
       </div>
     </div>
   )
@@ -395,6 +400,81 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
     ? 'text-emerald-600'
     : 'text-[#1A3638]'
 
+  // A run of standalone steps has no configured name, so it renders as bare
+  // rows in place — no number, no invented title, nothing to collapse. The
+  // "+ Add Step" control still needs a home, so it sits in a slim bar above
+  // the rows and only shows on hover.
+  const isStandalone = !!section._isStandalone
+
+  const addStepControl = addingStep ? (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="text"
+        autoFocus
+        value={stepLabel}
+        onChange={e => setStepLabel(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') commitNewStep(); if (e.key === 'Escape') { setAddingStep(false); setStepLabel('') } }}
+        placeholder="Step label…"
+        className="text-xs rounded border border-[#1A3638]/30 bg-white px-2 py-0.5 outline-none focus:border-[#1A3638] min-w-[180px]"
+      />
+      <button onClick={() => { setAddingStep(false); setStepLabel('') }} className="text-[10px] text-stone-500 hover:text-stone-700">Cancel</button>
+      <button onClick={commitNewStep} disabled={!stepLabel.trim()} className="text-[10px] font-semibold text-white bg-[#1A3638] hover:bg-[#1f2a73] disabled:bg-stone-300 rounded px-2 py-0.5">Add</button>
+    </div>
+  ) : (
+    <button
+      onClick={() => setAddingStep(true)}
+      className="text-stone-300 hover:text-[#1A3638] font-semibold shrink-0"
+      title="Add a step here"
+    >
+      <Plus className="size-4" />
+    </button>
+  )
+
+  if (isStandalone) {
+    return (
+      <section className="group">
+        <div className={`flex justify-end h-5 ${addingStep ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+          {addStepControl}
+        </div>
+        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden divide-y divide-stone-100">
+          {orderedSteps.map((step, i) => {
+            const isAdmin = !step._isConfig
+            const subs = subtasksByParent[step.id] || []
+            return (
+              <div key={step.id} className="divide-y divide-stone-100">
+                <StepRow
+                  step={step}
+                  tracking={tracking}
+                  onUpdate={onUpdate}
+                  onStatusLog={onStatusLog}
+                  currentUserName={currentUserName}
+                  isDefaultExpanded={step.id === sectionDefaultStepId}
+                  childStepIds={subs.map(s => s.id)}
+                  onMoveUp={isAdmin && i > 0 ? () => reorderSubtask(step.id, 'up') : null}
+                  onMoveDown={isAdmin && i < orderedSteps.length - 1 ? () => reorderSubtask(step.id, 'down') : null}
+                />
+                {subs.map((sub, j) => (
+                  <StepRow
+                    key={sub.id}
+                    step={sub}
+                    tracking={tracking}
+                    onUpdate={onUpdate}
+                    onStatusLog={onStatusLog}
+                    currentUserName={currentUserName}
+                    isDefaultExpanded={sub.id === sectionDefaultStepId}
+                    indented
+                    onMoveUp={j > 0 ? () => reorderSubtask(sub.id, 'up') : null}
+                    onMoveDown={j < subs.length - 1 ? () => reorderSubtask(sub.id, 'down') : null}
+                  />
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section>
       {/* Magazine-style header: big pink number + icon + serif title + pink
@@ -421,29 +501,7 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
           )}
         </div>
         {/* + Add Step — sits right next to the section header */}
-        {addingStep ? (
-          <div className="flex items-center gap-1.5">
-            <input
-              type="text"
-              autoFocus
-              value={stepLabel}
-              onChange={e => setStepLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') commitNewStep(); if (e.key === 'Escape') { setAddingStep(false); setStepLabel('') } }}
-              placeholder="Step label…"
-              className="text-xs rounded border border-[#1A3638]/30 bg-white px-2 py-0.5 outline-none focus:border-[#1A3638] min-w-[180px]"
-            />
-            <button onClick={() => { setAddingStep(false); setStepLabel('') }} className="text-[10px] text-stone-500 hover:text-stone-700">Cancel</button>
-            <button onClick={commitNewStep} disabled={!stepLabel.trim()} className="text-[10px] font-semibold text-white bg-[#1A3638] hover:bg-[#1f2a73] disabled:bg-stone-300 rounded px-2 py-0.5">Add</button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setAddingStep(true)}
-            className="text-stone-300 hover:text-[#1A3638] font-semibold shrink-0"
-            title="Add a step to this section"
-          >
-            <Plus className="size-4" />
-          </button>
-        )}
+        {addStepControl}
       </div>
       {expanded && (
         <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden divide-y divide-stone-100">
@@ -493,10 +551,14 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
   )
 }
 
-// Group flat steps into rendering sections.
+// Group flat steps into rendering sections, preserving configured order.
 //   - Parent steps (have children OR are explicitly type=section): become a
-//     section header. Their children become cards inside.
-//   - Standalone steps (no parentId, no children): grouped under "Other Steps".
+//     titled, numbered section header. Their children become cards inside.
+//   - Standalone steps (no parentId, no children): stay exactly where the
+//     admin put them. Consecutive ones share an untitled group so they read
+//     as a run of plain steps rather than picking up a section name nobody
+//     configured. They used to be swept into a trailing "Other Steps"
+//     bucket, which both invented a heading and moved them to the bottom.
 function buildSections(steps) {
   const childrenByParent = {}
   for (const s of steps) {
@@ -506,27 +568,35 @@ function buildSections(steps) {
     }
   }
   const sections = []
-  const orphans = []
   const seenChildren = new Set()
+  // Append to the run of standalone steps currently being built, opening a
+  // new one if the previous section was a titled (parent) section.
+  let standaloneRun = null
+  const pushStandalone = (step) => {
+    if (!standaloneRun) {
+      standaloneRun = { id: `_steps_${step.id}`, label: null, cards: [], _isStandalone: true }
+      sections.push(standaloneRun)
+    }
+    standaloneRun.cards.push(step)
+  }
   for (const s of steps) {
     if (s.parentId) continue // children rendered under their parent
     const children = childrenByParent[s.id] || []
     if (children.length > 0) {
       sections.push({ id: s.id, label: s.label, cards: children })
       for (const c of children) seenChildren.add(c.id)
+      standaloneRun = null // a titled section closes the current run
     } else {
-      orphans.push(s)
+      pushStandalone(s)
     }
   }
-  // Sweep up any children whose parent is missing (defensive)
-  for (const s of steps) {
-    if (s.parentId && !seenChildren.has(s.id)) {
-      const parentExists = steps.some(p => p.id === s.parentId)
-      if (!parentExists) orphans.push(s)
-    }
-  }
-  if (orphans.length > 0) {
-    sections.push({ id: '_other', label: 'Other Steps', cards: orphans })
+  // Sweep up any children whose parent is missing (defensive) — these have no
+  // configured position to honor, so they go last.
+  const strays = steps.filter(s =>
+    s.parentId && !seenChildren.has(s.id) && !steps.some(p => p.id === s.parentId)
+  )
+  if (strays.length > 0) {
+    sections.push({ id: '_other', label: 'Other Steps', cards: strays })
   }
   return sections
 }
