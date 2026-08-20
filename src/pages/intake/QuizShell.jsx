@@ -99,9 +99,10 @@ export function YesNoGrid({
 
 // ── NumberStepper ─────────────────────────────────────────────────────────────
 // +/− stepper — much more mobile-friendly than a text input for small integers.
-// Starts in an "unanswered" state showing — instead of 0, so an applicant who
-// hasn't interacted with the field isn't mistaken for one who answered 0.
-// First + click jumps from blank to 1; minus from 1 lands on 0 (a valid answer).
+// Untouched fields display a muted 0 (not a dash) so the control reads as a
+// count, but the underlying value stays '' until the applicant acts — an
+// untouched field is never mistaken for a real answer of zero. Tapping + goes
+// to 1; tapping − on an untouched field commits an explicit 0.
 export function NumberStepper({ value, onChange, min = 0, max = 10, label, note }) {
   const isEmpty = value === '' || value === null || value === undefined
   const num = parseInt(value) || 0
@@ -112,14 +113,14 @@ export function NumberStepper({ value, onChange, min = 0, max = 10, label, note 
       <div className="flex items-center gap-5">
         <button
           type="button"
-          onClick={() => { if (!isEmpty) onChange(String(Math.max(min, num - 1))) }}
-          disabled={isEmpty || num <= min}
+          onClick={() => onChange(String(isEmpty ? min : Math.max(min, num - 1)))}
+          disabled={!isEmpty && num <= min}
           className="w-11 h-11 rounded-full border-2 border-stone-200 flex items-center justify-center text-stone-600 text-xl font-bold hover:border-stone-400 disabled:opacity-30 transition-colors"
         >
           −
         </button>
-        <span className="text-3xl font-bold text-stone-900 w-10 text-center tabular-nums">
-          {isEmpty ? '—' : (num >= max ? `${max}+` : num)}
+        <span className={`text-3xl font-bold w-10 text-center tabular-nums ${isEmpty ? 'text-stone-300' : 'text-stone-900'}`}>
+          {isEmpty ? min : (num >= max ? `${max}+` : num)}
         </span>
         <button
           type="button"
@@ -130,6 +131,9 @@ export function NumberStepper({ value, onChange, min = 0, max = 10, label, note 
           +
         </button>
       </div>
+      {isEmpty && (
+        <p className="text-[11px] text-stone-400">Tap + or − to set your answer.</p>
+      )}
     </div>
   )
 }
