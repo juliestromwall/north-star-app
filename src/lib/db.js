@@ -482,17 +482,6 @@ export async function updateIntakeSubmission(submissionId, updates) {
   return data
 }
 
-export async function updateReferralPartner(submissionId, partner) {
-  if (!supabase) return null
-  const { data, error } = await supabase
-    .from('intake_submissions')
-    .update({ referral_partner: partner || null })
-    .eq('id', submissionId)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
 
 export async function adminAddSurrogate(surrogateData) {
   const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })

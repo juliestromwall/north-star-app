@@ -702,7 +702,6 @@ function parseBeSurrogacyProfile(text) {
       maritalStatus: profileData.personal.maritalStatus,
       healthyPregnancy: normalizeYesNo(v['Have you had at least one healthy, full term pregnancy and delivery?']),
       hearAboutUs: beAnswer(v['How did you hear about us?']),
-      referralPartner: 'be_surrogacy',
     },
     profileData,
   }

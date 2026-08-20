@@ -131,7 +131,6 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
     (_, answers) => {
       const init = {}
       for (const f of QUIZ_FIELDS) init[f.key] = answers?.[f.key] ?? ''
-      init.beReferral = surrogate?.referralPartner === 'be_surrogacy'
       return init
     }
   )
@@ -148,7 +147,7 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
         const { data } = await supabase.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
         if (data?.answers) currentAnswers = data.answers
       }
-      const { beReferral, ...quizFields } = form
+      const quizFields = { ...form }
       const merged = { ...currentAnswers, ...quizFields }
       await updateIntakeSubmission(surrogate.id, {
         answers: merged,
@@ -156,7 +155,6 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
         applicant_email: (form.email || '').trim().toLowerCase(),
         applicant_phone: form.phone || '',
         state_region: form.state || '',
-        referral_partner: beReferral ? 'be_surrogacy' : null,
       })
       if (onSaved) onSaved(merged)
       cancel()
@@ -199,13 +197,6 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
                 )
               })}
             </div>
-            <div className="flex items-center justify-between pt-4 mt-4 border-t">
-              <div className="flex items-center gap-2">
-                <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
-                <span className="text-sm font-medium">Referral</span>
-              </div>
-              <Switch checked={form.beReferral} onCheckedChange={v => set('beReferral', v)} />
-            </div>
           </>
         ) : (
           <>
@@ -217,15 +208,6 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
                 if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
                 return <ReadField key={f.key} label={f.label} value={display} />
               })}
-            </div>
-            <div className="flex items-center justify-between pt-4 mt-4 border-t">
-              <div className="flex items-center gap-2">
-                <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
-                <span className="text-sm text-muted-foreground">Referral</span>
-              </div>
-              <span className={`text-sm font-medium ${surrogate?.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
-                {surrogate?.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
-              </span>
             </div>
           </>
         )}

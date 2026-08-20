@@ -24,7 +24,6 @@ import { getAuthHeaders } from '@/lib/authHeaders'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles, getAppConfig } from '@/lib/db'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { getAdminStaff } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys, isJourneyActive, fetchCompletedJourneys } from '@/lib/matching'
@@ -210,9 +209,6 @@ function timeAgo(dateStr) {
   return `${months}mo ago`
 }
 
-function BeBadge({ className = '' }) {
-  return <img src="/be-logo.png" alt="Be Surrogacy" className={`h-8 w-auto ${className}`} title="Be Surrogacy Referral" />
-}
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
 export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl, lastLogin, isCompletedJourney }) {
@@ -255,7 +251,6 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
                   </div>
                 )}
               </div>
-              {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
             </div>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
               <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
@@ -356,7 +351,7 @@ export default function SurrogateListPage() {
   const [profiles, setProfiles] = useState({})
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
-  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '' })
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState(null)
   const [addSuccess, setAddSuccess] = useState(false)
@@ -492,7 +487,6 @@ export default function SurrogateListPage() {
       await adminAddSurrogate({
         ...addForm,
         assignedTo: currentUser.email,
-        referralPartner: addForm.referralPartner ? 'be_surrogacy' : null,
       })
       const [data, journeys, completed] = await Promise.all([fetchSurrogatesFromIntake(), fetchMatchedJourneys(), fetchCompletedJourneys()])
       setSurrogates(filterOutMatchedSurrogates(data, journeys))
@@ -500,7 +494,7 @@ export default function SurrogateListPage() {
         (completed || []).map(j => normalizeCaseId(j.gc_case_id)).filter(Boolean)
       ))
       setAddOpen(false)
-      setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
+      setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '' })
       setAddSuccess(true)
       setTimeout(() => setAddSuccess(false), 3000)
     } catch (err) {
@@ -742,7 +736,6 @@ export default function SurrogateListPage() {
                             <span className="relative inline-flex rounded-full size-2.5 bg-[#D4A853]" />
                           </span>
                         )}
-                        {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -827,19 +820,6 @@ export default function SurrogateListPage() {
             <div className="space-y-1">
               <Label className="text-xs">Date of Birth *</Label>
               <Input type="date" value={addForm.dob} onChange={e => setAddForm(f => ({ ...f, dob: e.target.value }))} />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="flex items-center gap-3">
-                <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" />
-                <div>
-                  <p className="text-sm font-medium">Referral</p>
-                </div>
-              </div>
-              <Switch
-                checked={addForm.referralPartner}
-                onCheckedChange={v => setAddForm(f => ({ ...f, referralPartner: v }))}
-              />
             </div>
 
             {addError && (

@@ -33,10 +33,9 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import EmptyState from '@/components/shared/EmptyState'
-import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto, fetchSurrogateExpenses, insertExpense, updateExpense, deleteExpense } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto, fetchSurrogateExpenses, insertExpense, updateExpense, deleteExpense } from '@/lib/db'
 import { ExpenseRow, emptyLineItem, sumLineItems, formatLineItemsAsNotes } from '@/pages/journeys/JourneyDetailPage'
 import { escrowStatusUpdates } from '@/pages/expenses/ExpensesPage'
 import { DollarSign } from 'lucide-react'
@@ -689,9 +688,6 @@ export default function SurrogateDetailPage() {
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
                 <AISummaryButton caseId={surrogate.id} caseName={surrogate.name} caseType="surrogate" stage={stageStatus.stage} status={stageStatus.status} />
-                {surrogate.referralPartner === 'be_surrogacy' && (
-                  <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
-                )}
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
                 {surrogate.location && (
@@ -2964,7 +2960,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
   function startEdit() {
     setForm({
       ...displayData,
-      beReferral: surrogate.referralPartner === 'be_surrogacy',
     })
     setEditing(true)
   }
@@ -2983,7 +2978,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
         experiencedSurrogate: form.experiencedSurrogate,
         hearAboutUs: form.hearAboutUs, hearAboutUsOther: form.hearAboutUsOther,
       }
-      const referralVal = form.beReferral ? 'be_surrogacy' : null
       const newName = `${form.firstName} ${form.lastName}`.trim()
       const oldEmail = (surrogate.email || '').trim().toLowerCase()
       const newEmail = form.email.trim().toLowerCase()
@@ -2992,7 +2986,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
         applicant_email: newEmail,
         applicant_phone: form.phone.trim(),
         answers: updatedAnswers,
-        referral_partner: referralVal,
       })
       // If email changed, update surrogate_profiles and auth user too
       if (oldEmail && newEmail && oldEmail !== newEmail) {
@@ -3018,7 +3011,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
         location: form.state,
         maritalStatus: form.maritalStatus,
         preferredContact: form.preferredContact,
-        referralPartner: referralVal,
         heightFt: form.heightFt, heightIn: form.heightIn,
         weightLbs: form.weightLbs,
       }))
@@ -3123,13 +3115,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t">
-                <div className="flex items-center gap-2">
-                  <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
-                  <span className="text-sm font-medium">Referral</span>
-                </div>
-                <Switch checked={form.beReferral} onCheckedChange={v => setForm(f => ({ ...f, beReferral: v }))} />
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
@@ -3146,15 +3131,6 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
               <div><span className="text-muted-foreground">Healthy Pregnancy</span><p className="font-medium">{displayData.healthyPregnancy === true ? 'Yes' : displayData.healthyPregnancy === false ? 'No' : '—'}</p></div>
               <div><span className="text-muted-foreground">Experienced Surrogate</span><p className="font-medium">{displayData.experiencedSurrogate === true ? 'Yes' : displayData.experiencedSurrogate === false ? 'No' : '—'}</p></div>
               <div><span className="text-muted-foreground">Heard About Us</span><p className="font-medium">{displayData.hearAboutUs || '—'}{displayData.hearAboutUsOther ? ` — ${displayData.hearAboutUsOther}` : ''}</p></div>
-              <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
-                  <span className="text-sm text-muted-foreground">Referral</span>
-                </div>
-                <span className={`text-sm font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
-                </span>
-              </div>
             </div>
           )}
         </CardContent>

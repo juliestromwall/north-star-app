@@ -8,7 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mockFormDefinitions } from '@/data/mock/forms'
 import { fetchFormTemplates, seedFormTemplatesIfEmpty } from '@/lib/db'
-import { Plus, Pencil, Eye, FileBarChart, FileText, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Eye, FileBarChart, FileText, Loader2, Upload } from 'lucide-react'
+import CSVImportDialog from './CSVImportDialog'
 
 // Normalize Supabase row → mock-shape so the rest of the page works
 // without changes. Supabase uses snake_case + jsonb columns.
@@ -29,6 +30,8 @@ function normalizeDbRow(row) {
 export default function FormsListPage() {
   const { isAdmin, currentUser } = useRole()
   const [forms, setForms] = useState(null) // null = loading; [] = empty; [...] = loaded
+  const [importOpen, setImportOpen] = useState(false)
+  const [refreshCounter, setRefreshCounter] = useState(0)
 
   // Try Supabase; fall back to mock if the table doesn't exist yet (i.e.
   // the migration hasn't been run) or Supabase isn't configured. Admins
@@ -50,7 +53,7 @@ export default function FormsListPage() {
     }
     load()
     return () => { cancelled = true }
-  }, [isAdmin])
+  }, [isAdmin, refreshCounter])
 
   // Non-admins only see forms explicitly assigned to them (none yet — no backend)
   // When backend is connected, this will fetch user-specific form assignments
@@ -74,10 +77,21 @@ export default function FormsListPage() {
         title="Forms"
         subtitle={isAdmin ? 'Manage form definitions and review submissions' : 'Forms assigned to you'}
         actions={isAdmin && (
-          <Button asChild>
-            <Link to="/forms/builder"><Plus className="size-4" /> New Form</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="size-4" /> Import from spreadsheet
+            </Button>
+            <Button asChild>
+              <Link to="/forms/builder"><Plus className="size-4" /> New Form</Link>
+            </Button>
+          </div>
         )}
+      />
+
+      <CSVImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => setRefreshCounter(c => c + 1)}
       />
 
       {visibleForms.length === 0 && !isAdmin ? (

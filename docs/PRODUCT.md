@@ -276,7 +276,6 @@ All state lives in `intake_submissions.answers` JSON (no schema migrations neede
 ### Admin: Contact & Intake Details
 1. Contact tab merges quiz answers + contact info in one editable view
 2. All fields use proper form controls matching quiz (dropdowns, toggles)
-3. BE Referral toggle at bottom
 
 ### GTPAL Pregnancy Display
 - Calculated from pregnancy history profile data
