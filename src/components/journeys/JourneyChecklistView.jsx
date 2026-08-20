@@ -133,6 +133,13 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
     for (const list of Object.values(byParent)) {
       list.sort((a, b) => a._order - b._order || String(a.id).localeCompare(String(b.id)))
     }
+    // Steps an admin added back when every standalone step shared one "Other
+    // Steps" bucket are still parented to '_other'. That bucket is no longer
+    // built for this stage, so give them an empty section to render in rather
+    // than silently dropping them.
+    if (byParent['_other']?.length > 0 && !base.some(sec => sec.id === '_other')) {
+      base.push({ id: '_other', label: 'Other Steps', cards: [] })
+    }
     // Layout dynamic sections interleaved by index: for each attempt N,
     // emit Transfer #N then CHB #N as a pair, after the LAST relevant
     // anchor in base. Result becomes:
@@ -229,20 +236,11 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
       </div>
 
       <div className="space-y-3">
-        {(() => { let n = 0; return sections.map(section => {
-          // One continuous sequence over every top-level item, in config
-          // order: a named section takes one number for its header, and each
-          // standalone step takes its own (rendered on the row itself, since
-          // those runs have no header to hang it on).
-          const startNumber = n + 1
-          n += section._isStandalone
-            ? section.cards.length + (subtasksByParent[section.id]?.length || 0)
-            : 1
-          return (
+        {sections.map((section, sectionIdx) => (
           <ChecklistSection
             key={section.id}
             section={section}
-            sectionNumber={startNumber}
+            sectionNumber={sectionIdx + 1}
             subtasksByParent={subtasksByParent}
             tracking={tracking}
             onUpdate={onUpdate}
@@ -250,8 +248,7 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
             currentUserName={currentUserName}
             isDefaultExpanded={section.id === defaultExpandedSectionId}
           />
-          )
-        }) })()}
+        ))}
       </div>
     </div>
   )
@@ -405,12 +402,6 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
     ? 'text-emerald-600'
     : 'text-[#1A3638]'
 
-  // A run of standalone steps has no configured name, so it renders as bare
-  // rows in place — no number, no invented title, nothing to collapse. The
-  // "+ Add Step" control still needs a home, so it sits in a slim bar above
-  // the rows and only shows on hover.
-  const isStandalone = !!section._isStandalone
-
   const addStepControl = addingStep ? (
     <div className="flex items-center gap-1.5">
       <input
@@ -434,52 +425,6 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
       <Plus className="size-4" />
     </button>
   )
-
-  if (isStandalone) {
-    return (
-      <section className="group">
-        <div className={`flex justify-end h-5 ${addingStep ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
-          {addStepControl}
-        </div>
-        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden divide-y divide-stone-100">
-          {orderedSteps.map((step, i) => {
-            const isAdmin = !step._isConfig
-            const subs = subtasksByParent[step.id] || []
-            return (
-              <div key={step.id} className="divide-y divide-stone-100">
-                <StepRow
-                  step={step}
-                  stepNumber={sectionNumber + i}
-                  tracking={tracking}
-                  onUpdate={onUpdate}
-                  onStatusLog={onStatusLog}
-                  currentUserName={currentUserName}
-                  isDefaultExpanded={step.id === sectionDefaultStepId}
-                  childStepIds={subs.map(s => s.id)}
-                  onMoveUp={isAdmin && i > 0 ? () => reorderSubtask(step.id, 'up') : null}
-                  onMoveDown={isAdmin && i < orderedSteps.length - 1 ? () => reorderSubtask(step.id, 'down') : null}
-                />
-                {subs.map((sub, j) => (
-                  <StepRow
-                    key={sub.id}
-                    step={sub}
-                    tracking={tracking}
-                    onUpdate={onUpdate}
-                    onStatusLog={onStatusLog}
-                    currentUserName={currentUserName}
-                    isDefaultExpanded={sub.id === sectionDefaultStepId}
-                    indented
-                    onMoveUp={j > 0 ? () => reorderSubtask(sub.id, 'up') : null}
-                    onMoveDown={j < subs.length - 1 ? () => reorderSubtask(sub.id, 'down') : null}
-                  />
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-    )
-  }
 
   return (
     <section>
@@ -520,6 +465,8 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
               <div key={step.id} className="divide-y divide-stone-100">
                 <StepRow
                   step={step}
+                  // The header already shows this step's name — don't repeat it.
+                  hideLabel={section._promotedStepId === step.id}
                   tracking={tracking}
                   onUpdate={onUpdate}
                   onStatusLog={onStatusLog}
@@ -560,11 +507,10 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
 // Group flat steps into rendering sections, preserving configured order.
 //   - Parent steps (have children OR are explicitly type=section): become a
 //     titled, numbered section header. Their children become cards inside.
-//   - Standalone steps (no parentId, no children): stay exactly where the
-//     admin put them. Consecutive ones share an untitled group so they read
-//     as a run of plain steps rather than picking up a section name nobody
-//     configured. They used to be swept into a trailing "Other Steps"
-//     bucket, which both invented a heading and moved them to the bottom.
+//   - Standalone steps (no parentId, no children): promoted to their own
+//     section in place, so they look identical to a parent step. They used
+//     to be swept into a trailing "Other Steps" bucket, which both invented
+//     a heading and moved them to the bottom of the stage.
 function buildSections(steps) {
   const childrenByParent = {}
   for (const s of steps) {
@@ -575,25 +521,19 @@ function buildSections(steps) {
   }
   const sections = []
   const seenChildren = new Set()
-  // Append to the run of standalone steps currently being built, opening a
-  // new one if the previous section was a titled (parent) section.
-  let standaloneRun = null
-  const pushStandalone = (step) => {
-    if (!standaloneRun) {
-      standaloneRun = { id: `_steps_${step.id}`, label: null, cards: [], _isStandalone: true }
-      sections.push(standaloneRun)
-    }
-    standaloneRun.cards.push(step)
-  }
   for (const s of steps) {
     if (s.parentId) continue // children rendered under their parent
     const children = childrenByParent[s.id] || []
     if (children.length > 0) {
       sections.push({ id: s.id, label: s.label, cards: children })
       for (const c of children) seenChildren.add(c.id)
-      standaloneRun = null // a titled section closes the current run
     } else {
-      pushStandalone(s)
+      // A standalone step becomes its own section so it gets the identical
+      // numbered header treatment as a parent step — the step's label moves
+      // to the header and its row renders headless underneath. The section
+      // id is namespaced so admin-added steps attach to the section rather
+      // than to the step itself (which would render them twice).
+      sections.push({ id: `_sec_${s.id}`, label: s.label, cards: [s], _promotedStepId: s.id })
     }
   }
   // Sweep up any children whose parent is missing (defensive) — these have no
@@ -607,7 +547,7 @@ function buildSections(steps) {
   return sections
 }
 
-function StepRow({ step, stepNumber = null, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false, childStepIds = [] }) {
+function StepRow({ step, hideLabel = false, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false, childStepIds = [] }) {
   const entry = tracking[step.id] || {}
   const status = entry.status || 'not_started'
   const colors = statusColors(status)
@@ -822,17 +762,11 @@ function StepRow({ step, stepNumber = null, tracking, onUpdate, onStatusLog, cur
         }}
       >
         {indented && <CornerDownRight className="size-3.5 text-stone-400 shrink-0 -ml-2" />}
-        {/* Standalone steps carry their own number — same gold treatment as a
-            named section's header, just scaled to sit on a single row. */}
-        {stepNumber !== null && (
-          <span className={`text-lg font-heading font-black leading-none tabular-nums shrink-0 inline-block w-6 text-center ${isComplete ? 'text-emerald-500/70' : 'text-[#D4A853]/60'}`}>
-            {stepNumber}
-          </span>
-        )}
+
         {/* Title (auto width) followed immediately by status pill — they sit
             together on the left, no awkward stretched empty space in between.
             Hover affordances drift to the far right via ml-auto. */}
-        {editingLabel ? (
+        {editingLabel && !hideLabel ? (
           <InlineEditInput
             value={labelDraft}
             onChange={setLabelDraft}
@@ -841,7 +775,7 @@ function StepRow({ step, stepNumber = null, tracking, onUpdate, onStatusLog, cur
             className={`${indented ? 'text-xs' : 'text-sm'} font-semibold text-stone-500`}
             autoFocus
           />
-        ) : (
+        ) : hideLabel ? null : (
           <h4
             className={`${indented ? 'text-xs' : 'text-sm'} font-semibold text-stone-500 leading-tight cursor-text hover:underline decoration-dotted decoration-stone-300 underline-offset-4 truncate`}
             title={step.locked ? '' : 'Click to rename'}
