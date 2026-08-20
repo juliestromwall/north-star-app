@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
 import { updateIntakeSubmission, uploadCaseDocument } from '@/lib/db'
+import TemplateAnswersSection from '@/components/surrogates/TemplateAnswersSection'
+import { GC_TEMPLATE_SECTIONS } from '@/lib/gcApplication'
 import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileConstants'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
@@ -1529,94 +1531,6 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
 
 // ── Main Export ──────────────────────────────────────────
 // ── Profile Follow Up Questions (editable) ──
-function FollowUpQuestionsSection({ surrogate, answers, profileData, onSaved, search }) {
-  const hasMatch = !search || 'follow up profile screening'.includes(search)
-  if (!hasMatch) return null
-
-  function getProfileVal(key) {
-    if (profileData?.followUp?.[key] !== undefined && profileData.followUp[key] !== '') return profileData.followUp[key]
-    for (const sec of ['pregnancyHistory', 'narrative']) {
-      if (profileData?.[sec]?.[key] !== undefined && profileData[sec][key] !== '') return profileData[sec][key]
-    }
-    return ''
-  }
-
-  // Merge: answers._profileFollowUp takes priority over profileData
-  const stored = answers?._profileFollowUp || {}
-  function getVal(key) {
-    if (stored[key] !== undefined && stored[key] !== '') return stored[key]
-    return getProfileVal(key)
-  }
-
-  function fmt(val) {
-    if (val === undefined || val === null || val === '') return '—'
-    if (val === true || val === 'yes') return 'Yes'
-    if (val === false || val === 'no') return 'No'
-    if (Array.isArray(val)) return val.join(', ') || '—'
-    return String(val)
-  }
-
-  const filled = FOLLOW_UP_FIELDS.filter(f => { const v = getVal(f.key); return v !== '' && v !== null && v !== undefined }).length
-
-  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
-    surrogate.id, answers, '_profileFollowUp',
-    (saved) => {
-      const init = {}
-      for (const f of FOLLOW_UP_FIELDS) {
-        init[f.key] = saved[f.key] !== undefined && saved[f.key] !== '' ? saved[f.key] : getProfileVal(f.key)
-      }
-      return init
-    }
-  )
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
-
-  return (
-    <Card className="rounded-2xl">
-      <EditHeader
-        title={<span className="flex items-center gap-2"><Shield className="size-4 text-[#1A3638]" /> Profile Follow Up Questions</span>}
-        description={`Screening and eligibility details (${filled}/${FOLLOW_UP_FIELDS.length} answered)`}
-        editing={editing}
-        saving={saving}
-        startEdit={startEdit}
-        handleSave={() => handleSave(onSaved)}
-        cancel={cancel}
-      />
-      <CardContent>
-        {editing ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FOLLOW_UP_FIELDS.map(f => {
-              const label = FIELD_LABELS[f.key] || f.key
-              // Check conditional visibility
-              if (f.conditional && !f.conditional(form)) return null
-              if (f.type === 'yesno') return (
-                <div key={f.key} className="space-y-1"><FieldLabel>{label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
-              )
-              if (f.type === 'textarea') return (
-                <div key={f.key} className="space-y-1 col-span-full sm:col-span-2"><FieldLabel>{label}</FieldLabel><Textarea value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} rows={2} /></div>
-              )
-              return (
-                <div key={f.key} className="space-y-1"><FieldLabel>{label}</FieldLabel><Input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} /></div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {FOLLOW_UP_FIELDS.map(f => {
-              const val = getVal(f.key)
-              const label = FIELD_LABELS[f.key] || f.key
-              return (
-                <div key={f.key}>
-                  <p className="text-[10px] text-stone-400 font-medium">{label}</p>
-                  <p className={`text-sm font-medium ${fmt(val) === '—' ? 'text-stone-300' : fmt(val) === 'Yes' ? 'text-emerald-600' : fmt(val) === 'No' ? 'text-red-500' : 'text-stone-800'}`}>{fmt(val)}</p>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
 
 export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers, profileData }) {
   const [search, setSearch] = useState('')
@@ -1629,8 +1543,9 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
 
   const APP_SECTIONS = [
     { id: 'quiz', label: 'Surrogate Quiz' },
-    { id: 'personal', label: 'Personal Info' },
-    { id: 'followup', label: 'Follow Up' },
+    // One chip per application section, straight off the template.
+    ...GC_TEMPLATE_SECTIONS.map(sec => ({ id: sec.key.replace(/^_/, ''), label: sec.title })),
+    { id: 'personal', label: 'Identity & Docs' },
     { id: 'employment', label: 'Employment' },
     { id: 'references', label: 'References' },
     { id: 'clinic', label: 'Clinic & Hospital' },
@@ -1643,7 +1558,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     <div className="space-y-4">
       {/* Quick Links + Search */}
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2">
           {APP_SECTIONS.map(sec => (
             <button
               key={sec.id}
@@ -1666,8 +1581,13 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       </div>
 
       <div id="app-sec-quiz"><QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} /></div>
+      {/* The application questionnaire itself — same template the portal renders. */}
+      {GC_TEMPLATE_SECTIONS.map(section => (
+        <div key={section.key} id={`app-sec-${section.key.replace(/^_/, '')}`}>
+          <TemplateAnswersSection surrogate={surrogate} section={section} answers={answers} onSaved={handleSaved} search={searchLower} />
+        </div>
+      ))}
       <div id="app-sec-personal"><ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
-      <div id="app-sec-followup"><FollowUpQuestionsSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-employment"><EmploymentSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-references"><ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-clinic"><ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>

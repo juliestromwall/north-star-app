@@ -11,8 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Upload, X, Image } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask, findCaseByEmail, uploadCaseDocument } from '@/lib/db'
+import { createCaseTask, findCaseByEmail, uploadCaseDocument, fetchSurrogateProfileByEmail } from '@/lib/db'
 import { resolveAutoStepId, buildTrackingUpdate } from '@/lib/checklistAutoStatus'
+import TemplateSectionForm, { isTemplateSectionComplete } from '@/components/portal/TemplateSectionForm'
+import { GC_TEMPLATE_SECTIONS, buildSectionPrefills, migrateLegacyAnswers } from '@/lib/gcApplication'
 import { DollarSign } from 'lucide-react'
 
 const US_STATES = [
@@ -26,9 +28,12 @@ const US_STATES = [
   'Wisconsin','Wyoming',
 ]
 
+// The questionnaire itself comes from the GC Application template; the
+// sections below it collect documents and consents the template doesn't
+// cover and that each have a purpose-built form.
 const FORM_SECTIONS = [
-  { key: '_application', label: 'Personal Information', description: 'Address, identification, insurance, and emergency contact' },
-  { key: '_profileFollowUp', label: 'Profile Follow Up Questions', description: 'Additional details about your lifestyle, health, and preferences' },
+  ...GC_TEMPLATE_SECTIONS.map(s => ({ key: s.key, label: s.title, description: s.description, template: s })),
+  { key: '_application', label: 'Identity & Screening Documents', description: "Identification, insurance card, driver's license, and emergency contact" },
   { key: '_references', label: 'References', description: 'Three references required' },
   { key: '_clinicHospital', label: 'Clinic & Hospital Form', description: 'Provider information for each pregnancy' },
   { key: '_paymentPreference', label: 'Screening Incentive Payment Preference', description: 'How you prefer to receive your screening incentive' },
@@ -486,71 +491,6 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
 }
 
 // ── Profile Follow Up Questions ──────────────────────────
-function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
-  const FIELDS = [
-    { key: 'breastfeeding', label: 'Are you currently breastfeeding/lactating?', type: 'yesno' },
-    { key: 'breastfeedingStopDate', label: 'When do you expect to stop?', type: 'text', conditional: d => d.breastfeeding === 'yes' },
-    { key: 'cycleLength', label: 'Are your cycles typically between 28 to 30 days?', type: 'yesno' },
-    { key: 'cycleLengthDetails', label: 'What is your typical cycle length?', type: 'text', conditional: d => d.cycleLength === 'no' },
-    { key: 'lastPeriod', label: 'When was the start of your last period?', type: 'text' },
-    { key: 'timeToConceive', label: 'How long after stopping contraceptives did it take to get pregnant?', type: 'text' },
-    { key: 'placedForAdoption', label: 'Have you ever placed a child for adoption?', type: 'yesno' },
-    { key: 'gunsOwned', label: 'Do you own any guns?', type: 'yesno' },
-    { key: 'nonSterilePiercing', label: 'Have you been tattooed or had a non-sterile skin piercing in the last 12 months?', type: 'yesno' },
-    { key: 'eatingDisorders', label: 'Do you have a history of eating disorders?', type: 'yesno' },
-    { key: 'recentTravel', label: 'Have you traveled outside of the U.S. in the last 6 months?', type: 'yesno' },
-    { key: 'sleepIssues', label: 'Do you have any issues with sleeping?', type: 'yesno' },
-    { key: 'sleepHours', label: 'How many hours do you typically sleep each night?', type: 'text' },
-    { key: 'autoInsurance', label: 'Do you have automobile insurance?', type: 'yesno' },
-    { key: 'validLicense', label: 'Do you have a valid driver\'s license?', type: 'yesno' },
-    { key: 'partnerFdaTests', label: 'Will your partner submit to the FDA required lab tests?', type: 'yesno' },
-    { key: 'lastPhysical', label: 'When was your last physical exam?', type: 'text' },
-    { key: 'compensationNegotiable', label: 'Is your desired compensation negotiable?', type: 'yesno' },
-  ]
-
-  const [form, setForm] = useState({})
-  useEffect(() => { if (data) setForm({ ...data }) }, [data])
-
-  const visibleFields = FIELDS.filter(f => !f.conditional || f.conditional(form))
-  const requiredKeys = FIELDS.filter(f => f.type === 'yesno' && (!f.conditional || f.conditional(form))).map(f => f.key)
-  const allFilled = requiredKeys.every(k => form[k] === 'yes' || form[k] === 'no' || form[k] === true || form[k] === false)
-  const isComplete = data && requiredKeys.every(k => data[k] === 'yes' || data[k] === 'no' || data[k] === true || data[k] === false)
-
-  return (
-    <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={onToggle}>
-        <div className="flex items-center gap-2">
-          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
-          <div>
-            <CardTitle className="text-base">Profile Follow Up Questions</CardTitle>
-            <CardDescription>Additional details about your lifestyle, health, and preferences</CardDescription>
-          </div>
-        </div>
-        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
-      </CardHeader>
-      {isOpen && (
-        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {visibleFields.map(f => (
-              <div key={f.key} className={`space-y-1 ${f.type === 'text' && !f.conditional ? '' : ''}`}>
-                <FieldLabel>{f.label}</FieldLabel>
-                {f.type === 'yesno' ? (
-                  <YesNoButtons value={form[f.key]} onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))} />
-                ) : (
-                  <Input value={form[f.key] || ''} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
-                )}
-              </div>
-            ))}
-          </div>
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_profileFollowUp', form)} disabled={saving || !allFilled}>
-            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>}
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
 // ── Screening Incentive Payment Preference ────────────────
 function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggle, caseId }) {
   const [form, setForm] = useState({ method: '', venmoUsername: '', venmoPhoneLast4: '', zelleInfo: '', screenshotUrl: '' })
@@ -1786,6 +1726,7 @@ export default function PortalApplicationPage() {
   const { currentUser } = useRole()
   const [answers, setAnswers] = useState(null)
   const [caseId, setCaseId] = useState(null)
+  const [profileData, setProfileData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
@@ -1799,9 +1740,20 @@ export default function PortalApplicationPage() {
   const ip1Name = answers?.primaryFirstName || ''
   const ip2Name = answers?.ip2FirstName || ''
 
+  // One prefill map per section, rebuilt only when its inputs actually change.
+  const prefillsBySection = useMemo(() => Object.fromEntries(
+    GC_TEMPLATE_SECTIONS.map(sec => [sec.key, buildSectionPrefills(sec, { profileData, quizData: answers })])
+  ), [profileData, answers])
+
   useEffect(() => {
     if (!currentUser?.email || !supabase) { setLoading(false); return }
     loadData()
+    // Profile answers pre-fill the overlapping application questions, so the
+    // surrogate isn't asked the same thing twice. Failure is non-fatal — the
+    // application just renders without prefills.
+    fetchSurrogateProfileByEmail(currentUser.email)
+      .then(res => { if (res?.profile_data) setProfileData(res.profile_data) })
+      .catch(() => {})
   }, [currentUser?.email])
 
   async function loadData() {
@@ -1809,7 +1761,15 @@ export default function PortalApplicationPage() {
       const data = await findCaseByEmail(currentUser.email)
       if (data) {
         setCaseId(data.id)
-        setAnswers(data.answers || {})
+        // Applications started on the previous (ABC) sections carry their
+        // answers forward into the template's section keys. The old keys are
+        // left untouched — admins still see them and nothing is destroyed.
+        const loaded = data.answers || {}
+        const migrated = migrateLegacyAnswers(loaded)
+        setAnswers(migrated || loaded)
+        if (migrated && supabase) {
+          supabase.from('intake_submissions').update({ answers: migrated }).eq('id', data.id).then(() => {}, () => {})
+        }
         if (data.assigned_to) setAssignedTo(data.assigned_to)
         if (data.intake_type) setIntakeType(data.intake_type)
       }
@@ -1990,6 +1950,8 @@ export default function PortalApplicationPage() {
   function isSectionComplete(key, overrideAnswers) {
     const d = (overrideAnswers || answers)[key]
     if (!d) return false
+    const template = GC_TEMPLATE_SECTIONS.find(t => t.key === key)
+    if (template) return isTemplateSectionComplete(template, d)
     if (key === '_application') {
       const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
       const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
@@ -2051,11 +2013,6 @@ export default function PortalApplicationPage() {
         if (!isNonDel && !p.hospitalName) return false
         return true
       })
-    }
-    if (key === '_profileFollowUp') {
-      // Check that all yes/no fields have a value
-      const ynKeys = ['breastfeeding', 'cycleLength', 'placedForAdoption', 'gunsOwned', 'eatingDisorders', 'recentTravel', 'sleepIssues', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'compensationNegotiable', 'nonSterilePiercing']
-      return ynKeys.every(k => d[k] === 'yes' || d[k] === 'no' || d[k] === true || d[k] === false)
     }
     if (key === '_paymentPreference') {
       if (!d.method) return false
@@ -2127,11 +2084,22 @@ export default function PortalApplicationPage() {
         </>
       ) : (
         <>
+          {GC_TEMPLATE_SECTIONS.map(section => (
+            <TemplateSectionForm
+              key={section.key}
+              section={section}
+              data={answers[section.key]}
+              prefills={prefillsBySection[section.key]}
+              onSave={isSubmitted ? null : handleSave}
+              saving={saving}
+              readOnly={isSubmitted}
+              isOpen={activeSection === section.key}
+              onToggle={() => setActiveSection(activeSection === section.key ? null : section.key)}
+            />
+          ))}
           <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
             quizData={answers} caseId={caseId} userId={currentUser?.id || currentUser?.email}
             isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
-          <ProfileFollowUpForm data={answers._profileFollowUp} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
-            isOpen={activeSection === '_profileFollowUp'} onToggle={() => setActiveSection(activeSection === '_profileFollowUp' ? null : '_profileFollowUp')} />
           <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
             isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
           <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}

@@ -200,16 +200,28 @@ export default {
 
     // ──────────────────────────────────────────────────────────────
     // 5. Pregnancy History
-    // Read-only summary derived from profile pregnancyHistory widget (rendered
-    // by the FormRenderer via a special 'pregnancySummary' field type) +
-    // editable narrative Qs below.
+    // Counts and outcomes up top, then the narrative questions. Per-pregnancy
+    // provider detail is collected separately in the Clinic & Hospital Form.
     // ──────────────────────────────────────────────────────────────
     {
       key: '_pregnancyHistory',
       title: 'Pregnancy History',
       description: 'Your pregnancy and delivery experience',
       fields: [
-        { key: '__pregnancySummary', type: 'pregnancySummary', span: 'full' },
+        { key: 'totalPregnancies', label: 'How many times have you been pregnant?', type: 'number', required: true, group: 'Pregnancy Details' },
+        { key: 'fullTermDeliveries', label: 'How many full-term deliveries have you had?', type: 'number', required: true, group: 'Pregnancy Details' },
+        ta('pregnancyList', 'Please list all pregnancies, including year and outcome.', {
+          group: 'Pregnancy Details', rows: 4,
+          placeholder: 'e.g. 2019 — live birth, full term\n2021 — miscarriage at 9 weeks',
+        }),
+        ...ynDetail('lossesOrTerminations', 'Have you had any miscarriages, ectopic pregnancies, or terminations?', {
+          group: 'Pregnancy Details', detailLabel: 'Please describe (year and circumstances)',
+        }),
+        yn('cSectionEver', 'Have you ever delivered via C-section?', { group: 'Pregnancy Details' }),
+        { key: 'cSectionCount', label: 'How many C-sections have you had?', type: 'number', required: true,
+          group: 'Pregnancy Details', showWhen: { field: 'cSectionEver', equals: 'yes' } },
+        yn('vbac', 'Have you ever had a VBAC (vaginal birth after cesarean)?', {
+          group: 'Pregnancy Details', showWhen: { field: 'cSectionEver', equals: 'yes' } }),
 
         ...ynDetail('complications', 'Pregnancy complications? (gestational diabetes, preeclampsia, hemorrhage, preterm labor)', { group: 'Pregnancy Details', prefillFrom: 'narrative.complicationsNarrative' }),
         ...ynDetail('pregnanciesHealthy', 'Were your pregnancies generally healthy?', { group: 'Pregnancy Details' }),
