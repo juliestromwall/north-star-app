@@ -1,4 +1,4 @@
--- North Star Surrogacy — Supabase Schema
+-- First Star Surrogacy — Supabase Schema
 -- Run this in Supabase SQL Editor to set up the database
 
 -- ── Admin Notes ──────────────────────────────────────────

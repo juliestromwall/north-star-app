@@ -175,9 +175,9 @@ export default function SharedProfilePage() {
       {/* Header bar */}
       <div className="bg-white border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 w-auto" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 w-auto" />
           <div>
-            <p className="text-sm font-semibold text-[#1A3638]">North Star Surrogacy</p>
+            <p className="text-sm font-semibold text-[#1A3638]">First Star Surrogacy</p>
             <p className="text-[10px] text-stone-400">Shared Profile</p>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function SharedProfilePage() {
         {isGC && profileData ? (
           <div className="rounded-2xl border bg-white overflow-hidden">
             <div className="flex items-center justify-center py-4 border-b bg-white">
-              <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+              <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 w-auto" />
             </div>
             <ProfilePreview profile={profileData} photos={photos.filter(p => !(profileData?._hiddenPhotos || []).includes(p.path))} hideFooter insuranceStatus={insuranceStatus} />
           </div>
@@ -293,7 +293,7 @@ export default function SharedProfilePage() {
 
         {/* Footer */}
         <div className="text-center text-xs text-stone-400 pt-4">
-          <p>This profile is shared confidentially by North Star Surrogacy</p>
+          <p>This profile is shared confidentially by First Star Surrogacy</p>
           <p>Do not forward or share this link. It expires in {hoursLeft} hours.</p>
         </div>
       </div>

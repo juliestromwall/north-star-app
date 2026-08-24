@@ -178,14 +178,14 @@ function EditableSelect({ value, field, msData, onChange, options, placeholder }
 function SheetHeader({ title, journey, color }) {
   // Find case manager from assigned_to email
   const cmEmail = journey.assigned_to
-  const caseManager = mockUsers.find(u => u.email === cmEmail) || { name: 'North Star Surrogacy', email: 'info@northstarsurrogacy.com', phone: '(818) 321-9329' }
+  const caseManager = mockUsers.find(u => u.email === cmEmail) || { name: 'First Star Surrogacy', email: 'info@northstarsurrogacy.com', phone: '(818) 321-9329' }
 
   return (
     <div style={{ marginBottom: 28 }}>
       {/* Top row: logo left, title center, case manager right */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         {/* Logo — left */}
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" style={{ height: 56, flexShrink: 0 }} crossOrigin="anonymous" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" style={{ height: 56, flexShrink: 0 }} crossOrigin="anonymous" />
         {/* Title — center */}
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1A3638', margin: 0, letterSpacing: '0.3px', textAlign: 'center', flex: 1 }}>{title}</h1>
         {/* Case Manager — right */}
@@ -361,7 +361,7 @@ function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
 function ConfidentialFooter() {
   return (
     <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1.5px solid #1A3638', textAlign: 'center' }}>
-      <img src="/north-star-logo.png" alt="northstarsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
+      <img src="/first-star-logo.png" alt="firststarsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
       <p style={{ fontSize: 9, color: '#78716c', margin: '0 0 2px' }}>
         5627 Kanan Road #229, Agoura Hills, CA 91301 &nbsp;·&nbsp; O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
       </p>
@@ -383,7 +383,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
   const pd = profileData || {}
   const personal = pd.personal || {}
   const employment = pd.employment || {}
-  // North Star: narrative profile (free-text) doesn't carry the structured
+  // First Star: narrative profile (free-text) doesn't carry the structured
   // cvsAmnio/embryosToTransfer/carryTwins fields. Admin fills these manually
   // via the editable controls below — leave as empty so msData drives them.
   const hopes = {}

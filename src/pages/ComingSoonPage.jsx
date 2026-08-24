@@ -2,7 +2,7 @@ export default function ComingSoonPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #fdf8f3 0%, #f0f1fa 100%)' }}>
       <div className="max-w-lg w-full text-center space-y-8">
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-20 w-auto mx-auto" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-20 w-auto mx-auto" />
 
         <div className="space-y-3">
           <h1 className="text-4xl sm:text-5xl font-bold leading-tight">

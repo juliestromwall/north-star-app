@@ -366,9 +366,9 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>
 
-  <p>You and/or your partner have submitted an application for gestational surrogacy with North Star Surrogacy As part of this application process, a background investigation will be conducted. The purpose of the background investigation is to evaluate your suitability for surrogacy with North Star Surrogacy</p>
+  <p>You and/or your partner have submitted an application for gestational surrogacy with First Star Surrogacy As part of this application process, a background investigation will be conducted. The purpose of the background investigation is to evaluate your suitability for surrogacy with First Star Surrogacy</p>
 
-  <p><strong>North Star Surrogacy</strong> has specifically requested information regarding:</p>
+  <p><strong>First Star Surrogacy</strong> has specifically requested information regarding:</p>
   <ul style="margin:6px 0 12px 20px;padding:0;">
     <li>Past employers and/or education institutions;</li>
     <li>Criminal records;</li>
@@ -413,11 +413,11 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
   const section2Html = `
   <div style="border:1px solid #1A3638;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that North Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
-    <p>I hereby authorize North Star Surrogacy to procure an investigative consumer report regarding me for surrogacy purposes. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that First Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
+    <p>I hereby authorize First Star Surrogacy to procure an investigative consumer report regarding me for surrogacy purposes. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
-      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy</p>
+      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by First Star Surrogacy</p>
       <p style="margin:0;">${checkNo} <strong>I do not wish to receive a copy</strong> of any report that is prepared, or any public records that may be obtained.</p>
     </div>
 
@@ -434,7 +434,7 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 
     <p style="font-size:10px;">This driving record is being requested for the following reason:<br/>
     <strong>INSURANCE</strong> — For use by any insurer or insurance support organization, in connection with claims investigation activities, anti-fraud activities, rating or underwriting.<br/>
-    To become a gestational surrogate with North Star Surrogacy, LLC.</p>
+    To become a gestational surrogate with First Star Surrogacy, LLC.</p>
 
     <p>I authorize RCS Investigations and Consulting, LLC, or its agents, to obtain a copy of my driving record. I understand I have the right to inspect this document in accordance with the Fair Credit Reporting Act.</p>
 
@@ -514,9 +514,9 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>
 
-  <p>You are exploring finding a surrogate with North Star Surrogacy As part of this process, a background investigation will be conducted.</p>
+  <p>You are exploring finding a surrogate with First Star Surrogacy As part of this process, a background investigation will be conducted.</p>
 
-  <p><strong>North Star Surrogacy</strong> has specifically requested information regarding:</p>
+  <p><strong>First Star Surrogacy</strong> has specifically requested information regarding:</p>
   <ul style="margin:6px 0 12px 20px;padding:0;">
     <li>Criminal records</li>
     <li>Civil Records</li>
@@ -560,11 +560,11 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
   const section2Html = `
   <div style="border:1px solid #1A3638;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that North Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
-    <p>I hereby authorize North Star Surrogacy to procure an investigative consumer report regarding me. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that First Star Surrogacy will be requesting an investigative consumer report regarding me.</p>
+    <p>I hereby authorize First Star Surrogacy to procure an investigative consumer report regarding me. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
-      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy</p>
+      <p style="margin:0 0 6px;">${checkYes} <strong>I wish to receive a copy</strong> of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by First Star Surrogacy</p>
       <p style="margin:0;">${checkNo} <strong>I do not wish to receive a copy</strong> of any report that is prepared, or any public records that may be obtained.</p>
     </div>
 
@@ -580,7 +580,7 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
     <p style="font-size:10px;color:#666;margin:0 0 8px;">RCS Investigations & Consulting, LLC — #6002048</p>
 
     <p style="font-size:10px;">My driving record is being requested for the following reason:<br/>
-    <strong>North Star Surrogacy, LLC</strong> is requesting this as part of their matching process with a surrogate.</p>
+    <strong>First Star Surrogacy, LLC</strong> is requesting this as part of their matching process with a surrogate.</p>
 
     <p>I authorize RCS Investigations and Consulting, LLC, or its agents, to obtain a copy of my driving record. I understand I have the right to inspect this document in accordance with the Fair Credit Reporting Act.</p>
 
@@ -630,7 +630,7 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const gcName = values.gcName || ''
   const partnerName = values.partnerName || ''
-  const agencyName = 'North Star Surrogacy'
+  const agencyName = 'First Star Surrogacy'
 
   function sigInline(sigId, forRole) {
     const isActive = forRole === signerRole
@@ -976,7 +976,7 @@ export function generateAuditTrailHtml(signerName, signerEmail, signatureTypes =
       <tr><td style="padding: 4px 0;"><strong>IP Address:</strong></td><td>Captured at signing</td></tr>
     </table>
     <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">
-      Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.
+      Electronically signed via First Star Surrogacy (app.firststarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.
     </p>
   </div>
 </div>`

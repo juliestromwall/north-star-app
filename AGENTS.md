@@ -1,6 +1,6 @@
 # Instructions for AI coding agents (Codex, etc.)
 
-This is a live SaaS — `app.northstarsurrogacy.com` — with real customer data behind a Supabase backend. **Treat production as fragile.** Before doing anything else, read `CLAUDE.md` in the repo root for the full project context. The deploy workflow below is non-negotiable.
+This is a live SaaS — `app.firststarsurrogacy.com` — with real customer data behind a Supabase backend. **Treat production as fragile.** Before doing anything else, read `CLAUDE.md` in the repo root for the full project context. The deploy workflow below is non-negotiable.
 
 ## Deploy Workflow
 
@@ -21,7 +21,7 @@ This is a live SaaS — `app.northstarsurrogacy.com` — with real customer data
 
 | Env | URL | Git branch | Supabase |
 |-----|-----|-----------|----------|
-| Production | `app.northstarsurrogacy.com` | `main` | `db.northstarsurrogacy.com` |
-| Staging | `staging.app.northstarsurrogacy.com` (or `staging.north-star-app.pages.dev`) | `staging` | `hdnavfdmadciihsgscmq.supabase.co` |
+| Production | `app.firststarsurrogacy.com` | `main` | `db.northstarsurrogacy.com` |
+| Staging | `staging.app.firststarsurrogacy.com` (or `staging.north-star-app.pages.dev`) | `staging` | `hdnavfdmadciihsgscmq.supabase.co` |
 
 Staging Supabase is fully separate from prod — no real user data should ever be there.

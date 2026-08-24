@@ -12,7 +12,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.
 // explicit env var so debugging-against-prod is still possible if
 // someone really needs it.
 //
-// IMPORTANT: add North Star's prod project ref / hostname to the list
+// IMPORTANT: add First Star's prod project ref / hostname to the list
 // below once known (e.g. /<your-prod-project-ref>\.supabase\.co/i).
 const PROD_HOST_PATTERNS = []
 function looksLikeProd(url) {
@@ -53,7 +53,7 @@ if (typeof window !== 'undefined' && isLocalhost() && looksLikeProd(supabaseUrl)
 // Diagnostic: print the Supabase URL on app load so we can confirm staging vs prod.
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line no-console
-  console.log('[NorthStar] Supabase URL in use:', supabaseUrl)
+  console.log('[FirstStar] Supabase URL in use:', supabaseUrl)
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey

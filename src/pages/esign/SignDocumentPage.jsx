@@ -708,7 +708,7 @@ export default function SignDocumentPage() {
       <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
         <Card className="max-w-md rounded-2xl"><CardContent className="py-8 space-y-6">
           <div className="text-center">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 mx-auto mb-4" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 mx-auto mb-4" />
             <h2 className="text-xl font-bold">{signerFacingTitle}</h2>
             <p className="text-sm text-stone-500 mt-1">Sent {doc.sent_at ? new Date(doc.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
           </div>
@@ -743,7 +743,7 @@ export default function SignDocumentPage() {
       <div className="max-w-4xl mx-auto space-y-6 py-8">
         {/* Header */}
         <div className="text-center">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 mx-auto mb-2" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 mx-auto mb-2" />
           <h1 className="text-xl font-bold text-[#1A3638]">{signerFacingTitle}</h1>
           <p className="text-xs text-stone-400 mt-1">
             Signing as: <span className="font-semibold">{mySigner.name}</span> ({mySigner.role})

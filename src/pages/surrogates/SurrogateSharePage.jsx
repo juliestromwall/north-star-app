@@ -87,7 +87,7 @@ export default function SurrogateSharePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-border print:hidden">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-8" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-8" />
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopyLink}>
               <Copy className="size-3.5" /> Copy Link
@@ -183,9 +183,9 @@ export default function SurrogateSharePage() {
 
         {/* Footer */}
         <div className="text-center py-8 space-y-3">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-6 mx-auto opacity-60" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-6 mx-auto opacity-60" />
           <p className="text-sm text-muted-foreground">
-            Interested in learning more? <span className="font-medium text-abc-indigo">Contact your coordinator at North Star Surrogacy.</span>
+            Interested in learning more? <span className="font-medium text-abc-indigo">Contact your coordinator at First Star Surrogacy.</span>
           </p>
         </div>
       </main>

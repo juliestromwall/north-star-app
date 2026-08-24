@@ -141,7 +141,7 @@ function textLines(text) {
     .split(/\n/)
     .map(l => l.trim())
     .filter(Boolean)
-    .filter(l => !/^North Star Surrogacy\.$/i.test(l))
+    .filter(l => !/^First Star Surrogacy\.$/i.test(l))
     .filter(l => !/^Los Angeles,/i.test(l))
     .filter(l => !/^Phone:/i.test(l))
     .filter(l => !/^Fax:/i.test(l))
@@ -210,7 +210,7 @@ function parseIntake(text) {
     'Communication is a really important part of surrogacy. What is the best form of communication, where you can respond within 24 to 48 hours? (i.e. text, email, phone call)?',
     'Height', 'Weight', 'BMI',
     'Have you had a healthy pregnancy (ies) (no more than 5 vaginal or 2 c-sections)?',
-    'How did you hear about North Star Surrogacy (ABC)?',
+    'How did you hear about First Star Surrogacy (ABC)?',
   ]
   const v = extractByLabels(text, labels)
   const height = parseHeight(v.Height)
@@ -226,7 +226,7 @@ function parseIntake(text) {
     heightIn: height.heightIn,
     weightLbs: v.Weight?.replace(/[^\d.]/g, ''),
     healthyPregnancy: normalizeYesNo(v['Have you had a healthy pregnancy (ies) (no more than 5 vaginal or 2 c-sections)?']),
-    hearAboutUs: v['How did you hear about North Star Surrogacy (ABC)?'],
+    hearAboutUs: v['How did you hear about First Star Surrogacy (ABC)?'],
   }
 }
 

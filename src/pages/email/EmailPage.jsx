@@ -275,7 +275,7 @@ function NotConnectedState({ userId }) {
       </div>
       <h3 className="text-lg font-semibold mb-2">Connect your Google account</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
-        Connect your Gmail to send and receive emails directly from North Star Surrogacy.
+        Connect your Gmail to send and receive emails directly from First Star Surrogacy.
       </p>
       <Button onClick={() => connectGoogle(userId)}>
         Connect Google Account

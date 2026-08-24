@@ -588,7 +588,7 @@ export default function SignFormPage() {
       <Card className="max-w-md w-full">
         <CardContent className="p-8">
           <div className="text-center mb-6">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 mx-auto mb-4" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-16 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-[#1A3638]">{template.title}</h2>
             <p className="text-sm text-stone-500 mt-1">Verify your email to continue</p>
           </div>
@@ -635,7 +635,7 @@ export default function SignFormPage() {
       <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
         <div className="max-w-3xl mx-auto py-6 px-3 sm:px-6">
           <div className="text-center mb-6">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
             <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">{template.title}</h1>
             <p className="text-xs sm:text-sm text-stone-500 mt-1">
               Signed in as {mySigner.name} ({mySigner.email}) &middot; {pages.length} page{pages.length !== 1 ? 's' : ''}
@@ -781,7 +781,7 @@ export default function SignFormPage() {
               {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
               {signing ? 'Submitting...' : 'Sign & Submit'}
             </Button>
-            <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
+            <p className="text-[10px] text-stone-400 text-center">Electronically signed via First Star Surrogacy in accordance with the ESIGN Act.</p>
           </div>
         </div>
       </div>
@@ -806,7 +806,7 @@ export default function SignFormPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-8 sm:h-10 mb-2" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-8 sm:h-10 mb-2" />
             <h1 className="text-lg sm:text-xl font-bold text-[#1A3638]">{template.title}</h1>
             <p className="text-xs sm:text-sm text-stone-500">Signed in as {mySigner.name} ({mySigner.email})</p>
           </div>
@@ -955,7 +955,7 @@ export default function SignFormPage() {
             {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
             {signing ? 'Submitting...' : 'Sign & Submit'}
           </Button>
-          <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
+          <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via First Star Surrogacy in accordance with the ESIGN Act.</p>
         </div>
       </div>
     </div>
@@ -1152,7 +1152,7 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1A3638]/5 to-white">
       <div className="text-center pt-6">
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-2" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-2" />
         <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">{template.title}</h1>
         <p className="text-xs sm:text-sm text-stone-500 mt-1">
           Signed in as {mySigner.name} ({mySigner.email})

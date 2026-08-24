@@ -45,7 +45,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 290px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 290px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h2 style="color: #1A3638; font-size: 22px; margin: 0 0 16px; text-align: center;">
@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
         </p>
 
         <div style="text-align: center; margin: 28px 0;">
-          <a href="https://app.northstarsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+          <a href="https://app.firststarsurrogacy.com/my-application" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
             Log In &amp; Complete Application
           </a>
         </div>
@@ -77,7 +77,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -88,7 +88,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `${admin} at North Star Surrogacy <${fromEmail}>`,
+        from: `${admin} at First Star Surrogacy <${fromEmail}>`,
         to: [surrogateEmail],
         subject: "🥳 I've reviewed your Profile! You can now complete the Application!",
         html: htmlBody,

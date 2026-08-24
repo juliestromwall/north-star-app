@@ -1,6 +1,6 @@
 // Mock form definitions for the in-app builder (/forms).
 //
-// 2026-05-26: replaced the four demo forms with the actual North Star GC
+// 2026-05-26: replaced the four demo forms with the actual First Star GC
 // Application — 124 fields across 7 CSV-sourced sections plus an 8th
 // Clinic & Hospital section encoded from the legacy hand-coded widget.
 // Single source of truth was src/data/formTemplates/applicationGc.js; the

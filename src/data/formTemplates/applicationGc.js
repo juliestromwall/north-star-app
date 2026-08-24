@@ -1,4 +1,4 @@
-// GC Application Template — North Star
+// GC Application Template — First Star
 // Source: docs/GC_APPLICATION_SPEC.md (2026-05-26 rebuild)
 // Rendered by src/components/forms/FormRenderer.jsx
 //

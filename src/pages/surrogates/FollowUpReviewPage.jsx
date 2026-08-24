@@ -77,7 +77,7 @@ export default function FollowUpReviewPage() {
           <h1 className="text-lg font-bold text-[#1A3638]">Profile Follow Up Review</h1>
           <p className="text-sm text-stone-500">{surrogate?.name || 'Unknown'}</p>
         </div>
-        <img src="/north-star-logo.png" alt="" className="h-8 opacity-40" />
+        <img src="/first-star-logo.png" alt="" className="h-8 opacity-40" />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">

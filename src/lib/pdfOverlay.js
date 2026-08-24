@@ -426,7 +426,7 @@ export async function appendAuditTrailPage(pdfBlob, audit) {
   }
 
   // Footer disclaimer
-  const footer1 = 'Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the'
+  const footer1 = 'Electronically signed via First Star Surrogacy (app.firststarsurrogacy.com) in accordance with the'
   const footer2 = 'ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.'
   page.drawLine({ start: { x: 50, y: y - 16 }, end: { x: 562, y: y - 16 }, thickness: 0.5, color: grey })
   page.drawText(footer1, { x: 50, y: y - 36, size: 9, font: helv, color: grey })

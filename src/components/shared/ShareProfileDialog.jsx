@@ -87,7 +87,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
         const body = `
           <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
             <div style="text-align: center; padding: 32px 24px 16px;">
-              <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
+              <img src="https://app.firststarsurrogacy.com/first-star-logo.png" alt="First Star Surrogacy" style="max-width: 180px;" />
             </div>
             <div style="padding: 0 32px 32px;">
               <h2 style="color: #1A3638; font-size: 20px; margin: 0 0 8px;">A Profile Has Been Shared With You</h2>
@@ -112,7 +112,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 </p>
               </div>
               <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-                North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+                First Star Surrogacy, LLC &middot; firststarsurrogacy.com
               </p>
             </div>
           </div>

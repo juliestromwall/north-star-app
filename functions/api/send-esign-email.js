@@ -62,8 +62,8 @@ export async function onRequestPost(context) {
   const senderOnAgencyDomain = cleanSenderEmail.endsWith('@northstarsurrogacy.com')
   const fromAddress = senderOnAgencyDomain ? cleanSenderEmail : fromEmail
   const fromDisplay = senderName
-    ? `${senderName} (North Star Surrogacy)`
-    : 'North Star Surrogacy'
+    ? `${senderName} (First Star Surrogacy)`
+    : 'First Star Surrogacy'
   const replyToAddress = cleanSenderEmail || null
 
   const htmlBody = `<!DOCTYPE html>
@@ -78,7 +78,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
@@ -91,8 +91,8 @@ export async function onRequestPost(context) {
           </p>
           <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
             ${isBatch
-              ? `North Star Surrogacy has sent you the following documents that require your signature. Click the button below to review and sign all of them in one session.`
-              : `North Star Surrogacy has sent you a <strong>${primaryTitle}</strong> that requires your signature. Please click the button below to review and sign.`}
+              ? `First Star Surrogacy has sent you the following documents that require your signature. Click the button below to review and sign all of them in one session.`
+              : `First Star Surrogacy has sent you a <strong>${primaryTitle}</strong> that requires your signature. Please click the button below to review and sign.`}
           </p>
           ${formListHtml}
         </div>
@@ -110,7 +110,7 @@ export async function onRequestPost(context) {
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -122,28 +122,28 @@ export async function onRequestPost(context) {
     const textBody = isBatch
       ? `Hi ${firstName},
 
-North Star Surrogacy has sent you ${formTitles.length} documents that require your signature:
+First Star Surrogacy has sent you ${formTitles.length} documents that require your signature:
 
 ${formListText}Review and sign all: ${formUrl}
 
 If you have any questions, reply to this email or contact us at info@northstarsurrogacy.com.
 
-— North Star Surrogacy, LLC
-northstarsurrogacy.com`
+— First Star Surrogacy, LLC
+firststarsurrogacy.com`
       : `Hi ${firstName},
 
-North Star Surrogacy has sent you a ${primaryTitle} that requires your signature.
+First Star Surrogacy has sent you a ${primaryTitle} that requires your signature.
 
 Review and sign: ${formUrl}
 
 If you have any questions, reply to this email or contact us at info@northstarsurrogacy.com.
 
-— North Star Surrogacy, LLC
-northstarsurrogacy.com`
+— First Star Surrogacy, LLC
+firststarsurrogacy.com`
 
     const subject = isBatch
-      ? `North Star Surrogacy — Please sign: ${formTitles.length} documents`
-      : `North Star Surrogacy — Please sign: ${primaryTitle}`
+      ? `First Star Surrogacy — Please sign: ${formTitles.length} documents`
+      : `First Star Surrogacy — Please sign: ${primaryTitle}`
 
     const payload = {
       from: `${fromDisplay} <${fromAddress}>`,

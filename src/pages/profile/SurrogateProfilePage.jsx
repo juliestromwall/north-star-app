@@ -1009,7 +1009,7 @@ export default function SurrogateProfilePage() {
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#D4A853] mb-1.5 flex items-center justify-center sm:justify-start gap-1.5">
                 <span className="inline-block w-6 h-[1px] bg-[#D4A853]" />
-                North Star Surrogacy
+                First Star Surrogacy
               </p>
               <h1 className="text-3xl font-heading font-black text-[#1A3638] tracking-tight leading-tight">My Profile</h1>
               <p className="text-stone-500 text-sm mt-2 max-w-md">Complete your matching profile so intended parents can get to know <em className="not-italic font-medium text-[#1A3638]">you</em>.</p>
@@ -1064,7 +1064,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-green-800">Profile Approved</p>
-              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the North Star Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
+              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the First Star Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
             </div>
           </div>
         )}
@@ -1696,7 +1696,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {!hideFooter && (
           <div className="text-center py-6 print:hidden">
             <div className="inline-flex items-center gap-2 text-xs text-gray-400">
-              <img src="/north-star-logo.png" alt="" className="h-5 opacity-30" />
+              <img src="/first-star-logo.png" alt="" className="h-5 opacity-30" />
               This is a preview of how intended parents will see your profile.
             </div>
           </div>

@@ -1,4 +1,4 @@
-# GC Application Spec — North Star
+# GC Application Spec — First Star
 
 Source: `~/Downloads/GC Application Forms.xlsx` (7 tabs) + retained Clinic & Hospital section from existing ABC fork.
 

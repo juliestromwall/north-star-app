@@ -1,14 +1,14 @@
-# Allow northstarsurrogacy.com and its subdomains to embed the public intake flow.
+# Allow firststarsurrogacy.com and its subdomains to embed the public intake flow.
 # Other origins (including unknown marketing partners) cannot frame these pages.
 
 /getstarted
-  Content-Security-Policy: frame-ancestors 'self' https://northstarsurrogacy.com https://*.northstarsurrogacy.com
+  Content-Security-Policy: frame-ancestors 'self' https://firststarsurrogacy.com https://*.firststarsurrogacy.com
 
 /getstarted/surrogate
-  Content-Security-Policy: frame-ancestors 'self' https://northstarsurrogacy.com https://*.northstarsurrogacy.com
+  Content-Security-Policy: frame-ancestors 'self' https://firststarsurrogacy.com https://*.firststarsurrogacy.com
 
 /getstarted/intendedparent
-  Content-Security-Policy: frame-ancestors 'self' https://northstarsurrogacy.com https://*.northstarsurrogacy.com
+  Content-Security-Policy: frame-ancestors 'self' https://firststarsurrogacy.com https://*.firststarsurrogacy.com
 
 /getstarted/confirmation
-  Content-Security-Policy: frame-ancestors 'self' https://northstarsurrogacy.com https://*.northstarsurrogacy.com
+  Content-Security-Policy: frame-ancestors 'self' https://firststarsurrogacy.com https://*.firststarsurrogacy.com

@@ -171,7 +171,7 @@ export function QuizShell({
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-32 sm:h-40 w-auto" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-32 sm:h-40 w-auto" />
         <div className="w-9" aria-hidden />
       </header>
 

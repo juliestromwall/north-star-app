@@ -576,7 +576,7 @@ export default function AdminDashboard() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader
         title={`Welcome back, ${currentUser.name.split(' ')[0]}`}
-        subtitle="Here's what's happening at North Star Surrogacy today"
+        subtitle="Here's what's happening at First Star Surrogacy today"
       />
 
       {/* Admin Notes — announcement style */}

@@ -50,7 +50,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #1A3638; font-size: 20px; margin: 0 0 4px; text-align: center;">
@@ -93,14 +93,14 @@ export async function onRequestPost(context) {
         ` : ''}
 
         <div style="text-align: center; margin: 20px 0;">
-          <a href="https://app.northstarsurrogacy.com/intake" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="https://app.firststarsurrogacy.com/intake" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 12px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             View in Applications
           </a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 20px 0;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -111,7 +111,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `North Star Surrogacy <${fromEmail}>`,
+        from: `First Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `${qualified ? '✅' : '❌'} New Surrogate Application — ${applicantName}`,
         html: htmlBody,

@@ -9,7 +9,7 @@ import { getAppConfig, setAppConfig } from '@/lib/db'
 const STORAGE_KEY = 'abc_babies_born'
 const SUPABASE_KEY = 'babies_born'
 
-// Historical data from North Star Surrogacy spreadsheet
+// Historical data from First Star Surrogacy spreadsheet
 const DEFAULT_DATA = {
   startDate: '5/2013',
   years: [
@@ -120,7 +120,7 @@ export default function BabiesBornPage() {
     <div className="space-y-6">
       <PageHeader
         title="Babies Born"
-        subtitle={`North Star Surrogacy — started ${data.startDate}`}
+        subtitle={`First Star Surrogacy — started ${data.startDate}`}
       />
 
       {/* Hero stats */}

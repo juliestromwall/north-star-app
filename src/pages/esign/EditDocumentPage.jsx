@@ -347,11 +347,11 @@ export default function EditDocumentPage() {
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
+                  <img src="https://app.firststarsurrogacy.com/first-star-logo.png" alt="First Star Surrogacy" style="max-width: 180px;" />
                 </div>
                 <h2 style="color: #1A3638; margin-bottom: 8px;">Document Ready for Signature</h2>
                 <p>Hi ${signer.name || ''},</p>
-                <p><strong>${currentUser?.name || 'North Star Surrogacy'}</strong> has sent you a document to sign:</p>
+                <p><strong>${currentUser?.name || 'First Star Surrogacy'}</strong> has sent you a document to sign:</p>
                 <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   <p style="font-weight: 600; margin: 0;">${recipientTitle}</p>
                   ${sendForm.note ? `<p style="color: #444; font-size: 13px; margin: 8px 0 0; white-space: pre-line;">${sendForm.note}</p>` : ''}
@@ -362,7 +362,7 @@ export default function EditDocumentPage() {
                   </a>
                 </div>
                 <p style="color: #888; font-size: 12px; margin-top: 24px;">
-                  This is a legally binding electronic signature request from North Star Surrogacy, LLC.
+                  This is a legally binding electronic signature request from First Star Surrogacy, LLC.
                   If you have questions, please contact us at info@northstarsurrogacy.com.
                 </p>
               </div>

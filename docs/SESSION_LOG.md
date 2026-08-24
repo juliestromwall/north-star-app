@@ -18,7 +18,7 @@
 - Build verification: `npm run build` ✓ in 10.49s.
 
 **Deferred to next session(s):**
-1. **Supabase persistence.** `mockFormDefinitions` is still in-memory — saves don't persist. Need a `form_templates` table (id, title, description, sections JSON, status, agency_id?, created_at, updated_at) + db.js helpers + migration. Templates need to survive deploys + ideally support per-agency variants (ABC vs North Star).
+1. **Supabase persistence.** `mockFormDefinitions` is still in-memory — saves don't persist. Need a `form_templates` table (id, title, description, sections JSON, status, agency_id?, created_at, updated_at) + db.js helpers + migration. Templates need to survive deploys + ideally support per-agency variants (ABC vs First Star).
 2. **Wire `prefillFrom` end-to-end.** Schema + builder UI shipped today. Submission page needs to actually load profile data and pass it to FormFieldRenderer as the initial value when the field hasn't been answered. (Helper `resolvePrefill` is already exported.)
 3. **Replace hand-coded forms with builder-managed templates.** Once persistence + prefill are live: seed the GC application from `applicationGc.js` into the database as a template, mark it `published`, route `PortalApplicationPage` to render via `<FormFieldRenderer>`-driven sections instead of the hand-coded `PersonalInfoForm`/etc. Same for `GCApplicationTab` admin side.
 4. **CSV importer.** Drop an XLSX (like the one user sent today) → builder scaffolds a template from the tabs + question column. Eliminates the manual translation step entirely. Probably a new "Import from spreadsheet" button on `/forms` list page.
@@ -26,13 +26,13 @@
 6. **Drag-drop field reordering** — current builder has up/down arrows. Drag-drop is nicer.
 
 **Open questions:**
-- Multi-tenancy: when we add Supabase persistence, do we partition templates per agency (`agency_id` column, ABC vs North Star get separate templates), or share globally with overrides? The user explicitly wants this feature for both apps — worth a discussion before the table design.
+- Multi-tenancy: when we add Supabase persistence, do we partition templates per agency (`agency_id` column, ABC vs First Star get separate templates), or share globally with overrides? The user explicitly wants this feature for both apps — worth a discussion before the table design.
 - `_applicationAvailable` gating: when GC application moves to builder-managed templates, do we keep the per-surrogate "admin released" gate, or move that to a template-level `status: 'published-to-released-only'` concept?
 - Old hand-coded section components in PortalApplicationPage.jsx (PersonalInfoForm etc.) — keep until builder-managed app is proven, then delete (~1,500 lines of cleanup).
 
 ## 2026-05-26 (GC Application: pivoted from hand-coded rebuild to template-driven FormRenderer)
 
-**Worked on:** Started this session intending to do a hand-coded rebuild of the GC application — North Star's new XLSX of 124 fields across 7 tabs (Personal Info, Employment & Education, Social & Family, Background, Pregnancy History, Health History, Surrogacy Journey Expectations), plus keeping the existing Clinic & Hospital section as section 8. After spending the first half of the session on planning + spec doc + the first hand-coded section (which orphaned 400 lines of legacy code due to a bad bulk-Edit), pivoted to the smarter long-term play: build a **template-driven form system** so any future "client wants different Qs" moment (for North Star, ABC, or any future agency template) is a JSON edit, not a code rebuild. User explicitly wanted this for ABC too — long-deferred wish, not a shiny new idea.
+**Worked on:** Started this session intending to do a hand-coded rebuild of the GC application — First Star's new XLSX of 124 fields across 7 tabs (Personal Info, Employment & Education, Social & Family, Background, Pregnancy History, Health History, Surrogacy Journey Expectations), plus keeping the existing Clinic & Hospital section as section 8. After spending the first half of the session on planning + spec doc + the first hand-coded section (which orphaned 400 lines of legacy code due to a bad bulk-Edit), pivoted to the smarter long-term play: build a **template-driven form system** so any future "client wants different Qs" moment (for First Star, ABC, or any future agency template) is a JSON edit, not a code rebuild. User explicitly wanted this for ABC too — long-deferred wish, not a shiny new idea.
 
 **Why pivot:** The work to hand-code 124 fields × portal + admin = ~2,500 lines of new React code, and every CSV change after this one is the same grind. A FormRenderer + JSON template pays off forever — and the spec doc work (`docs/GC_APPLICATION_SPEC.md`) translates directly into the template structure.
 
@@ -69,9 +69,9 @@
 - Should we revisit the dropped operational fields (SSN/insurance/DL/etc.) as a separate "Identity & Verification" template, or wait for someone to actually need them and add then?
 - Admin tab migration: refactor in place or build `<FormRendererAdmin>` separately? Admin side has different needs (search filter, always-open accordion, view-vs-edit toggle per role).
 
-## 2026-05-22 (North Star narrative profile rebuild — per-section cards, magazine preview, embedded pregnancy widget, admin save fixes, stage rename)
+## 2026-05-22 (First Star narrative profile rebuild — per-section cards, magazine preview, embedded pregnancy widget, admin save fixes, stage rename)
 
-**Worked on:** Long arc rebuilding the North Star surrogate + IP profile editor and preview from scratch off ABC's fork. Started by stripping every ABC section except Pregnancy History and dropping in the 12 GC / 10 IP narrative sections from `src/data/profileNarrative.js`. Then broke each Column A section into its own collapsible card on both the user-facing edit page and the admin Profile tab. Embedded the structured Pregnancy History editor inline at the top of "Pregnancy & Parenting Experience" (parameterized `renderPregnancyEdit` with a `writeArray` callback so the same UI works in two save flows). Built a new top-level "Profile Photo & Cover Image" section that reuses `ProfilePhotoUpload` and writes URLs back via the curried `u()` setter. Hunted a long-running admin save bug — editData was being built from a stale snapshot of `data.narrative`, so each per-section save was overwriting the whole blob with that snapshot and wiping edits made elsewhere; fixed with `applySectionSave(section, sectionData)` that MERGES only the section's own fields into `data.narrative` via a `profileDataRef` so back-to-back saves stay fresh. Redesigned the read-only preview to look like ABC's magazine layout with North Star branding — numbered section headers (01 / 02 / 03) with a gold underline, then three rotating BODY variants (cards / editorial / 2-column grid) so the rhythm shifts every section. Plus a bunch of supporting fixes: Supabase storage bucket SQL (profile-photos, case-documents, esign-documents) and `surrogate_profiles` `UNIQUE(user_id)` + `id` default to unblock writes, photo completion check (existing-on-load notifications), flush-on-section-switch, and renamed stage labels to Intake / Screening / Matching / Case Management.
+**Worked on:** Long arc rebuilding the First Star surrogate + IP profile editor and preview from scratch off ABC's fork. Started by stripping every ABC section except Pregnancy History and dropping in the 12 GC / 10 IP narrative sections from `src/data/profileNarrative.js`. Then broke each Column A section into its own collapsible card on both the user-facing edit page and the admin Profile tab. Embedded the structured Pregnancy History editor inline at the top of "Pregnancy & Parenting Experience" (parameterized `renderPregnancyEdit` with a `writeArray` callback so the same UI works in two save flows). Built a new top-level "Profile Photo & Cover Image" section that reuses `ProfilePhotoUpload` and writes URLs back via the curried `u()` setter. Hunted a long-running admin save bug — editData was being built from a stale snapshot of `data.narrative`, so each per-section save was overwriting the whole blob with that snapshot and wiping edits made elsewhere; fixed with `applySectionSave(section, sectionData)` that MERGES only the section's own fields into `data.narrative` via a `profileDataRef` so back-to-back saves stay fresh. Redesigned the read-only preview to look like ABC's magazine layout with First Star branding — numbered section headers (01 / 02 / 03) with a gold underline, then three rotating BODY variants (cards / editorial / 2-column grid) so the rhythm shifts every section. Plus a bunch of supporting fixes: Supabase storage bucket SQL (profile-photos, case-documents, esign-documents) and `surrogate_profiles` `UNIQUE(user_id)` + `id` default to unblock writes, photo completion check (existing-on-load notifications), flush-on-section-switch, and renamed stage labels to Intake / Screening / Matching / Case Management.
 
 **Changes made:**
 
@@ -83,7 +83,7 @@
 - **Brand color pass** — page bg → `#fdf8f3` cream; soft gold + teal radial gradient washes behind sections; page header has a gold→teal→deep-teal accent stripe, brand byline with a Star accent, font-heading title; section cards get top status-tinted stripes (emerald/gold/teal) + magazine number prefix + ringed icon tiles + pill-style filled/total counters.
 - **Supabase setup SQL** — buckets `profile-photos` / `case-documents` / `esign-documents` (all public), storage RLS policies (`storage_public_read` SELECT, `storage_auth_write/update/delete` for authenticated, `storage_service_all` for service_role). For `surrogate_profiles`: added `ADD CONSTRAINT … UNIQUE(user_id)` (full unique, partial index didn't satisfy ON CONFLICT) + `ALTER COLUMN id SET DEFAULT gen_random_uuid()`. Also disabled Supabase Auth's "Confirm email" toggle so the branded welcome flow handles confirmation.
 - **Stage rename** — `src/lib/constants.js`: SURROGATE_STAGES `pre-qualification` label → "Intake"; IP_STAGES gains a `screening` stage so IPs now have Intake / Screening / Matching parity with surrogates; both sides' `journey-oversight` label → "Case Management". IDs stable so existing stage_status rows aren't orphaned. Fallback labels in IPDetailPage and SurrogateDetailPage updated. (commits `093ec67` + `801151c`)
-- **Email branding audit** — all 27 Pages Functions in `functions/api/` already North Star–branded (logo, colors, sender, contact). Only leftover: variable name `senderOnABCDomain` in send-esign-email.js renamed to `senderOnAgencyDomain`.
+- **Email branding audit** — all 27 Pages Functions in `functions/api/` already First Star–branded (logo, colors, sender, contact). Only leftover: variable name `senderOnABCDomain` in send-esign-email.js renamed to `senderOnAgencyDomain`.
 
 **Next steps:**
 - Verify the new preview on a fresh prod surrogate after Cloudflare deploys (`2d30015` body rotation; `801151c` stage rename).
@@ -1383,7 +1383,7 @@ Dashboard Appointments Fix:
 - Shows case name as clickable link on each appointment
 
 **Next steps:**
-- Set up Resend: add RESEND_API_KEY to Cloudflare, verify northstarsurrogacy.com domain
+- Set up Resend: add RESEND_API_KEY to Cloudflare, verify firststarsurrogacy.com domain
 - Add email preview page for testing templates
 - More email templates as needed
 - Consider adding "Preview" button to Send Template dialog
@@ -1951,7 +1951,7 @@ Icon Updates:
 - Dashboard stat cards updated to match sidebar icons
 
 New Files:
-- public/north-star-mark.png — collapsed sidebar logo
+- public/first-star-mark.png — collapsed sidebar logo
 - public/icons/matching.png, surrogate.png — unused ChatGPT-generated icons (kept for reference)
 - src/components/layout/NavIcons.jsx — custom icon map (currently empty, all using lucide)
 
@@ -1984,7 +1984,7 @@ Match Sheets (src/components/journeys/MatchSheetsTab.jsx):
 - "Save to Documents" + "Send Match Sheet" buttons replacing "Download PDF"
 - Send Match Sheet: generates PDF, attaches to email compose, auto-logs to journey
 - Email subject format: "Attorney Match Sheet - IP(s) Name(s) with GC Name"
-- Branded footer with northstarsurrogacy.com banner image, address, phone numbers
+- Branded footer with firststarsurrogacy.com banner image, address, phone numbers
 - Date format: MM/DD/YYYY with support for MM/DD/YYYY, MM-DD-YYYY, YYYY-MM-DD input
 - Custom EmbryoIcon SVG component
 - PartyBanner component for major section dividers (IP vs Surrogate vs Journey)

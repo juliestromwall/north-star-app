@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  const caseUrl = caseId ? `https://app.northstarsurrogacy.com/surrogates/${caseId}` : 'https://app.northstarsurrogacy.com/surrogates'
+  const caseUrl = caseId ? `https://app.firststarsurrogacy.com/surrogates/${caseId}` : 'https://app.firststarsurrogacy.com/surrogates'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -51,7 +51,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 290px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 290px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h2 style="color: #1A3638; font-size: 20px; margin: 0 0 8px;">
@@ -91,7 +91,7 @@ export async function onRequestPost(context) {
         </div>
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -102,7 +102,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `North Star Surrogacy <${fromEmail}>`,
+        from: `First Star Surrogacy <${fromEmail}>`,
         to: Array.from(recipients),
         subject: `📋 ${surrogateName} has submitted their Application!`,
         html: htmlBody,

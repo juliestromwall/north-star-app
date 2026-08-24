@@ -27,8 +27,8 @@ export async function onRequestPost(context) {
   // Intake coordinator handles surrogates only, not IPs.
   const notifyEmails = ['julie@northstarsurrogacy.com', 'nicole@northstarsurrogacy.com', 'juliestromwall@gmail.com']
   const reviewUrl = caseId
-    ? `https://app.northstarsurrogacy.com/intended-parents/${caseId}`
-    : 'https://app.northstarsurrogacy.com/intended-parents'
+    ? `https://app.firststarsurrogacy.com/intended-parents/${caseId}`
+    : 'https://app.firststarsurrogacy.com/intended-parents'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
@@ -64,7 +64,7 @@ export async function onRequestPost(context) {
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -75,7 +75,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `North Star Surrogacy <${fromEmail}>`,
+        from: `First Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `🚨 ${ipName} submitted their IP profile for review`,
         html: htmlBody,

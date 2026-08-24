@@ -145,7 +145,7 @@ export async function onRequestPost(context) {
 
   const caseData = sections.join('\n')
 
-  const systemPrompt = `You are an AI assistant for North Star Surrogacy, a surrogacy agency. Generate a concise case summary using EXACTLY this section order. Skip any section that has no relevant data. Use the exact headers shown. ALL DATES must be formatted as MM/DD/YYYY.
+  const systemPrompt = `You are an AI assistant for First Star Surrogacy, a surrogacy agency. Generate a concise case summary using EXACTLY this section order. Skip any section that has no relevant data. Use the exact headers shown. ALL DATES must be formatted as MM/DD/YYYY.
 
 **🤰 Pregnancy / Birth**
 If baby has been born: show birth date, baby name(s), sex, weight, length, delivery type, and any notes. Keep the original due date for reference.

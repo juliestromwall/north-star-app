@@ -186,7 +186,7 @@ export default function SignReleaseBatchPage() {
                     <tr><td style="padding: 4px 0;"><strong>Signature type:</strong></td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
                     <tr><td style="padding: 4px 0;"><strong>IP Address:</strong></td><td>Captured at signing</td></tr>
                   </table>
-                  <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
+                  <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">Electronically signed via First Star Surrogacy (app.firststarsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
                 </div>
               </div>
             `
@@ -304,7 +304,7 @@ export default function SignReleaseBatchPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 mx-auto mb-6" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 mx-auto mb-6" />
           <FileText className="size-12 text-stone-300 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-stone-700">No documents found</h1>
           <p className="text-stone-500 mt-2 text-sm">This signing link may have expired or the documents have already been signed.</p>
@@ -317,7 +317,7 @@ export default function SignReleaseBatchPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 mx-auto mb-6" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 mx-auto mb-6" />
           <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-stone-800">All Release Forms Signed!</h1>
           <p className="text-stone-500 mt-2">Thank you! {docs.length} medical records release form{docs.length === 1 ? ' has' : 's have'} been signed and filed.</p>
@@ -334,7 +334,7 @@ export default function SignReleaseBatchPage() {
         <div className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-sm">
             <div className="text-center mb-8">
-              <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
+              <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
               <h1 className="text-2xl font-heading font-bold" style={{ color: '#1A3638' }}>Medical Records <span style={{ color: '#D4A853' }}>Release</span></h1>
               <p className="text-stone-400 text-sm mt-2">Verify your identity to continue</p>
             </div>
@@ -354,7 +354,7 @@ export default function SignReleaseBatchPage() {
                 <Mail className="size-4" /> Verify & Continue
               </Button>
             </div>
-            <p className="text-center text-xs text-stone-400 mt-6">North Star Surrogacy, LLC</p>
+            <p className="text-center text-xs text-stone-400 mt-6">First Star Surrogacy, LLC</p>
           </div>
         </div>
       </div>
@@ -369,7 +369,7 @@ export default function SignReleaseBatchPage() {
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Header */}
       <div className="text-center px-2">
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
         <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638]">Medical Records Release Forms</h1>
         <p className="text-stone-500 text-sm mt-1">Please review and sign each form below. {signedDocs.size > 0 && `${signedDocs.size} of ${docs.length} complete.`}</p>
       </div>
@@ -443,7 +443,7 @@ export default function SignReleaseBatchPage() {
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Signing...' : `Sign All ${docs.length} Release Forms`}
         </Button>
-        <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
+        <p className="text-[10px] text-stone-400 text-center">Electronically signed via First Star Surrogacy in accordance with the ESIGN Act.</p>
       </div>
     </div>
   )

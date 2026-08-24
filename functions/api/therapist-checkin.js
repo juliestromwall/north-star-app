@@ -31,7 +31,7 @@ function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName,
 <body style="margin: 0; padding: 0; background: #ffffff;">
   <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
     <div style="text-align: center; padding: 24px 24px 12px;">
-      <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+      <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
     </div>
     <div style="padding: 0 32px 32px;">
       <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
@@ -52,12 +52,12 @@ function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName,
       </div>` : ''}
       <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
         <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
-          <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or its attachments outside of authorized North Star Surrogacy staff.
+          <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or its attachments outside of authorized First Star Surrogacy staff.
         </p>
       </div>
       <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
       <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-        North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+        First Star Surrogacy, LLC &middot; firststarsurrogacy.com
       </p>
     </div>
   </div>
@@ -72,7 +72,7 @@ async function sendAdminCheckinEmail({ resendKey, fromEmail, recipient, patientN
     method: 'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: `North Star Surrogacy <${fromEmail}>`,
+      from: `First Star Surrogacy <${fromEmail}>`,
       to: [recipient],
       subject,
       html,
@@ -99,18 +99,18 @@ function buildJennyInvoiceEmailHtml({ patientName, milestoneName }) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
   <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
     <div style="text-align: center; padding: 24px 24px 12px;">
-      <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+      <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
     </div>
     <div style="padding: 0 32px 32px;">
       <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
-        🧾 Invoice Sent to North Star Surrogacy
+        🧾 Invoice Sent to First Star Surrogacy
       </h1>
       <div style="padding: 24px 0;">
         <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
           Hi Jenny!
         </p>
         <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
-          Your <strong>${milestoneName}</strong> check-in for <strong style="color: #1A3638;">${patientName}</strong> has been submitted to North Star Surrogacy. A copy of your invoice is attached for your records.
+          Your <strong>${milestoneName}</strong> check-in for <strong style="color: #1A3638;">${patientName}</strong> has been submitted to First Star Surrogacy. A copy of your invoice is attached for your records.
         </p>
         <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
           Thank you!
@@ -123,7 +123,7 @@ function buildJennyInvoiceEmailHtml({ patientName, milestoneName }) {
       </div>
       <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
       <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-        North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+        First Star Surrogacy, LLC &middot; firststarsurrogacy.com
       </p>
     </div>
   </div>
@@ -132,13 +132,13 @@ function buildJennyInvoiceEmailHtml({ patientName, milestoneName }) {
 }
 
 async function sendJennyInvoiceEmail({ resendKey, fromEmail, recipient, patientName, milestoneName, attachments }) {
-  const subject = `🧾 Invoice sent to North Star Surrogacy for ${patientName}'s ${milestoneName}`
+  const subject = `🧾 Invoice sent to First Star Surrogacy for ${patientName}'s ${milestoneName}`
   const html = buildJennyInvoiceEmailHtml({ patientName, milestoneName })
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: `North Star Surrogacy <${fromEmail}>`,
+      from: `First Star Surrogacy <${fromEmail}>`,
       to: [recipient],
       subject,
       html,
@@ -392,8 +392,8 @@ export async function onRequestPost(context) {
           attachments.push({ filename: invoiceFileName, content: invoicePdfBase64 })
         }
         const journeyUrl = resolvedJourneyId
-          ? `https://app.northstarsurrogacy.com/journeys/${resolvedJourneyId}`
-          : `https://app.northstarsurrogacy.com/surrogates/${surrogateId}`
+          ? `https://app.firststarsurrogacy.com/journeys/${resolvedJourneyId}`
+          : `https://app.firststarsurrogacy.com/surrogates/${surrogateId}`
         await sendAdminCheckinEmail({
           resendKey,
           fromEmail,

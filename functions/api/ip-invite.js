@@ -107,14 +107,14 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 320px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 320px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #1A3638; font-size: 24px; margin: 0 0 8px; text-align: center;">
           Welcome to your <span style="color: #D4A853;">secure portal</span>
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
-          North Star Surrogacy has set up your intended parent account
+          First Star Surrogacy has set up your intended parent account
         </p>
 
         <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 20px; margin: 0 0 24px;">
@@ -122,7 +122,7 @@ export async function onRequestPost(context) {
             Hi ${displayName},
           </p>
           <p style="margin: 8px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
-            Your account has been created at <strong><a href="https://app.northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.northstarsurrogacy.com</a></strong>. Click the button below to set your password and access your portal.
+            Your account has been created at <strong><a href="https://app.firststarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.firststarsurrogacy.com</a></strong>. Click the button below to set your password and access your portal.
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export async function onRequestPost(context) {
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC &middot; <a href="https://northstarsurrogacy.com" style="color: #a8a29e;">northstarsurrogacy.com</a>
+          First Star Surrogacy, LLC &middot; <a href="https://firststarsurrogacy.com" style="color: #a8a29e;">firststarsurrogacy.com</a>
         </p>
       </div>
     </div>
@@ -155,9 +155,9 @@ export async function onRequestPost(context) {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: `North Star Surrogacy <${fromEmail}>`,
+            from: `First Star Surrogacy <${fromEmail}>`,
             to: [email],
-            subject: "You're invited to your North Star Surrogacy portal",
+            subject: "You're invited to your First Star Surrogacy portal",
             html: htmlBody,
           }),
         })

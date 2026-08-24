@@ -156,7 +156,7 @@ export async function onRequestPost(context) {
     return json({ ok: false, error: insertData?.message || 'Insert failed' }, 500)
   }
 
-  // ── Notifications: applicant welcome + North Star admin notification ──
+  // ── Notifications: applicant welcome + First Star admin notification ──
   // Fired only after a successful save. Non-blocking (waitUntil) so an email
   // problem never fails the submission; each email function logs its own errors.
   try {
@@ -177,7 +177,7 @@ export async function onRequestPost(context) {
         email: submission.applicant_email,
         firstName: a.firstName,
       })
-      // Admin notification to North Star
+      // Admin notification to First Star
       const partnered = a.relationshipStatus === 'Married' || a.relationshipStatus === 'Domestic Partnership'
       fire('/api/notify-ip-application', {
         answers: {
@@ -206,7 +206,7 @@ export async function onRequestPost(context) {
           lastName: a.lastName,
         })
       }
-      // Admin notification to North Star (for both qualified and disqualified)
+      // Admin notification to First Star (for both qualified and disqualified)
       fire('/api/notify-new-application', {
         applicantName: submission.applicant_name,
         applicantEmail: submission.applicant_email,

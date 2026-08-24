@@ -176,7 +176,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
         <div style="text-align: center; padding: 32px 24px 16px;">
-          <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 320px;" />
+          <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 320px;" />
         </div>
         <div style="padding: 0 32px 32px;">
           <h1 style="color: #1A3638; font-size: 24px; margin: 0 0 8px; text-align: center;">
@@ -191,7 +191,7 @@ export async function onRequestPost(context) {
               Hi ${firstName},
             </p>
             <p style="margin: 0 0 20px; font-size: 14px; color: #44403c;">
-              Click the button below to set a new password for your North Star Surrogacy portal at <a href="https://app.northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.northstarsurrogacy.com</a>.
+              Click the button below to set a new password for your First Star Surrogacy portal at <a href="https://app.firststarsurrogacy.com" style="color: #1A3638; font-weight: 600;">app.firststarsurrogacy.com</a>.
             </p>
             <div style="text-align: center;">
               <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
@@ -206,7 +206,7 @@ export async function onRequestPost(context) {
 
           <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
           <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-            North Star Surrogacy, LLC &middot; <a href="https://northstarsurrogacy.com" style="color: #a8a29e;">northstarsurrogacy.com</a>
+            First Star Surrogacy, LLC &middot; <a href="https://firststarsurrogacy.com" style="color: #a8a29e;">firststarsurrogacy.com</a>
           </p>
         </div>
       </div>
@@ -217,9 +217,9 @@ export async function onRequestPost(context) {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: `North Star Surrogacy <${fromEmail}>`,
+          from: `First Star Surrogacy <${fromEmail}>`,
           to: [email],
-          subject: 'Reset your North Star Surrogacy password',
+          subject: 'Reset your First Star Surrogacy password',
           html: htmlBody,
         }),
       })

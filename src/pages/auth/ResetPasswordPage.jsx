@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-16 w-auto mx-auto mb-6" />
             <h1 className="text-3xl font-heading font-bold" style={{ color: '#1A3638' }}>
               Set your <span style={{ color: '#D4A853' }}>password</span>
             </h1>
@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <footer className="py-8 text-center text-xs text-stone-300">
-        © {new Date().getFullYear()} North Star Surrogacy
+        © {new Date().getFullYear()} First Star Surrogacy
       </footer>
 
       {/* Terms & Conditions Dialog */}

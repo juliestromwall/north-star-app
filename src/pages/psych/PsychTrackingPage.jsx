@@ -224,7 +224,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       <div class="info-card">
         <div class="info-row">
           <div><div class="lbl">Case Manager</div><div class="val">${report.caseManagerName || '—'}</div></div>
-          <div><div class="lbl">Company</div><div class="val">North Star Surrogacy</div></div>
+          <div><div class="lbl">Company</div><div class="val">First Star Surrogacy</div></div>
           <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${report.caseManagerEmail || '—'}</div></div>
         </div>
       </div>
@@ -712,7 +712,7 @@ export default function PsychTrackingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-stone-600">Company</label>
-                  <Input value="North Star Surrogacy" disabled className="bg-white" />
+                  <Input value="First Star Surrogacy" disabled className="bg-white" />
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-medium text-stone-600">Email</label>

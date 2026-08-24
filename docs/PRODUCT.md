@@ -2,7 +2,7 @@
 
 ## Overview
 
-**What:** North Star Surrogacy (North Star Surrogacy) — full business management platform for a surrogacy agency
+**What:** First Star Surrogacy (First Star Surrogacy) — full business management platform for a surrogacy agency
 **For:** Agency owners, staff, surrogates, surrogate partners, and intended parents
 
 ## User Roles
@@ -21,7 +21,7 @@
 
 ## Journey Stages
 
-Surrogates and IPs share the same three forward-funnel stages, plus shared "off-ramp" states. Stage **IDs** remain the same as the legacy ABC fork (`pre-qualification`, `screening`, `matching`, `journey-oversight`) — only the display labels were renamed for North Star, so existing stage_status rows are unaffected.
+Surrogates and IPs share the same three forward-funnel stages, plus shared "off-ramp" states. Stage **IDs** remain the same as the legacy ABC fork (`pre-qualification`, `screening`, `matching`, `journey-oversight`) — only the display labels were renamed for First Star, so existing stage_status rows are unaffected.
 
 | Stage ID | Surrogate label | IP label | Purpose | Default Statuses |
 |----------|-----------------|----------|---------|------------------|
@@ -51,7 +51,7 @@ The IP journey now mirrors the surrogate one with three gated handoffs:
 2. **Portal invite** — admin clicks "Invite to Portal" on `IPDetailPage`. `/api/ip-invite` creates the auth user and sends "Welcome to your secure portal" via Resend (NOT Gmail — independent of admin Google connection state).
 3. **Build Matching Profile** — IP logs in, dashboard shows "My Profile" progress card. They fill out fertility / surrogacy / personal info / health / history sections with auto-save. Photos upload to portrait/cover/gallery. When 100% complete, they click "Submit Profile for Review" → required-fields warning if incomplete, otherwise confirmation modal warning that editing will be locked. Submit fires `/api/notify-ip-profile-submitted` (admins notified) and creates a high-priority `case_tasks` row for the assigned admin.
 4. **Admin reviews profile** — on `IPDetailPage`, header shows "Profile Submitted" badge. Admin opens the Profile tab, can click "Reopen for Editing" to bounce it back (clears `_approved`, sets `_profileReleasedAt`; IP sees an amber "Profile reopened for edits" banner). Or admin clicks "Approve" — header now shows "Profile Approved" + the **"Release Application"** button.
-5. **Release Application** — admin clicks the button (in-app modal confirms), which sets `_applicationAvailable: true` and emails IP1 + IP2 via `/api/notify-ip-app-released` ("We have approved your North Star Surrogacy Profile. You can now complete the remaining forms"). IP dashboard now shows a prominent "You can now complete the remaining Application" card with a "Complete Application →" button at the top.
+5. **Release Application** — admin clicks the button (in-app modal confirms), which sets `_applicationAvailable: true` and emails IP1 + IP2 via `/api/notify-ip-app-released` ("We have approved your First Star Surrogacy Profile. You can now complete the remaining forms"). IP dashboard now shows a prominent "You can now complete the remaining Application" card with a "Complete Application →" button at the top.
 6. **Fill Application** — IP visits `/my-application`. Three sections (Contact / Clinic / References) with auto-save (1.5s debounce). All fields prefilled from intake → profile chain (the IP never re-enters DOB, clinic name, RE doctor, embryo info, donor info, etc.). Country swaps State→Province text for non-US.
 7. **Submit Application** — when all 3 sections complete, "Application is 100% complete. Submit application?" modal pops automatically. On submit: emails admins ("📋 Intended Parent {name} has submitted their Application") and creates a `case_tasks` row with `case_type: 'ip'` assigned to the case admin. Header badge flips to "Application Submitted".
 
@@ -117,7 +117,7 @@ All state lives in `intake_submissions.answers` JSON (no schema migrations neede
    - Pre-filled therapist info (Jenny + LMFT + license)
    - Date/time auto-set to Pacific Time
    - Method dropdown (Phone/Video/In Person/Email)
-   - Auto-filled Requested By: Case Manager (from journey assigned admin) + Company "North Star Surrogacy"
+   - Auto-filled Requested By: Case Manager (from journey assigned admin) + Company "First Star Surrogacy"
    - Rich text Communication Details
    - Pre-filled signature
 4. "Save Draft" — saves for later (resumable). "Submit Report" — opens "Are you sure?" confirmation

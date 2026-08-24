@@ -1167,7 +1167,7 @@ export default function IPProfilePage() {
           </div>
           <div>
             <p className="font-bold text-green-800">Profile Approved</p>
-            <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the North Star Surrogacy team. If you need to make changes, please contact the agency.</p>
+            <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the First Star Surrogacy team. If you need to make changes, please contact the agency.</p>
           </div>
         </div>
       )}

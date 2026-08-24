@@ -1,12 +1,12 @@
-# North Star Surrogacy Portal — Terms of Use
+# First Star Surrogacy Portal — Terms of Use
 
 **Last Updated: April 14, 2026**
 
-Welcome to the North Star Surrogacy (North Star Surrogacy) Portal. By creating an account, accessing, or using this portal, you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not access or use the portal.
+Welcome to the First Star Surrogacy (First Star Surrogacy) Portal. By creating an account, accessing, or using this portal, you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not access or use the portal.
 
 ## 1. Portal Purpose
 
-The North Star Surrogacy Portal ("Portal") is a private, secure platform designed to facilitate communication, document management, and case tracking between North Star Surrogacy ("Agency," "we," "us," or "our") and its gestational carriers ("Surrogates"), intended parents ("IPs"), and their respective partners. The Portal is not a public website and access is granted by invitation only.
+The First Star Surrogacy Portal ("Portal") is a private, secure platform designed to facilitate communication, document management, and case tracking between First Star Surrogacy ("Agency," "we," "us," or "our") and its gestational carriers ("Surrogates"), intended parents ("IPs"), and their respective partners. The Portal is not a public website and access is granted by invitation only.
 
 ## 2. Account Registration & Security
 
@@ -65,7 +65,7 @@ Breach of confidentiality may result in immediate account termination and may ha
 
 ## 6. Intellectual Property
 
-All content, design, features, and functionality of the Portal are owned by North Star Surrogacy and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works based on the Portal without our express written permission.
+All content, design, features, and functionality of the Portal are owned by First Star Surrogacy and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works based on the Portal without our express written permission.
 
 ## 7. Privacy & Data Protection
 
@@ -85,7 +85,7 @@ The Portal is provided "as is" and "as available" without warranties of any kind
 
 ## 10. Indemnification
 
-You agree to indemnify and hold harmless North Star Surrogacy, its officers, directors, employees, and agents from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising out of your use of the Portal, your violation of these Terms, or your violation of any rights of another party.
+You agree to indemnify and hold harmless First Star Surrogacy, its officers, directors, employees, and agents from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising out of your use of the Portal, your violation of these Terms, or your violation of any rights of another party.
 
 ## 11. Governing Law
 
@@ -99,7 +99,7 @@ We reserve the right to update or modify these Terms at any time. If we make mat
 
 If you have questions about these Terms, please contact us at:
 
-**North Star Surrogacy (North Star Surrogacy)**
+**First Star Surrogacy (First Star Surrogacy)**
 Email: info@northstarsurrogacy.com
 
 ---
@@ -108,7 +108,7 @@ Email: info@northstarsurrogacy.com
 
 **Last Updated: April 14, 2026**
 
-North Star Surrogacy ("Agency," "we," "us," or "our") is committed to protecting the privacy and security of your personal information. This Privacy Policy describes how we collect, use, store, and protect information through the North Star Surrogacy Portal ("Portal").
+First Star Surrogacy ("Agency," "we," "us," or "our") is committed to protecting the privacy and security of your personal information. This Privacy Policy describes how we collect, use, store, and protect information through the First Star Surrogacy Portal ("Portal").
 
 ## Information We Collect
 
@@ -192,7 +192,7 @@ We may update this Privacy Policy from time to time. We will notify you of mater
 
 If you have questions about this Privacy Policy or our data practices, please contact:
 
-**North Star Surrogacy (North Star Surrogacy)**
+**First Star Surrogacy (First Star Surrogacy)**
 Email: info@northstarsurrogacy.com
 
 ---

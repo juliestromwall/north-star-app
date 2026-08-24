@@ -439,7 +439,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
           <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
             <input type="radio" name="wantsCopy" value="yes" checked={fieldValues.wantsCopy === 'yes'} onChange={() => updateField('wantsCopy', 'yes')} className="mt-0.5 accent-[#1A3638]" />
             <span className="text-xs text-stone-700 leading-relaxed">
-              <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by North Star Surrogacy
+              <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by First Star Surrogacy
             </span>
           </label>
           <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#1A3638] bg-[#1A3638]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
@@ -662,7 +662,7 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Submitting…' : 'Sign & Submit'}
         </Button>
-        <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
+        <p className="text-[10px] text-stone-400 text-center">Electronically signed via First Star Surrogacy in accordance with the ESIGN Act.</p>
       </div>
     </div>
   )

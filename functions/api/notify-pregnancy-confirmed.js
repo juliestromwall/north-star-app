@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
   const notifyEmail = env.PREGNANCY_NOTIFY_EMAIL || ''
-  const psychCheckInUrl = env.PSYCH_CHECKIN_URL || 'https://app.northstarsurrogacy.com/therapist-tracking'
+  const psychCheckInUrl = env.PSYCH_CHECKIN_URL || 'https://app.firststarsurrogacy.com/therapist-tracking'
 
   if (!resendKey || !notifyEmail) {
     return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY or PREGNANCY_NOTIFY_EMAIL' }), {
@@ -46,7 +46,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 24px 24px 12px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">
@@ -77,13 +77,13 @@ export async function onRequestPost(context) {
 
         <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
           <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
-            <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or the linked Therapist Check-In sheet with anyone outside of authorized North Star Surrogacy staff.
+            <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or the linked Therapist Check-In sheet with anyone outside of authorized First Star Surrogacy staff.
           </p>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -94,7 +94,7 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `North Star Surrogacy <${fromEmail}>`,
+        from: `First Star Surrogacy <${fromEmail}>`,
         to: notifyEmails,
         subject: `Pregnancy confirmed for Surrogate ${surrogateName} 🎉`,
         html: htmlBody,

@@ -462,7 +462,7 @@ export default function BatchSignFormPage() {
       <Card className="max-w-md w-full">
         <CardContent className="p-8">
           <div className="text-center mb-6">
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-16 mx-auto mb-4" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-16 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-[#1A3638]">Sign {docs.length} Documents</h2>
             <p className="text-sm text-stone-500 mt-1">Verify your email to begin</p>
           </div>
@@ -507,7 +507,7 @@ export default function BatchSignFormPage() {
       <div className="max-w-3xl mx-auto py-6 px-3 sm:px-6">
         {/* Header + stepper */}
         <div className="text-center mb-4">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
           <p className="text-xs text-stone-500">Document {activeIdx + 1} of {docs.length} &middot; Signing as {mySigner.name}</p>
           <h1 className="text-xl sm:text-2xl font-bold text-[#1A3638] mt-1">{template.title}</h1>
         </div>
@@ -780,7 +780,7 @@ export default function BatchSignFormPage() {
                 : 'Sign & Finish'}
             </Button>
           </div>
-          <p className="text-[10px] text-stone-400 text-center">Electronically signed via North Star Surrogacy in accordance with the ESIGN Act.</p>
+          <p className="text-[10px] text-stone-400 text-center">Electronically signed via First Star Surrogacy in accordance with the ESIGN Act.</p>
         </div>
       </div>
     </div>

@@ -213,7 +213,7 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
 <body style="margin: 0; padding: 0; background: #ffffff;">
   <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
     <div style="text-align: center; padding: 24px 24px 12px;">
-      <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 260px;" />
+      <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 260px;" />
     </div>
     <div style="padding: 0 32px 32px;">
       <h1 style="color: #1A3638; font-size: 22px; margin: 0 0 8px; text-align: center;">${headline}</h1>
@@ -225,7 +225,7 @@ function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapist
         <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
       </div>` : ''}
       <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
-      <p style="color: #a8a29e; font-size: 10px; text-align: center;">North Star Surrogacy, LLC &middot; northstarsurrogacy.com</p>
+      <p style="color: #a8a29e; font-size: 10px; text-align: center;">First Star Surrogacy, LLC &middot; firststarsurrogacy.com</p>
     </div>
   </div>
 </body>
@@ -245,7 +245,7 @@ async function sendAdminSkipEmail(env, { kind, recipient, patientName, milestone
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `North Star Surrogacy <${fromEmail}>`,
+        from: `First Star Surrogacy <${fromEmail}>`,
         to: [recipient],
         subject,
         html: buildSkipNotificationHtml({ kind, patientName, milestoneName, therapistName, skipReason, journeyUrl }),
@@ -476,8 +476,8 @@ export async function onRequestPost(context) {
       const journey = await resolveJourneyForSurrogate(env, surrogateId)
       const recipient = caseManagerEmail || journey.caseManagerEmail || ''
       const journeyUrl = journey.journeyId
-        ? `https://app.northstarsurrogacy.com/journeys/${journey.journeyId}`
-        : `https://app.northstarsurrogacy.com/surrogates/${surrogateId}`
+        ? `https://app.firststarsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.firststarsurrogacy.com/surrogates/${surrogateId}`
       const emailResult = await sendAdminSkipEmail(env, {
         kind: 'skip',
         recipient,
@@ -504,8 +504,8 @@ export async function onRequestPost(context) {
       const journey = await resolveJourneyForSurrogate(env, surrogateId)
       const recipient = caseManagerEmail || journey.caseManagerEmail || ''
       const journeyUrl = journey.journeyId
-        ? `https://app.northstarsurrogacy.com/journeys/${journey.journeyId}`
-        : `https://app.northstarsurrogacy.com/surrogates/${surrogateId}`
+        ? `https://app.firststarsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.firststarsurrogacy.com/surrogates/${surrogateId}`
       const emailResult = await sendAdminSkipEmail(env, {
         kind: 'withdraw',
         recipient,

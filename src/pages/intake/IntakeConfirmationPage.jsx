@@ -142,7 +142,7 @@ export default function IntakeConfirmationPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
         <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 w-auto" />
         </header>
 
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -181,7 +181,7 @@ export default function IntakeConfirmationPage() {
         </div>
 
         <footer className="py-6 text-center text-xs text-stone-400">
-          © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
+          © {new Date().getFullYear()} First Star Surrogacy · All rights reserved
         </footer>
       </div>
     )
@@ -192,7 +192,7 @@ export default function IntakeConfirmationPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
         <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-          <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+          <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 w-auto" />
         </header>
 
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -234,7 +234,7 @@ export default function IntakeConfirmationPage() {
         </div>
 
         <footer className="py-6 text-center text-xs text-stone-400">
-          © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
+          © {new Date().getFullYear()} First Star Surrogacy · All rights reserved
         </footer>
       </div>
     )
@@ -245,7 +245,7 @@ export default function IntakeConfirmationPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
       {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc={CONFETTI_ICON_SRC} zIndex={40} />}
       <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-        <img src="/north-star-logo.png" alt="North Star Surrogacy" className="h-14 w-auto" />
+        <img src="/first-star-logo.png" alt="First Star Surrogacy" className="h-14 w-auto" />
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -425,7 +425,7 @@ export default function IntakeConfirmationPage() {
       </div>
 
       <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} North Star Surrogacy · All rights reserved
+        © {new Date().getFullYear()} First Star Surrogacy · All rights reserved
       </footer>
     </div>
   )

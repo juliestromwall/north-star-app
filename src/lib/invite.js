@@ -26,12 +26,12 @@ export async function inviteUser(userId, { email, name, role, portalType }) {
 
   // 2. Build branded email
   const portalLabel = portalType === 'admin' ? 'team member' : portalType === 'intended_parent' ? 'intended parent' : 'surrogate'
-  const subject = `You're invited to your North Star Surrogacy portal`
+  const subject = `You're invited to your First Star Surrogacy portal`
 
   const body = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 320px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 320px;" />
       </div>
 
       <div style="padding: 0 32px 32px;">
@@ -39,7 +39,7 @@ export async function inviteUser(userId, { email, name, role, portalType }) {
           Welcome to your <span style="color: #D4A853;">secure portal</span>
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
-          North Star Surrogacy has set up your ${portalLabel} account
+          First Star Surrogacy has set up your ${portalLabel} account
         </p>
 
         <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 20px; margin: 0 0 24px;">
@@ -47,7 +47,7 @@ export async function inviteUser(userId, { email, name, role, portalType }) {
             Hi${name ? ' ' + name.split(' ')[0] : ''},
           </p>
           <p style="margin: 8px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
-            Your account has been created at <strong>app.northstarsurrogacy.com</strong>.
+            Your account has been created at <strong>app.firststarsurrogacy.com</strong>.
             Click the button below to set your password and access your portal.
           </p>
         </div>
@@ -66,7 +66,7 @@ export async function inviteUser(userId, { email, name, role, portalType }) {
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC · northstarsurrogacy.com
+          First Star Surrogacy, LLC · firststarsurrogacy.com
         </p>
       </div>
     </div>

@@ -1228,11 +1228,11 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 180px;" />
+                  <img src="https://app.firststarsurrogacy.com/first-star-logo.png" alt="First Star Surrogacy" style="max-width: 180px;" />
                 </div>
                 <h2 style="color: #1A3638; margin-bottom: 8px;">Medical Records Release Forms</h2>
                 <p>Hi ${patient.name || ''},</p>
-                <p>${currentUser?.name || 'Your case manager'} at <strong>North Star Surrogacy</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for your signature. You can review and sign all forms on a single page:</p>
+                <p>${currentUser?.name || 'Your case manager'} at <strong>First Star Surrogacy</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for your signature. You can review and sign all forms on a single page:</p>
                 <div style="background: #f8f9fc; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   ${providerListHtml}
                 </div>
@@ -1241,9 +1241,9 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
                     Review & Sign All Forms
                   </a>
                 </div>
-                <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to North Star Surrogacy for your surrogacy journey.</p>
+                <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to First Star Surrogacy for your surrogacy journey.</p>
                 <p style="color: #888; font-size: 12px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
-                  These are legally binding electronic signature requests from North Star Surrogacy, LLC.
+                  These are legally binding electronic signature requests from First Star Surrogacy, LLC.
                   If you have questions, please contact us at info@northstarsurrogacy.com.
                 </p>
               </div>

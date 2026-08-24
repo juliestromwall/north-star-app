@@ -1260,7 +1260,7 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
         divider,
         ...signerLines,
         divider,
-        'Electronically signed via North Star Surrogacy (app.northstarsurrogacy.com) in accordance with the ESIGN Act and UETA.',
+        'Electronically signed via First Star Surrogacy (app.firststarsurrogacy.com) in accordance with the ESIGN Act and UETA.',
         'A tamper-proof audit trail has been recorded for each signature event.',
       ].join('\n')
 

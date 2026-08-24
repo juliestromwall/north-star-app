@@ -40,7 +40,7 @@ export async function onRequestPost(context) {
   const greetingNames = ip2FirstName
     ? `${ip1FirstName || 'there'} and ${ip2FirstName}`
     : (ip1FirstName || 'there')
-  const sender = adminName || 'The North Star Surrogacy Team'
+  const sender = adminName || 'The First Star Surrogacy Team'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
 <body style="margin: 0; padding: 0; background: #ffffff;">
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo-email.png" alt="North Star Surrogacy" style="max-width: 320px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="max-width: 320px;" />
       </div>
 
       <div style="padding: 0 32px 32px;">
@@ -75,7 +75,7 @@ export async function onRequestPost(context) {
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.northstarsurrogacy.com/login?redirect=%2Fmy-application" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <a href="https://app.firststarsurrogacy.com/login?redirect=%2Fmy-application" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
             Log In & Complete Application
           </a>
         </div>
@@ -87,7 +87,7 @@ export async function onRequestPost(context) {
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC &middot; northstarsurrogacy.com
+          First Star Surrogacy, LLC &middot; firststarsurrogacy.com
         </p>
       </div>
     </div>
@@ -98,9 +98,9 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `${sender} at North Star Surrogacy <${fromEmail}>`,
+        from: `${sender} at First Star Surrogacy <${fromEmail}>`,
         to: recipients,
-        subject: 'We have approved your North Star Surrogacy Profile. You can now complete the remaining forms.',
+        subject: 'We have approved your First Star Surrogacy Profile. You can now complete the remaining forms.',
         html: htmlBody,
       }),
     })

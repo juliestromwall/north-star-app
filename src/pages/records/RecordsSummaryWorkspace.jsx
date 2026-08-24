@@ -791,7 +791,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <img src="/north-star-logo.png" alt="North Star Surrogacy" style={{ height: 44, marginBottom: 8, display: 'inline-block' }} crossOrigin="anonymous" />
+            <img src="/first-star-logo.png" alt="First Star Surrogacy" style={{ height: 44, marginBottom: 8, display: 'inline-block' }} crossOrigin="anonymous" />
             <h1 style={{ fontSize: 16, fontWeight: 800, color: '#1A3638', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
           </div>
           <div style={{ height: 1.5, background: '#1A3638', borderRadius: 1, marginBottom: 16 }} />
@@ -988,7 +988,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
             <div style={{ fontSize: 10, color: '#78716c' }}>
               <span style={{ fontWeight: 600 }}>Medical records reviewed by:</span> {data.reviewedBy || '—'}
             </div>
-            <img src="/north-star-logo.png" alt="" style={{ height: 20, opacity: 0.3 }} crossOrigin="anonymous" />
+            <img src="/first-star-logo.png" alt="" style={{ height: 20, opacity: 0.3 }} crossOrigin="anonymous" />
           </div>
         </div>
       </div>

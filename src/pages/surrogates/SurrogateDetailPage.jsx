@@ -1862,7 +1862,7 @@ export default function SurrogateDetailPage() {
               className="resize-none"
               disabled={smsSending}
             />
-            <p className="text-[11px] text-stone-400">Sent from North Star Surrogacy's Twilio number. Trial accounts can only text verified numbers.</p>
+            <p className="text-[11px] text-stone-400">Sent from First Star Surrogacy's Twilio number. Trial accounts can only text verified numbers.</p>
             {smsResult === 'sent' && (
               <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
                 <CheckCircle2 className="size-4" /> Message sent successfully!
@@ -2354,7 +2354,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               const name = sd.name || ''
               const dob = sd.dob ? new Date(sd.dob).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
               setFaxDoc(doc)
-              setFaxSubject(`STAT! North Star Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
+              setFaxSubject(`STAT! First Star Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
               setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@northstarsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
               setFaxIncludeDL(true)
               // Fetch current user's Gmail signature
@@ -2794,7 +2794,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; margin-bottom: 30px;">
                             <tr>
                               <td style="text-align: center; padding: 25px; vertical-align: middle;">
-                                <img src="${window.location.origin}/north-star-logo.png" style="height: 90px; display: inline-block;" />
+                                <img src="${window.location.origin}/first-star-logo.png" style="height: 90px; display: inline-block;" />
                                 <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 818-321-9329 &nbsp;&nbsp; Fax: 323-843-9433</p>
                               </td>
                               <td style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700; text-align: center; width: 120px; vertical-align: middle;">Fax</td>
@@ -2803,7 +2803,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                             <tr>
                               <td style="padding: 10px 0; width: 50%;"><strong>To:</strong> &nbsp; ${faxToName || ''}</td>
-                              <td style="padding: 10px 0;"><strong>From:</strong> &nbsp; ${currentUser?.name || 'North Star Surrogacy'}</td>
+                              <td style="padding: 10px 0;"><strong>From:</strong> &nbsp; ${currentUser?.name || 'First Star Surrogacy'}</td>
                             </tr>
                             <tr>
                               <td style="padding: 10px 0;"><strong>Fax:</strong> &nbsp; ${faxNumber}</td>
@@ -2815,7 +2815,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           </div>
                           <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">${faxMessage}</div>
                           <div style="margin-top: 40px;">
-                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/north-star-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'North Star Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
+                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/first-star-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'First Star Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
                           </div>
                           <div style="margin-top: 30px; padding: 12px; border: 1px solid #000; font-size: 9px; line-height: 1.4;">
                             ABUNDANT BEGINNINGS COMPANY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
@@ -5624,7 +5624,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   try {
                     const firstName = surrogate.name?.split(' ')[0] || 'there'
                     const adminName = currentUser?.name || 'The ABC Team'
-                    const subject = '📝 Your North Star Surrogacy Profile is Missing Some Information'
+                    const subject = '📝 Your First Star Surrogacy Profile is Missing Some Information'
                     const missingListHtml = sendBackMessage
                       .trim()
                       .split('\n')
@@ -5635,7 +5635,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                     const bodyHtml = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
       <div style="text-align: center; padding: 32px 24px 16px;">
-        <img src="https://app.northstarsurrogacy.com/north-star-logo.png" alt="North Star Surrogacy" style="max-width: 200px;" />
+        <img src="https://app.firststarsurrogacy.com/first-star-logo.png" alt="First Star Surrogacy" style="max-width: 200px;" />
       </div>
 
       <div style="padding: 0 32px 32px;">
@@ -5666,7 +5666,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         </p>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.northstarsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <a href="https://app.firststarsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #1F3A3C, #5A9EA2); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
             Finish My Profile
           </a>
         </div>
@@ -5679,7 +5679,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
 
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          North Star Surrogacy, LLC · northstarsurrogacy.com
+          First Star Surrogacy, LLC · firststarsurrogacy.com
         </p>
       </div>
     </div>

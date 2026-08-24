@@ -59,7 +59,7 @@ export default function IntakeLandingPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#1F3A3C' }}>
       {/* Header */}
       <header className="flex items-center justify-center px-6 py-6 border-b border-white/10">
-        <img src="/north-star-logo-white.png" alt="North Star Surrogacy" className="h-36 sm:h-44 w-auto" />
+        <img src="/first-star-logo-white.png" alt="First Star Surrogacy" className="h-36 sm:h-44 w-auto" />
       </header>
 
       {/* Hero */}
@@ -109,7 +109,7 @@ export default function IntakeLandingPage() {
 
       {/* Footer */}
       <footer className="py-7 text-center text-xs text-white/40 border-t border-white/10">
-        © {new Date().getFullYear()} North Star Surrogacy · Guiding your path to parenthood
+        © {new Date().getFullYear()} First Star Surrogacy · Guiding your path to parenthood
       </footer>
     </div>
   )
