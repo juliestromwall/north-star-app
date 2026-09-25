@@ -27,7 +27,9 @@ export async function onRequestPost(context) {
     })
   }
 
-  const notifyEmails = ['intake@northstarsurrogacy.com', 'julie@northstarsurrogacy.com', 'nicole@northstarsurrogacy.com', 'juliestromwall@gmail.com']
+  // Supports comma-separated list, same as the other notify endpoints.
+  const notifyEmails = (env.PROFILE_SUBMITTED_NOTIFY_EMAIL || 'info@firststarsurrogacy.com')
+    .split(',').map(e => e.trim()).filter(Boolean)
   const reviewUrl = caseId
     ? `https://app.firststarsurrogacy.com/surrogates/${caseId}`
     : 'https://app.firststarsurrogacy.com/surrogates'

@@ -30,7 +30,7 @@ export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
-  const notifyEmails = (env.IP_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
+  const notifyEmails = (env.IP_APPLICATION_NOTIFY_EMAIL || 'info@firststarsurrogacy.com')
     .split(',').map(e => e.trim()).filter(Boolean)
 
   const { answers } = await context.request.json()

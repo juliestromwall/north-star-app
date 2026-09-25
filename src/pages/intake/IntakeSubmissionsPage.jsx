@@ -38,6 +38,8 @@ function getApplicantEmail(sub) {
 }
 
 function formatDate(iso) {
+  // new Date(null) is the Unix epoch, which renders as "Dec 31, 1969" in US timezones
+  if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 

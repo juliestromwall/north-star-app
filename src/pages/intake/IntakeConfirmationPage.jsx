@@ -214,8 +214,8 @@ export default function IntakeConfirmationPage() {
 
           <p className="text-stone-500 mb-10 leading-relaxed">
             Circumstances change, and we may be in touch in the future. If you believe there may have been an error, please don't hesitate to contact us directly at{' '}
-            <a href="mailto:intake@northstarsurrogacy.com" className="text-[#D4A853] underline">
-              intake@northstarsurrogacy.com
+            <a href="mailto:info@firststarsurrogacy.com" className="text-[#D4A853] underline">
+              info@firststarsurrogacy.com
             </a>.
           </p>
 
@@ -417,8 +417,8 @@ export default function IntakeConfirmationPage() {
           <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
           <p className="text-sm text-stone-500">
             You can reach our team any time at{' '}
-            <a href="mailto:intake@northstarsurrogacy.com" className="text-[#D4A853] underline">
-              intake@northstarsurrogacy.com
+            <a href="mailto:info@firststarsurrogacy.com" className="text-[#D4A853] underline">
+              info@firststarsurrogacy.com
             </a>
           </p>
         </div>

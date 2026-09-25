@@ -15,8 +15,8 @@ export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@northstarsurrogacy.com'
-  // Supports comma-separated list: intake@northstarsurrogacy.com, nicole@northstarsurrogacy.com
-  const notifyEmails = (env.GC_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
+  // Supports comma-separated list: info@firststarsurrogacy.com, nicole@firststarsurrogacy.com
+  const notifyEmails = (env.GC_APPLICATION_NOTIFY_EMAIL || 'info@firststarsurrogacy.com')
     .split(',').map(e => e.trim()).filter(Boolean)
 
   const { applicantName, applicantEmail, applicantPhone, state, qualified, dqReasons, hearAboutUs, referralName, hearAboutUsOther } = await context.request.json()

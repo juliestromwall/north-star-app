@@ -532,8 +532,8 @@ function OnboardingDashboard({ name, currentUser }) {
       <div className="mt-4 mb-2 text-center">
         <p className="text-xs text-stone-400">
           Questions? Reach us at{' '}
-          <a href="mailto:intake@northstarsurrogacy.com" className="text-[#1A3638] font-medium hover:text-[#D4A853] transition-colors">
-            intake@northstarsurrogacy.com
+          <a href="mailto:info@firststarsurrogacy.com" className="text-[#1A3638] font-medium hover:text-[#D4A853] transition-colors">
+            info@firststarsurrogacy.com
           </a>
         </p>
       </div>
