@@ -1057,16 +1057,6 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
     await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: numBabies, babySexes: babySexes.slice(0, numBabies) })
     if (onStatusChange) await onStatusChange('Pregnant')
     await updateBabiesBornCounter('pregnant')
-    // Auto-email pregnancy confirmation
-    try {
-      const emailRes = await fetch('/api/notify-pregnancy-confirmed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ surrogateName: gcName || journey.gc_name || 'Surrogate' }),
-      })
-      const emailData = await emailRes.json().catch(() => ({}))
-      if (!emailRes.ok) console.error('Pregnancy notify email failed:', emailRes.status, emailData)
-    } catch (err) { console.error('Pregnancy notify email failed:', err) }
     // Auto-create 20-week check-in task for Julie & Nicole
     try {
       const transferDate = new Date(updated[idx].date + 'T12:00:00')

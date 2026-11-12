@@ -17,7 +17,6 @@ const SurrogateIntakeForm    = lazy(() => import('./pages/intake/SurrogateIntake
 const IPIntakeForm           = lazy(() => import('./pages/intake/IPIntakeForm'))
 const IntakeConfirmationPage = lazy(() => import('./pages/intake/IntakeConfirmationPage'))
 const SharedProfilePage      = lazy(() => import('./pages/matching/SharedProfilePage'))
-const SharedPsychTrackingPage = lazy(() => import('./pages/psych/SharedPsychTrackingPage'))
 const SignDocumentPage       = lazy(() => import('./pages/esign/SignDocumentPage'))
 const SignReleaseBatchPage   = lazy(() => import('./pages/esign/SignReleaseBatchPage'))
 const BatchSignFormPage      = lazy(() => import('./pages/esign/BatchSignFormPage'))
@@ -57,7 +56,6 @@ const CaseUpdatesPage        = lazy(() => import('./pages/case-updates/CaseUpdat
 const ReferralBonusTrackerPage = lazy(() => import('./pages/referrals/ReferralBonusTrackerPage'))
 const RecordsSummaryPage     = lazy(() => import('./pages/records/RecordsSummaryPage'))
 const RecordsSummaryWorkspace = lazy(() => import('./pages/records/RecordsSummaryWorkspace'))
-const PsychTrackingPage      = lazy(() => import('./pages/psych/PsychTrackingPage'))
 const PortalDocumentsPage    = lazy(() => import('./pages/portal/PortalDocumentsPage'))
 const PortalApplicationPage  = lazy(() => import('./pages/portal/PortalApplicationPage'))
 
@@ -100,7 +98,6 @@ export default function App() {
         <Route path="/intendedparentapply" element={<Navigate to="/getstarted/intendedparent" replace />} />
         <Route path="/apply/confirmation" element={<Navigate to="/getstarted/confirmation" replace />} />
         <Route path="/share/:token" element={<SharedProfilePage />} />
-        <Route path="/therapist-tracking/share/:token" element={<SharedPsychTrackingPage />} />
         <Route path="/e-signature/:id" element={<SignDocumentPage />} />
         <Route path="/e-signature/sign/:token" element={<SignDocumentPage />} />
         <Route path="/e-signature/release/:batchToken" element={<SignReleaseBatchPage />} />
@@ -145,7 +142,6 @@ export default function App() {
           <Route path="/referral-bonus-tracker" element={<ReferralBonusTrackerPage />} />
           <Route path="/records-summary" element={<RecordsSummaryPage />} />
           <Route path="/records-summary/:id" element={<RecordsSummaryWorkspace />} />
-          <Route path="/therapist-tracking" element={<PsychTrackingPage />} />
           <Route path="/case-import" element={<CaseImportPage />} />
           {stubs.map(s => (
             <Route
