@@ -212,7 +212,11 @@ export async function onRequestPost(context) {
       </div>
     `
 
-    if (resendKey) {
+    if (!resendKey) {
+      console.error('Reset password email: RESEND_API_KEY not set')
+      return json({ error: 'Password reset email is not configured. Please contact First Star Surrogacy.' }, 500)
+    }
+    {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -223,8 +227,12 @@ export async function onRequestPost(context) {
           html: htmlBody,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) console.error('Resend failed:', data)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Surface the failure instead of telling the user "sent" when nothing went out.
+        console.error('Resend failed:', data)
+        return json({ error: "We couldn't send the reset email. Please try again or contact First Star Surrogacy." }, 502)
+      }
     }
 
     return json({ success: true })
