@@ -84,6 +84,30 @@ function shouldRejectBot(bot = {}, turnstile) {
   return null
 }
 
+// The IP intake form saves firstName/lastName/spouse*, but the admin side
+// (IP list, detail, profile, application, match sheets…) reads the original
+// primary*/ip2* keys. Store both so the IP's name and details show up.
+function legacyIpKeys(submission) {
+  const a = submission.answers || {}
+  const partnered = a.relationshipStatus === 'Married' || a.relationshipStatus === 'Domestic Partnership'
+  const out = {
+    primaryFirstName: a.firstName,
+    primaryLastName: a.lastName,
+    primaryEmail: submission.applicant_email || a.email,
+    phone: submission.applicant_phone || a.phone,
+    stateProv: submission.state_region,
+    hasPartner: partnered ? 'yes' : 'no',
+    ip2FirstName: partnered ? a.spouseFirstName : undefined,
+    ip2LastName: partnered ? a.spouseLastName : undefined,
+    ip2Email: partnered ? a.spouseEmail : undefined,
+    hasRE: a.workingWithClinic,
+    hasFrozenEmbryos: a.hasEmbryos,
+    frozenEmbryoDetails: a.embryoCount,
+  }
+  // Never overwrite a value the form already sent under the legacy key.
+  return Object.fromEntries(Object.entries(out).filter(([k, v]) => v !== undefined && v !== '' && a[k] === undefined))
+}
+
 export async function onRequestOptions() {
   return new Response(null, { headers: corsHeaders })
 }
@@ -137,6 +161,7 @@ export async function onRequestPost(context) {
     status: submission.qualified ? 'qualified' : 'disqualified',
     answers: {
       ...(submission.answers || {}),
+      ...(submission.intake_type === 'ip' ? legacyIpKeys(submission) : {}),
       _botMeta: {
         elapsedSeconds: bot.elapsedSeconds || null,
         fieldChangeCount: bot.fieldChangeCount || 0,

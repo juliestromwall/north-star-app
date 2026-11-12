@@ -30,7 +30,8 @@ function StatusBadge({ status }) {
 
 function getApplicantName(sub) {
   if (sub.type === 'gc') return `${sub.answers?.firstName || ''} ${sub.answers?.lastName || ''}`.trim() || 'Unknown'
-  return `${sub.answers?.primaryFirstName || ''} ${sub.answers?.primaryLastName || ''}`.trim() || 'Unknown'
+  const a = sub.answers || {}
+  return `${a.primaryFirstName || a.firstName || ''} ${a.primaryLastName || a.lastName || ''}`.trim() || 'Unknown'
 }
 
 function getApplicantEmail(sub) {

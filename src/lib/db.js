@@ -317,7 +317,7 @@ function mapSurrogateIntakeRow(row) {
     status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'screening' : 'pending',
     intakeStatus: row.status,
     submittedAt: row.submitted_at,
-    phone: a.phone || '',
+    phone: a.phone || row.applicant_phone || '',
     maritalStatus: a.maritalStatus || '',
     heightFt: a.heightFt,
     heightIn: a.heightIn,
@@ -386,9 +386,12 @@ export async function getProfilePhotoUrls(userIds) {
 
 function mapIpIntakeRow(row) {
   const a = row.answers || {}
+  // Intake-form rows submitted before the legacy keys were added only have
+  // firstName/lastName/spouse* — fall back to those.
   const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
-  const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
-  const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : null
+    || (a.hasPartner === undefined && (a.relationshipStatus === 'Married' || a.relationshipStatus === 'Domestic Partnership'))
+  const ip1Name = `${a.primaryFirstName || a.firstName || ''} ${a.primaryLastName || a.lastName || ''}`.trim() || row.applicant_name || ''
+  const ip2Name = hasPartner ? `${a.ip2FirstName || a.spouseFirstName || ''} ${a.ip2LastName || a.spouseLastName || ''}`.trim() : null
   const names = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
   const dob = a.primaryDob ? new Date(a.primaryDob) : null
   const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
@@ -400,10 +403,10 @@ function mapIpIntakeRow(row) {
     ip2Name,
     email: row.applicant_email || a.email || '',
     ip2Email: a.ip2Email || '',
-    phone: a.phone || '',
+    phone: a.phone || row.applicant_phone || '',
     ip2Phone: a.ip2Phone || '',
     age,
-    location: [a.city, a.stateProv].filter(Boolean).join(', ') || '',
+    location: [a.city, a.stateProv || row.state_region].filter(Boolean).join(', ') || '',
     country: a.country || '',
     type: hasPartner ? 'Couple' : 'Single parent',
     status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'new' : row.status,

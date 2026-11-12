@@ -231,7 +231,7 @@ export async function onRequestPost(context) {
       if (!res.ok) {
         // Surface the failure instead of telling the user "sent" when nothing went out.
         console.error('Resend failed:', data)
-        return json({ error: "We couldn't send the reset email. Please try again or contact First Star Surrogacy." }, 502)
+        return json({ error: "We couldn't send the reset email. Please try again or contact First Star Surrogacy." }, 500)
       }
     }
 
