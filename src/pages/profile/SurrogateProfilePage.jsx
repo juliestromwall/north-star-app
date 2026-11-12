@@ -1051,7 +1051,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-blue-800">Profile Submitted for Review</p>
-              <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions. If you need to make edits, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
+              <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions. If you need to make edits, please reach out to <a href="mailto:jenn@firststarsurrogacy.com" className="font-semibold underline">jenn@firststarsurrogacy.com</a>.</p>
             </div>
           </div>
         )}
@@ -1064,7 +1064,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-green-800">Profile Approved</p>
-              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the First Star Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@northstarsurrogacy.com" className="font-semibold underline">jenn@northstarsurrogacy.com</a>.</p>
+              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the First Star Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@firststarsurrogacy.com" className="font-semibold underline">jenn@firststarsurrogacy.com</a>.</p>
             </div>
           </div>
         )}

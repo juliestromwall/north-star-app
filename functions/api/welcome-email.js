@@ -72,9 +72,9 @@ export async function onRequestPost(context) {
             What happens next?
           </p>
           <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 2;">
-            <li>Set up your portal password by clicking the button below.</li>
+            <li>If you haven't already, please set up your portal password by clicking the button below.</li>
             <li>Complete your matching profile so intended parents can get to know you!</li>
-            <li>Our intake coordinator, Jennifer, will be reaching out about next steps!</li>
+            <li>We will be reaching out about next steps!</li>
           </ol>
         </div>
 
@@ -91,7 +91,7 @@ export async function onRequestPost(context) {
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
           <p style="margin: 0; font-size: 13px; color: #78716c;">
             Have questions? Reach out anytime to<br/>
-            <a href="mailto:jenn@northstarsurrogacy.com" style="color: #1A3638; font-weight: 600;">jenn@northstarsurrogacy.com</a>
+            <a href="mailto:jenn@firststarsurrogacy.com" style="color: #1A3638; font-weight: 600;">jenn@firststarsurrogacy.com</a>
           </p>
         </div>
 
