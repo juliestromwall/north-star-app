@@ -131,6 +131,10 @@ export async function onRequestPost(context) {
 
   const row = {
     ...submission,
+    // Status is derived here, never left to the column default, so qualified
+    // applicants land straight on the Surrogates list (which only shows
+    // qualified/approved/reviewed/pending_review) without an admin review.
+    status: submission.qualified ? 'qualified' : 'disqualified',
     answers: {
       ...(submission.answers || {}),
       _botMeta: {
