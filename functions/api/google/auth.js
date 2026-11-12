@@ -46,7 +46,9 @@ export async function onRequestGet(context) {
   googleAuthUrl.searchParams.set('scope', scopes)
   googleAuthUrl.searchParams.set('state', state)
   googleAuthUrl.searchParams.set('access_type', 'offline')
-  googleAuthUrl.searchParams.set('prompt', 'consent')
+  // select_account: always show the account chooser so admins can pick their
+  // @firststarsurrogacy.com account instead of whichever one is signed in.
+  googleAuthUrl.searchParams.set('prompt', 'select_account consent')
 
   return Response.redirect(googleAuthUrl.toString(), 302)
 }
