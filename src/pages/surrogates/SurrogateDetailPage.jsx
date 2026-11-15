@@ -693,10 +693,12 @@ export default function SurrogateDetailPage() {
                 {surrogate.location && (
                   <span className="flex items-center gap-1"><MapPin className="size-3.5" /> {surrogate.location}</span>
                 )}
-                <span className="flex items-center gap-1">
-                  <Calendar className="size-3.5" />
-                  Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </span>
+                {surrogate.submittedAt && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="size-3.5" />
+                    Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
                 {insuranceStatus && (() => {
                   const ins = insuranceStatus
                   const st = ins.insurance_status

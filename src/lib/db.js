@@ -263,6 +263,13 @@ export async function insertIntakeSubmission(submission) {
   return result.data
 }
 
+// Production intake rows were saved without submitted_at (the column has no
+// default there). Fall back to when the applicant opened the intake form,
+// recorded in answers._tracking.landedAt — minutes before they submitted.
+export function intakeSubmittedAt(row) {
+  return row?.submitted_at || row?.answers?._tracking?.landedAt || null
+}
+
 export async function fetchIntakeSubmissions() {
   const result = await withTimeout(
     () => supabase.from('intake_submissions').select('*').order('submitted_at', { ascending: false }),
@@ -274,19 +281,20 @@ export async function fetchIntakeSubmissions() {
   return result.data.map(row => ({
     id: row.id,
     type: row.intake_type,
-    submittedAt: row.submitted_at,
+    submittedAt: intakeSubmittedAt(row),
     status: row.status || (row.qualified ? 'qualified' : 'disqualified'),
     dqReasons: row.dq_reasons || [],
     tracking: {
+      ...(row.answers?._tracking || {}),
       ...(row.tracking || {}),
-      utm_source: row.utm_source,
-      utm_medium: row.utm_medium,
-      utm_campaign: row.utm_campaign,
-      utm_content: row.utm_content,
-      utm_term: row.utm_term,
-      fbclid: row.fbclid,
-      ttclid: row.ttclid,
-      resolvedSource: row.resolved_source || row.tracking?.resolvedSource || null,
+      utm_source: row.utm_source || row.answers?._tracking?.utm_source,
+      utm_medium: row.utm_medium || row.answers?._tracking?.utm_medium,
+      utm_campaign: row.utm_campaign || row.answers?._tracking?.utm_campaign,
+      utm_content: row.utm_content || row.answers?._tracking?.utm_content,
+      utm_term: row.utm_term || row.answers?._tracking?.utm_term,
+      fbclid: row.fbclid || row.answers?._tracking?.fbclid,
+      ttclid: row.ttclid || row.answers?._tracking?.ttclid,
+      resolvedSource: row.resolved_source || row.tracking?.resolvedSource || row.answers?._tracking?.resolvedSource || null,
     },
     answers: row.answers || {},
     stateRegion: row.state_region || null,
@@ -316,7 +324,7 @@ function mapSurrogateIntakeRow(row) {
     location: [a.city, a.state].filter(Boolean).join(', ') || a.state || '',
     status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'screening' : 'pending',
     intakeStatus: row.status,
-    submittedAt: row.submitted_at,
+    submittedAt: intakeSubmittedAt(row),
     phone: a.phone || row.applicant_phone || '',
     maritalStatus: a.maritalStatus || '',
     heightFt: a.heightFt,
@@ -411,7 +419,7 @@ function mapIpIntakeRow(row) {
     type: hasPartner ? 'Couple' : 'Single parent',
     status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'new' : row.status,
     intakeStatus: row.status,
-    submittedAt: row.submitted_at,
+    submittedAt: intakeSubmittedAt(row),
     hasRE: a.hasRE,
     reDoctorName: a.reDoctorName || '',
     hasFrozenEmbryos: a.hasFrozenEmbryos,

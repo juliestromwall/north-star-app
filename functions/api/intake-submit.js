@@ -159,6 +159,8 @@ export async function onRequestPost(context) {
     // applicants land straight on the Surrogates list (which only shows
     // qualified/approved/reviewed/pending_review) without an admin review.
     status: submission.qualified ? 'qualified' : 'disqualified',
+    // The production column has no default, so stamp it here.
+    submitted_at: new Date().toISOString(),
     answers: {
       ...(submission.answers || {}),
       ...(submission.intake_type === 'ip' ? legacyIpKeys(submission) : {}),

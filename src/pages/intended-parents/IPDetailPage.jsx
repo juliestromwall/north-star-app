@@ -234,10 +234,12 @@ export default function IPDetailPage() {
                 {ip.location && (
                   <span className="flex items-center gap-1"><MapPin className="size-3.5" /> {ip.location}{ip.country && ip.country !== 'United States' ? `, ${ip.country}` : ''}</span>
                 )}
-                <span className="flex items-center gap-1">
-                  <Calendar className="size-3.5" />
-                  Submitted {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </span>
+                {ip.submittedAt && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="size-3.5" />
+                    Submitted {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
               </div>
               {/* Assignment */}
               <div className="flex items-center gap-1.5 mt-2">
