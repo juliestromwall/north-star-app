@@ -6,7 +6,7 @@ import {
 import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
-import { IPProfilePreview, SortablePhoto, PhotoEditor, SECTIONS } from '@/pages/profile/IPProfilePage'
+import { IPProfilePreview, SortablePhoto, PhotoEditor, SECTIONS, countCompletion, countSectionCompletion } from '@/pages/profile/IPProfilePage'
 import { NarrativeProfileEditor } from '@/components/profile/NarrativeProfileSection'
 import { IP_PROFILE_SECTIONS } from '@/data/profileNarrative'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -171,73 +171,6 @@ function DisplayField({ label, value }) {
 // ─────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────
-
-function countSectionCompletion(profile, section, hasPartner) {
-  let total = 0, filled = 0
-  if (section.perPerson) {
-    for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
-      const d = profile?.[person]?.[section.key] || {}
-      for (const f of section.fields) {
-        // coupleField counts for both IPs when partnered, neither when single.
-        if (f.coupleField && !hasPartner) continue
-        if (f.conditional && !f.conditional(d)) continue
-        total++
-        if (isFieldFilled(d[f.key])) filled++
-      }
-    }
-  } else {
-    const d = profile?.[section.key] || {}
-    for (const f of section.fields) {
-      if (f.conditional && !f.conditional(d)) continue
-      total++
-      if (isFieldFilled(d[f.key])) filled++
-    }
-  }
-  return { filled, total, complete: total > 0 && filled === total }
-}
-
-function countProfileCompletion(profile, hasPartner) {
-  let total = 0
-  let filled = 0
-
-  for (const section of SECTIONS) {
-    if (section.perPerson) {
-      // Count IP1 fields
-      const ip1Data = profile?.ip1?.[section.key] || {}
-      for (const f of section.fields) {
-        // coupleField on IP1 only counts when there's a partner.
-        if (f.coupleField && !hasPartner) continue
-        if (f.conditional && !f.conditional(ip1Data)) continue
-        total++
-        if (isFieldFilled(ip1Data[f.key])) filled++
-      }
-      // Count IP2 fields if couple — coupleField counts here too now.
-      if (hasPartner) {
-        const ip2Data = profile?.ip2?.[section.key] || {}
-        for (const f of section.fields) {
-          if (f.conditional && !f.conditional(ip2Data)) continue
-          total++
-          if (isFieldFilled(ip2Data[f.key])) filled++
-        }
-      }
-    } else {
-      const sData = profile?.[section.key] || {}
-      for (const f of section.fields) {
-        if (f.conditional && !f.conditional(sData)) continue
-        total++
-        if (isFieldFilled(sData[f.key])) filled++
-      }
-    }
-  }
-
-  return { filled, total, percent: total > 0 ? Math.round((filled / total) * 100) : 0 }
-}
-
-function isFieldFilled(value) {
-  if (value === undefined || value === null || value === '') return false
-  if (Array.isArray(value)) return value.length > 0
-  return true
-}
 
 // ─────────────────────────────────────────────────────────
 // Hide-from-IPs toggle (click to hide a specific field from Preview/
@@ -864,7 +797,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
   const ip1Name = answers.primaryFirstName || 'IP1'
   const ip2Name = answers.ip2FirstName || 'IP2'
 
-  const { filled, total, percent } = countProfileCompletion(profile, hasPartner)
+  const percent = countCompletion(profile, hasPartner)
 
   function scheduleAutoSave(updatedProfile) {
     setLocalProfile(updatedProfile)

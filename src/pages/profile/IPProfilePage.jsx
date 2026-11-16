@@ -760,7 +760,7 @@ export function countCompletion(profile, hasPartner) {
   return total > 0 ? Math.round((filled / total) * 100) : 0
 }
 
-function countSectionCompletion(profile, section, hasPartner) {
+export function countSectionCompletion(profile, section, hasPartner) {
   if (section.narrative) {
     return countNarrativeSection(profile, section.narrativeSectionKey || section.key)
   }
