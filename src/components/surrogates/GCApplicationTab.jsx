@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
-import { updateIntakeSubmission, uploadCaseDocument } from '@/lib/db'
+import { updateIntakeSubmission } from '@/lib/db'
 import TemplateAnswersSection from '@/components/surrogates/TemplateAnswersSection'
 import { GC_TEMPLATE_SECTIONS } from '@/lib/gcApplication'
 import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileConstants'
@@ -710,77 +710,6 @@ function ReferencesSection({ surrogate, answers, onSaved, search }) {
   )
 }
 
-function EmploymentSection({ surrogate, answers, profileData, onSaved, search }) {
-  const stored = answers?._employment || {}
-  const profileEmployment = profileData?.employment || {}
-  const fields = [
-    { key: 'currentlyEmployed', label: 'Are you currently employed?', type: 'yesno' },
-    { key: 'employmentIndustry', label: 'Please share details on the industry you work in.' },
-    { key: 'workHours', label: 'How many hours a week do you work, and what are your typical hours?' },
-    { key: 'occupation', label: 'What specifically is your occupation/position and your duties/responsibilities?' },
-    { key: 'lengthAtEmployer', label: 'How long have you worked for your current employer?' },
-    { key: 'hourlyRate', label: 'What is your earned hourly rate?' },
-    { key: 'weeklyIncome', label: 'What is your approximate weekly income?' },
-    { key: 'partnerOccupation', label: "What is your spouse/partner's occupation?" },
-    { key: 'partnerWeeklyIncome', label: "What is your spouse/partner's approximate weekly income?" },
-    { key: 'healthInsurance', label: 'Do you have health insurance coverage?', type: 'yesno' },
-    { key: 'insuranceType', label: 'Is it private/personal or through an employer?' },
-    { key: 'governmentAssistance', label: 'Do you receive any government assistance?', type: 'yesno' },
-    { key: 'governmentAssistanceDetails', label: 'Please explain government assistance' },
-  ]
-
-  const allLabels = fields.map(f => f.label.toLowerCase())
-  const hasMatch = search ? allLabels.some(l => l.includes(search)) || fields.some(f => String(stored[f.key] || profileEmployment[f.key] || '').toLowerCase().includes(search)) : true
-
-  function getVal(key) {
-    if (stored[key] !== undefined && stored[key] !== '') return stored[key]
-    return profileEmployment[key] || ''
-  }
-
-  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
-    surrogate.id, answers, '_employment',
-    (saved) => {
-      const init = {}
-      for (const f of fields) init[f.key] = saved[f.key] !== undefined && saved[f.key] !== '' ? saved[f.key] : (profileEmployment[f.key] || '')
-      return init
-    }
-  )
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
-
-  if (!hasMatch) return null
-
-  return (
-    <Card className="rounded-2xl">
-      <EditHeader title="Employment Information" description="Work, income, insurance, and government assistance" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
-      <CardContent>
-        {editing ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fields.map(f => (
-              <div key={f.key} className={`space-y-1 ${['occupation', 'employmentIndustry', 'governmentAssistanceDetails'].includes(f.key) ? 'sm:col-span-2' : ''}`}>
-                <FieldLabel>{f.label}</FieldLabel>
-                {f.type === 'yesno' ? (
-                  <YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} />
-                ) : ['occupation', 'employmentIndustry', 'governmentAssistanceDetails'].includes(f.key) ? (
-                  <Textarea value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} rows={2} />
-                ) : (
-                  <Input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fields.map(f => (
-              <ReadField key={f.key} label={f.label} value={f.type === 'yesno' ? boolDisplay(getVal(f.key)) : getVal(f.key)} />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-
 // ── Photo ID Display (admin view) ──────────────────────
 function PhotoIdDisplay({ surrogateId }) {
   const [docs, setDocs] = useState([])
@@ -1448,107 +1377,6 @@ By signing this form I acknowledge that I have completely read and fully underst
   )
 }
 
-// ── Payment Preference ─────────────────────────────────
-function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
-  const stored = answers?._paymentPreference || {}
-  const hasMatch = search ? ['payment', 'screening', 'incentive', 'venmo', 'zelle'].some(k => search.includes(k)) : true
-
-  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
-    surrogate.id, answers, '_paymentPreference',
-    (saved) => ({
-      method: saved.method || '',
-      venmoUsername: saved.venmoUsername || '',
-      venmoPhoneLast4: saved.venmoPhoneLast4 || '',
-      zelleInfo: saved.zelleInfo || '',
-      screenshotUrl: saved.screenshotUrl || '',
-    })
-  )
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
-  const [uploading, setUploading] = useState(false)
-
-  if (!hasMatch) return null
-
-  async function handleScreenshot(file) {
-    if (!file) return
-    setUploading(true)
-    try {
-      const doc = await uploadCaseDocument({ surrogateId: surrogate.id, category: 'Payment Info', file, uploadedBy: 'Admin' })
-      if (doc?.public_url) {
-        set('screenshotUrl', doc.public_url)
-        // Auto-save immediately so the URL persists
-        const updatedForm = { ...form, screenshotUrl: doc.public_url }
-        const updatedAnswers = { ...answers, _paymentPreference: updatedForm }
-        await updateIntakeSubmission(surrogate.id, { answers: updatedAnswers }).catch(() => {})
-        if (onSaved) onSaved(updatedAnswers)
-      }
-    } catch (err) { console.error('Upload failed:', err) }
-    finally { setUploading(false) }
-  }
-
-  return (
-    <Card className="rounded-2xl">
-      <EditHeader title="Screening Incentive Payment Preference" description="How would you prefer to receive your screening incentive payment?" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
-      <CardContent className="space-y-4">
-        {editing ? (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <FieldLabel>Payment Method</FieldLabel>
-              <SelectField value={form.method} onValueChange={v => set('method', v)} options={['Venmo', 'Zelle']} placeholder="Select payment method..." />
-            </div>
-            {form.method === 'Venmo' && (
-              <>
-                <div className="space-y-1">
-                  <FieldLabel>Venmo Username</FieldLabel>
-                  <Input value={form.venmoUsername} onChange={e => set('venmoUsername', e.target.value)} placeholder="@username" />
-                </div>
-                <div className="space-y-1">
-                  <FieldLabel>Last 4 Digits of Phone Number on Venmo</FieldLabel>
-                  <Input value={form.venmoPhoneLast4} onChange={e => set('venmoPhoneLast4', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" inputMode="numeric" maxLength={4} />
-                </div>
-              </>
-            )}
-            {form.method === 'Zelle' && (
-              <div className="space-y-1">
-                <FieldLabel>Zelle Email or Phone</FieldLabel>
-                <Input value={form.zelleInfo} onChange={e => set('zelleInfo', e.target.value)} placeholder="email@example.com or (555) 123-4567" />
-              </div>
-            )}
-            {(form.method === 'Venmo' || form.method === 'Zelle') && (
-              <div className="space-y-1">
-                <FieldLabel>Screenshot of {form.method} Name (optional)</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <Input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => handleScreenshot(e.target.files?.[0])} className="h-9 text-xs" disabled={uploading} />
-                  {uploading && <Loader2 className="size-4 animate-spin text-stone-400" />}
-                </div>
-                {form.screenshotUrl && (
-                  <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline flex items-center gap-1">
-                    <FileText className="size-3" /> View uploaded screenshot
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ReadField label="Payment Method" value={stored.method || '—'} />
-            {stored.method === 'Venmo' && <ReadField label="Venmo Username" value={stored.venmoUsername} />}
-            {stored.method === 'Venmo' && <ReadField label="Last 4 of Venmo Phone" value={stored.venmoPhoneLast4} />}
-            {stored.method === 'Zelle' && <ReadField label="Zelle Info" value={stored.zelleInfo} />}
-            {stored.screenshotUrl && (
-              <div>
-                <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Screenshot</p>
-                <a href={stored.screenshotUrl} target="_blank" rel="noreferrer" className="text-sm text-[#1A3638] hover:underline font-medium flex items-center gap-1 mt-0.5">
-                  <FileText className="size-3" /> View
-                </a>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 // ── Main Export ──────────────────────────────────────────
 // ── Profile Follow Up Questions (editable) ──
 
@@ -1566,10 +1394,8 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     // One chip per application section, straight off the template.
     ...GC_TEMPLATE_SECTIONS.map(sec => ({ id: sec.key.replace(/^_/, ''), label: sec.title })),
     { id: 'personal', label: 'Identity & Docs' },
-    { id: 'employment', label: 'Employment' },
     { id: 'references', label: 'References' },
     { id: 'clinic', label: 'Clinic & Hospital' },
-    { id: 'payment', label: 'Payment Pref' },
     { id: 'social', label: 'Social Media' },
     { id: 'waivers', label: 'BG Waivers' },
   ]
@@ -1608,10 +1434,8 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
         </div>
       ))}
       <div id="app-sec-personal"><ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
-      <div id="app-sec-employment"><EmploymentSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-references"><ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-clinic"><ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
-      <div id="app-sec-payment"><PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-social"><SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
 
       {/* Release Forms — batch send with per-template checkboxes */}

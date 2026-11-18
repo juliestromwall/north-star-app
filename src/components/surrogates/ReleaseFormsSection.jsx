@@ -30,18 +30,9 @@ function resolveTemplateRows({ hasPartner, adultHouseholdMembers = [] }) {
       labelOverride: `Household Member Background Waiver — ${[m.firstName, m.lastName].filter(Boolean).join(' ').trim() || `Adult #${i + 1}`}`,
     })
   })
-  // HIPAA
-  rows.push({ section: 'HIPAA', templateId: 'release_hipaa' })
-  // General Psych
-  rows.push({
-    section: 'General Psych Release',
-    templateId: hasPartner ? 'release_general_psych_partnered_gc' : 'release_general_psych_single_gc',
-  })
-  // Ellen Winters
-  rows.push({
-    section: 'Ellen Winters Psych Release',
-    templateId: hasPartner ? 'release_ellen_winters_partnered_gc' : 'release_ellen_winters_single_gc',
-  })
+  // HIPAA, General Psych and Ellen Winters releases are off until First Star
+  // sends updated versions (templates stay in formTemplates.js so already-sent
+  // forms still display).
   // Kaiser PHI Authorization (PDF-overlay — uses Kaiser's actual form)
   rows.push({ section: 'Kaiser PHI Authorization', templateId: 'release_kaiser' })
   return rows

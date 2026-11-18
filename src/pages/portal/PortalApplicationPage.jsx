@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Upload, X, Image } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask, findCaseByEmail, uploadCaseDocument, fetchSurrogateProfileByEmail } from '@/lib/db'
+import { createCaseTask, findCaseByEmail, fetchSurrogateProfileByEmail } from '@/lib/db'
 import { resolveAutoStepId, buildTrackingUpdate } from '@/lib/checklistAutoStatus'
 import TemplateSectionForm, { isTemplateSectionComplete } from '@/components/portal/TemplateSectionForm'
 import { GC_TEMPLATE_SECTIONS, buildSectionPrefills, migrateLegacyAnswers } from '@/lib/gcApplication'
@@ -36,7 +36,6 @@ const FORM_SECTIONS = [
   { key: '_application', label: 'Identity & Screening Documents', description: "Identification, insurance card, driver's license, and emergency contact" },
   { key: '_references', label: 'References', description: 'Three references required' },
   { key: '_clinicHospital', label: 'Clinic & Hospital Form', description: 'Provider information for each pregnancy' },
-  { key: '_paymentPreference', label: 'Screening Incentive Payment Preference', description: 'How you prefer to receive your screening incentive' },
   { key: '_socialMediaRelease', label: 'Social Media Release', description: 'Photo and video consent' },
 ]
 
@@ -491,92 +490,6 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
 }
 
 // ── Profile Follow Up Questions ──────────────────────────
-// ── Screening Incentive Payment Preference ────────────────
-function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggle, caseId }) {
-  const [form, setForm] = useState({ method: '', venmoUsername: '', venmoPhoneLast4: '', zelleInfo: '', screenshotUrl: '' })
-  const [uploading, setUploading] = useState(false)
-  useEffect(() => { if (data) setForm({ method: data.method || '', venmoUsername: data.venmoUsername || '', venmoPhoneLast4: data.venmoPhoneLast4 || '', zelleInfo: data.zelleInfo || '', screenshotUrl: data.screenshotUrl || '' }) }, [data])
-
-  // Venmo asks for the last 4 of the phone number on the account so we can
-  // confirm the right person before sending money.
-  const venmoComplete = v => v.venmoUsername && /^\d{4}$/.test(v.venmoPhoneLast4 || '')
-  const isComplete = data && data.method && (data.method === 'Venmo' ? venmoComplete(data) : data.zelleInfo)
-  const allFilled = form.method && (form.method === 'Venmo' ? venmoComplete(form) : form.zelleInfo)
-
-  async function handleScreenshot(file) {
-    if (!file || !caseId) return
-    setUploading(true)
-    try {
-      const doc = await uploadCaseDocument({ surrogateId: caseId, category: 'Payment Info', file, uploadedBy: 'Surrogate' })
-      if (doc?.public_url) {
-        const updatedForm = { ...form, screenshotUrl: doc.public_url }
-        setForm(updatedForm)
-        // Auto-save immediately so the URL persists
-        if (onSave) onSave('_paymentPreference', updatedForm)
-      }
-    } catch (err) { console.error('Upload failed:', err) }
-    finally { setUploading(false) }
-  }
-
-  return (
-    <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={onToggle}>
-        <div className="flex items-center gap-2">
-          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
-          <div>
-            <CardTitle className="text-base">Screening Incentive Payment Preference</CardTitle>
-            <CardDescription>How would you prefer to receive your screening incentive payment?</CardDescription>
-          </div>
-        </div>
-        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
-      </CardHeader>
-      {isOpen && (
-        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
-          <div className="space-y-1">
-            <FieldLabel>Payment Method <Req /></FieldLabel>
-            <Select value={form.method} onValueChange={v => setForm(f => ({ ...f, method: v }))}>
-              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Venmo">Venmo</SelectItem>
-                <SelectItem value="Zelle">Zelle</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {form.method === 'Venmo' && (
-            <>
-              <div className="space-y-1">
-                <FieldLabel>Venmo Username <Req /></FieldLabel>
-                <Input value={form.venmoUsername} onChange={e => setForm(f => ({ ...f, venmoUsername: e.target.value }))} placeholder="@username" />
-              </div>
-              <div className="space-y-1">
-                <FieldLabel>Last 4 Digits of Phone Number on the Venmo Account <Req /></FieldLabel>
-                <Input value={form.venmoPhoneLast4} onChange={e => setForm(f => ({ ...f, venmoPhoneLast4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" inputMode="numeric" maxLength={4} />
-              </div>
-            </>
-          )}
-          {form.method === 'Zelle' && (
-            <div className="space-y-1">
-              <FieldLabel>Zelle Email or Phone <Req /></FieldLabel>
-              <Input value={form.zelleInfo} onChange={e => setForm(f => ({ ...f, zelleInfo: e.target.value }))} placeholder="email@example.com or (555) 123-4567" />
-            </div>
-          )}
-          {(form.method === 'Venmo' || form.method === 'Zelle') && (
-            <div className="space-y-1">
-              <FieldLabel>Screenshot of {form.method} Name (optional)</FieldLabel>
-              <Input type="file" accept="image/*" onChange={e => handleScreenshot(e.target.files?.[0])} className="text-xs" disabled={uploading} />
-              {uploading && <p className="text-xs text-stone-400 flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Uploading...</p>}
-              {form.screenshotUrl && <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#1A3638] hover:underline">View uploaded screenshot →</a>}
-            </div>
-          )}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#1A3638' }} onClick={() => onSave('_paymentPreference', form)} disabled={saving || !allFilled}>
-            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>}
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
 // ── References ─────────────────────────────────────────
 function ReferencesForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
   const REFS = [
@@ -2014,11 +1927,6 @@ export default function PortalApplicationPage() {
         return true
       })
     }
-    if (key === '_paymentPreference') {
-      if (!d.method) return false
-      if (d.method === 'Venmo') return !!(d.venmoUsername && /^\d{4}$/.test(d.venmoPhoneLast4 || ''))
-      return !!d.zelleInfo
-    }
     if (key === '_socialMediaRelease') {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
@@ -2104,8 +2012,6 @@ export default function PortalApplicationPage() {
             isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
           <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
             isOpen={activeSection === '_clinicHospital'} onToggle={() => setActiveSection(activeSection === '_clinicHospital' ? null : '_clinicHospital')} />
-          <PaymentPreferenceForm data={answers._paymentPreference} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} caseId={caseId}
-            isOpen={activeSection === '_paymentPreference'} onToggle={() => setActiveSection(activeSection === '_paymentPreference' ? null : '_paymentPreference')} />
           <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted}
             isOpen={activeSection === '_socialMediaRelease'} onToggle={() => setActiveSection(activeSection === '_socialMediaRelease' ? null : '_socialMediaRelease')} />
         </>
