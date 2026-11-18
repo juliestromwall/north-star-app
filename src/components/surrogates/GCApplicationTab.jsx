@@ -750,6 +750,58 @@ function PhotoIdDisplay({ surrogateId }) {
   )
 }
 
+/**
+ * Admin-only fax input for a provider.
+ *
+ * Staff research these once; the value then seeds the provider's fax in the
+ * Records Checklist (without ever overwriting a fax already recorded there).
+ * The surrogate never sees this — the portal's own Clinic & Hospital form
+ * renders no fax fields at all.
+ */
+function AdminFaxField({ value, onChange }) {
+  return (
+    <div className="space-y-1">
+      <FieldLabel>
+        <span className="text-amber-600">Fax</span>{' '}
+        <span className="text-muted-foreground font-normal">(admin only)</span>
+      </FieldLabel>
+      <Input
+        type="tel"
+        value={value || ''}
+        onChange={e => onChange(formatPhoneInput(e.target.value))}
+        placeholder="xxx-xxx-xxxx"
+        className="border-amber-200 focus-visible:border-amber-400"
+      />
+    </div>
+  )
+}
+
+/**
+ * Admin-only records email for a provider.
+ *
+ * Same contract as AdminFaxField: staff research it once and it seeds the
+ * provider's email in the Records Checklist, never overwriting one already
+ * recorded there. The surrogate never sees it — the portal's Clinic & Hospital
+ * form renders no admin fields at all.
+ */
+function AdminEmailField({ value, onChange }) {
+  return (
+    <div className="space-y-1">
+      <FieldLabel>
+        <span className="text-amber-600">Email</span>{' '}
+        <span className="text-muted-foreground font-normal">(admin only)</span>
+      </FieldLabel>
+      <Input
+        type="email"
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder="records@provider.com"
+        className="border-amber-200 focus-visible:border-amber-400"
+      />
+    </div>
+  )
+}
+
 // ── Clinic & Hospital Section ───────────────────────────
 const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy']
 // The *Fax and *Email fields are ADMIN-ONLY: they are researched by staff,
