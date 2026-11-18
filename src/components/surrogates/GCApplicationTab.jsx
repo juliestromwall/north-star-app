@@ -99,38 +99,66 @@ function FormSection({ title, description, children, defaultOpen = false, search
 // ── Quiz Answers Section ────────────────────────────────
 const MARITAL_OPTIONS = ['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']
 const CONTACT_OPTIONS = ['Text', 'Email', 'Phone']
-const HEAR_OPTIONS = ['Google', 'Instagram', 'TikTok', 'Facebook', 'Friend/Family', 'Previous Surrogate', 'Agency Referral', 'Other']
+
+const STATE_ABBRS = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+
+// Mirrors the questions in src/pages/intake/SurrogateIntakeForm.jsx. `legacy`
+// is the key the old (ABC-era) quiz used for the same question, so older rows
+// still display. `legacyOnly` questions aren't asked anymore and only show
+// when a row already has an answer.
+const QUIZ_FIELDS = [
+  { key: 'firstName', label: 'First Name' },
+  { key: 'lastName', label: 'Last Name' },
+  { key: 'email', label: 'Email', type: 'email' },
+  { key: 'phone', label: 'Phone', type: 'tel' },
+  { key: 'street', label: 'Street Address' },
+  { key: 'street2', label: 'Street Address Line 2' },
+  { key: 'city', label: 'City' },
+  { key: 'state', label: 'State', type: 'state' },
+  { key: 'zip', label: 'ZIP Code' },
+  { key: 'usCitizen', label: 'U.S. Citizen', type: 'yesno' },
+  { key: 'permanentResident', label: 'Permanent Resident', type: 'yesno' },
+  { key: 'dob', label: 'Date of Birth', type: 'date' },
+  { key: 'heightFt', label: 'Height (ft)', type: 'number' },
+  { key: 'heightIn', label: 'Height (in)', type: 'number' },
+  { key: 'weightLbs', label: 'Weight (lbs)', type: 'number' },
+  { key: 'bmi', label: 'BMI' },
+  { key: 'hasSpouseOrPartner', label: 'Has Spouse or Partner', type: 'yesno' },
+  { key: 'numPregnancies', label: 'Number of Pregnancies', type: 'number' },
+  { key: 'numChildren', label: 'Children Given Birth To', type: 'number' },
+  { key: 'lastDeliveryDate', label: 'Most Recent Delivery Date', type: 'date' },
+  { key: 'allHealthy', legacy: 'healthyPregnancy', label: 'All Pregnancies Healthy', type: 'yesno' },
+  { key: 'numCsections', label: 'Number of C-sections', type: 'number' },
+  { key: 'previousSurrogate', legacy: 'experiencedSurrogate', label: 'Previously a Surrogate', type: 'yesno' },
+  { key: 'takesPrescriptions', label: 'Takes Prescription Medications', type: 'yesno' },
+  { key: 'prescriptionList', label: 'Current Prescriptions', type: 'textarea' },
+  { key: 'hasInsurance', label: 'Has Health Insurance', type: 'yesno' },
+  { key: 'publicAssistance', label: 'Receives Public Assistance / State Insurance', type: 'yesno' },
+  { key: 'levelInterestTimeline', label: 'Level of Interest & Timeline', type: 'textarea' },
+  { key: 'hearAbout', legacy: 'hearAboutUs', label: 'How did you hear about us?' },
+  { key: 'hearAboutUsOther', label: 'Other (specify)', legacyOnly: true },
+  { key: 'maritalStatus', label: 'Marital Status', type: 'select', options: MARITAL_OPTIONS, legacyOnly: true },
+  { key: 'preferredContact', label: 'Preferred Contact', type: 'select', options: CONTACT_OPTIONS, legacyOnly: true },
+  { key: 'agreeBackgroundCheck', label: 'Agreed to Background Check', type: 'yesno', legacyOnly: true },
+]
+
+const isBlank = (v) => v === undefined || v === null || v === ''
+function quizValue(answers, f) {
+  const v = answers?.[f.key]
+  return isBlank(v) && f.legacy ? answers?.[f.legacy] : v
+}
 
 function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
   const qa = quizAnswers || {}
-  const QUIZ_FIELDS = [
-    { key: 'firstName', label: 'First Name' },
-    { key: 'lastName', label: 'Last Name' },
-    { key: 'email', label: 'Email', type: 'email' },
-    { key: 'phone', label: 'Phone', type: 'tel' },
-    { key: 'dob', label: 'Date of Birth', type: 'date' },
-    { key: 'state', label: 'State', type: 'select', options: US_STATES },
-    { key: 'heightFt', label: 'Height (ft)', type: 'select', options: ['4', '5', '6'] },
-    { key: 'heightIn', label: 'Height (in)', type: 'select', options: ['0','1','2','3','4','5','6','7','8','9','10','11'] },
-    { key: 'weightLbs', label: 'Weight (lbs)', type: 'number' },
-    { key: 'maritalStatus', label: 'Marital Status', type: 'select', options: MARITAL_OPTIONS },
-    { key: 'usCitizen', label: 'US Citizen', type: 'yesno' },
-    { key: 'healthyPregnancy', label: 'Healthy Pregnancy History', type: 'yesno' },
-    { key: 'preferredContact', label: 'Preferred Contact', type: 'select', options: CONTACT_OPTIONS },
-    { key: 'hearAboutUs', label: 'How did you hear about us?', type: 'select', options: HEAR_OPTIONS },
-    { key: 'hearAboutUsOther', label: 'Other (specify)' },
-    { key: 'agreeBackgroundCheck', label: 'Agreed to Background Check', type: 'yesno' },
-    { key: 'experiencedSurrogate', label: 'Experienced Surrogate', type: 'yesno' },
-  ]
+  const visibleFields = QUIZ_FIELDS.filter(f => !f.legacyOnly || !isBlank(quizValue(qa, f)))
 
-  const allLabels = QUIZ_FIELDS.map(f => f.label.toLowerCase())
-  const hasMatch = search ? allLabels.some(l => l.includes(search)) || QUIZ_FIELDS.some(f => String(qa[f.key] || '').toLowerCase().includes(search)) : true
+  const hasMatch = search ? visibleFields.some(f => f.label.toLowerCase().includes(search) || String(quizValue(qa, f) ?? '').toLowerCase().includes(search)) : true
 
   const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
     surrogate?.id, quizAnswers, null,
     (_, answers) => {
       const init = {}
-      for (const f of QUIZ_FIELDS) init[f.key] = answers?.[f.key] ?? ''
+      for (const f of QUIZ_FIELDS) init[f.key] = quizValue(answers, f) ?? ''
       return init
     }
   )
@@ -182,12 +210,21 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
         {editing ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {QUIZ_FIELDS.map(f => {
+              {visibleFields.map(f => {
                 if (f.type === 'yesno') return (
                   <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
                 )
-                if (f.type === 'select') return (
-                  <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={f.options} /></div>
+                if (f.type === 'select' || f.type === 'state') {
+                  const base = f.type === 'state' ? STATE_ABBRS : f.options
+                  const opts = form[f.key] && !base.includes(form[f.key]) ? [form[f.key], ...base] : base
+                  return (
+                    <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={opts} /></div>
+                  )
+                }
+                if (f.type === 'textarea') return (
+                  <div key={f.key} className="space-y-1 sm:col-span-2 lg:col-span-3"><FieldLabel>{f.label}</FieldLabel>
+                    <Textarea value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} rows={3} className="bg-white text-sm" />
+                  </div>
                 )
                 return (
                   <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel>
@@ -201,12 +238,13 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {QUIZ_FIELDS.map(f => {
-                const val = qa[f.key]
-                if (val === undefined || val === null || val === '') return null
+              {visibleFields.map(f => {
+                const val = quizValue(qa, f)
+                if (isBlank(val)) return null
                 const display = f.type === 'yesno' ? boolDisplay(val) : String(val)
                 if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
-                return <ReadField key={f.key} label={f.label} value={display} />
+                const wide = f.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''
+                return <div key={f.key} className={wide}><ReadField label={f.label} value={display} /></div>
               })}
             </div>
           </>

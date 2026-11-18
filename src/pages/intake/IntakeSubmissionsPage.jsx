@@ -44,59 +44,60 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// Rows show only when answered, so both the current quiz
+// (SurrogateIntakeForm.jsx) and older ABC-era rows display correctly.
 function GCAnswerDetail({ answers }) {
   const a = answers || {}
-  const yn = (v) => v === true || v === 'yes' ? 'Yes' : v === false || v === 'no' ? 'No' : '—'
-  const bmi = (a.heightFt && a.weightLbs) ? ((a.weightLbs * 703) / ((parseInt(a.heightFt) * 12 + parseInt(a.heightIn || 0)) ** 2)).toFixed(1) : null
+  const yn = (v) => v === true || v === 'yes' ? 'Yes' : v === false || v === 'no' ? 'No' : null
+  const bmi = a.bmi || ((a.heightFt && a.weightLbs) ? ((a.weightLbs * 703) / ((parseInt(a.heightFt) * 12 + parseInt(a.heightIn || 0)) ** 2)).toFixed(1) : null)
+  const address = [a.street, a.street2, a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+  const hear = a.hearAbout || a.hearAboutUs
+  const sections = [
+    ['Personal Information', [
+      ['First Name', a.firstName], ['Last Name', a.lastName], ['Email', a.email], ['Phone', a.phone],
+      ['Address', address], ['Date of Birth', a.dob],
+      ['U.S. Citizen', yn(a.usCitizen)], ['Permanent Resident', yn(a.permanentResident)],
+      ['Spouse or Partner', yn(a.hasSpouseOrPartner)], ['Marital Status', a.maritalStatus],
+    ]],
+    ['Physical', [
+      ['Height', a.heightFt ? `${a.heightFt}'${a.heightIn || 0}"` : null],
+      ['Weight', a.weightLbs ? `${a.weightLbs} lbs` : null],
+      ['BMI', bmi, bmi && (bmi > 35 || bmi < 20) ? 'text-red-600' : 'text-emerald-600'],
+    ]],
+    ['Pregnancy History', [
+      ['Pregnancies', a.numPregnancies], ['Children Given Birth To', a.numChildren],
+      ['Most Recent Delivery', a.lastDeliveryDate], ['C-sections', a.numCsections],
+      ['All Pregnancies Healthy', yn(a.allHealthy ?? a.healthyPregnancy)],
+      ['Previously a Surrogate', yn(a.previousSurrogate ?? a.experiencedSurrogate)],
+      ['6 or More Pregnancies', yn(a.sixOrMoreDeliveries)], ['More Than 2 C-sections', yn(a.moreThanTwoCsections)],
+    ]],
+    ['Health & Insurance', [
+      ['Takes Prescriptions', yn(a.takesPrescriptions)], ['Prescriptions', a.prescriptionList],
+      ['Health Insurance', yn(a.hasInsurance)], ['Public Assistance / State Insurance', yn(a.publicAssistance)],
+    ]],
+    ['Other', [
+      ['Level of Interest & Timeline', a.levelInterestTimeline],
+      ['How did you hear about us?', hear ? `${hear}${a.hearAboutUsOther ? ` — ${a.hearAboutUsOther}` : ''}` : null],
+      ['Preferred Contact', a.preferredContact], ['Agreed to Background Check', yn(a.agreeBackgroundCheck)],
+    ]],
+  ]
 
   return (
     <div className="space-y-6 text-sm">
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Personal Information</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">First Name</span><p className="font-medium">{a.firstName}</p></div>
-          <div><span className="text-stone-400">Last Name</span><p className="font-medium">{a.lastName}</p></div>
-          <div><span className="text-stone-400">Email</span><p className="font-medium">{a.email}</p></div>
-          <div><span className="text-stone-400">Phone</span><p className="font-medium">{a.phone}</p></div>
-          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{a.dob}</p></div>
-          <div><span className="text-stone-400">State</span><p className="font-medium">{a.state}</p></div>
-          <div><span className="text-stone-400">U.S. Citizen</span><p className="font-medium">{yn(a.usCitizen)}</p></div>
-          <div><span className="text-stone-400">Marital Status</span><p className="font-medium">{a.maritalStatus || '—'}</p></div>
-        </div>
-      </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Physical</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Height</span><p className="font-medium">{a.heightFt}'{a.heightIn}"</p></div>
-          <div><span className="text-stone-400">Weight</span><p className="font-medium">{a.weightLbs} lbs</p></div>
-          {bmi && <div><span className="text-stone-400">BMI</span><p className={`font-medium ${bmi > 33 || bmi < 19 ? 'text-red-600' : 'text-emerald-600'}`}>{bmi}</p></div>}
-        </div>
-      </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Screening Questions</p>
-        <div className="grid grid-cols-1 gap-y-2">
-          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
-            <span className="text-stone-500">Have you had a healthy pregnancy and delivery?</span>
-            <span className={`font-semibold ${a.healthyPregnancy === false ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.healthyPregnancy)}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
-            <span className="text-stone-500">Have you had 6 or more pregnancies?</span>
-            <span className={`font-semibold ${a.sixOrMoreDeliveries === true ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.sixOrMoreDeliveries)}</span>
-          </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
-            <span className="text-stone-500">Have you had more than 2 C-sections?</span>
-            <span className={`font-semibold ${a.moreThanTwoCsections === true ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.moreThanTwoCsections)}</span>
-          </div>
-        </div>
-      </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Other</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{a.preferredContact || '—'}</p></div>
-          <div><span className="text-stone-400">How did you hear about us?</span><p className="font-medium">{a.hearAboutUs || '—'}{a.hearAboutUsOther ? ` — ${a.hearAboutUsOther}` : ''}</p></div>
-          <div><span className="text-stone-400">Agreed to Background Check</span><p className="font-medium">{yn(a.agreeBackgroundCheck)}</p></div>
-        </div>
-      </section>
+      {sections.map(([title, rows]) => {
+        const filled = rows.filter(([, v]) => v !== undefined && v !== null && v !== '')
+        if (!filled.length) return null
+        return (
+          <section key={title}>
+            <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">{title}</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              {filled.map(([label, v, cls]) => (
+                <div key={label}><span className="text-stone-400">{label}</span><p className={`font-medium whitespace-pre-wrap ${cls || ''}`}>{String(v)}</p></div>
+              ))}
+            </div>
+          </section>
+        )
+      })}
     </div>
   )
 }

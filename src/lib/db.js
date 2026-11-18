@@ -333,8 +333,8 @@ function mapSurrogateIntakeRow(row) {
     bmi: a.heightFt && a.weightLbs
       ? ((a.weightLbs / ((a.heightFt * 12 + (parseInt(a.heightIn) || 0)) ** 2)) * 703).toFixed(1)
       : null,
-    healthyPregnancy: a.healthyPregnancy,
-    hearAboutUs: a.hearAboutUs,
+    healthyPregnancy: a.healthyPregnancy ?? a.allHealthy,
+    hearAboutUs: a.hearAboutUs || a.hearAbout,
     preferredContact: a.preferredContact,
     matchNotes: a._matchNotes || '',
     userId: row.user_id || null,

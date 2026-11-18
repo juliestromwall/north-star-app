@@ -108,6 +108,19 @@ function legacyIpKeys(submission) {
   return Object.fromEntries(Object.entries(out).filter(([k, v]) => v !== undefined && v !== '' && a[k] === undefined))
 }
 
+// Same story for surrogates: the rebuilt quiz saves allHealthy/previousSurrogate/
+// hearAbout, but the dashboard, referral tracker, case updates and admin email
+// read healthyPregnancy/experiencedSurrogate/hearAboutUs.
+function legacyGcKeys(submission) {
+  const a = submission.answers || {}
+  const out = {
+    healthyPregnancy: a.allHealthy,
+    experiencedSurrogate: a.previousSurrogate,
+    hearAboutUs: a.hearAbout,
+  }
+  return Object.fromEntries(Object.entries(out).filter(([k, v]) => v !== undefined && v !== null && v !== '' && a[k] === undefined))
+}
+
 export async function onRequestOptions() {
   return new Response(null, { headers: corsHeaders })
 }
@@ -164,6 +177,7 @@ export async function onRequestPost(context) {
     answers: {
       ...(submission.answers || {}),
       ...(submission.intake_type === 'ip' ? legacyIpKeys(submission) : {}),
+      ...(submission.intake_type === 'gc' ? legacyGcKeys(submission) : {}),
       _botMeta: {
         elapsedSeconds: bot.elapsedSeconds || null,
         fieldChangeCount: bot.fieldChangeCount || 0,
@@ -245,7 +259,7 @@ export async function onRequestPost(context) {
         state: submission.state_region,
         qualified: submission.qualified,
         dqReasons: submission.dq_reasons,
-        hearAboutUs: a.hearAboutUs,
+        hearAboutUs: a.hearAboutUs || a.hearAbout,
         referralName: a.referralName,
         hearAboutUsOther: a.hearAboutUsOther,
       })
