@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Check, X, Pencil, Trash2, Phone as PhoneIcon, Printer, Mail as MailIcon, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import FaxReleaseFormDialog from './FaxReleaseFormDialog'
 
 /**
  * Stacked-list medical records UI. Each record is a full-width card. Cards
@@ -90,7 +91,35 @@ function statusLabel(id) {
   return STATUS_PILLS.find(p => p.id === id)?.label || LEGACY_LABELS[id] || (id || '').replace(/_/g, ' ')
 }
 
-export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {} }) {
+export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {}, surrogateId, surrogateName, surrogateDob, caseType = 'gc' }) {
+  // The "Fax Release Form" action is admin/case-context only — enabled when a
+  // surrogateId is provided (i.e. on the surrogate file / records task).
+  const [faxStep, setFaxStep] = useState(null)
+  const canFax = !!surrogateId
+  const openFax = canFax ? (s) => setFaxStep(s) : undefined
+
+  // On send: flip the record to "Faxed Request" + persist the fax number on it.
+  function handleFaxSent(stepId, faxNumber) {
+    const entry = tracking[stepId] || {}
+    const log = Array.isArray(entry.log) ? entry.log : []
+    const newLog = {
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      status: 'faxed_request',
+      from: entry.status || 'not_started',
+      changed_at: new Date().toISOString(),
+      changed_by: currentUserName,
+      note: 'Release form faxed',
+    }
+    onUpdate(stepId, {
+      ...entry,
+      status: 'faxed_request',
+      provider: { ...(entry.provider || {}), fax: faxNumber },
+      log: [...log, newLog],
+    })
+    if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || (medSteps.find(s => s.id === stepId)?.label) || '', status: 'faxed_request', by: currentUserName })
+    setFaxStep(null)
+  }
+
   const stepsWithMeta = useMemo(() => medSteps.map(step => {
     const entry = tracking[step.id] || {}
     const status = entry.status || 'not_started'
@@ -103,8 +132,11 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
       _provider: {
         name:  provider.name  ?? fallback.name  ?? '',
         phone: provider.phone ?? fallback.phone ?? '',
-        fax:   provider.fax   ?? '',
-        email: provider.email ?? '',
+        // Seed the fax/email researched on the Clinic & Hospital form, but only
+        // when this record has none of its own. Blank counts as "none" because
+        // inline edits persist the whole provider object (fax: '').
+        fax:   provider.fax || fallback.fax || '',
+        email: provider.email || fallback.email || '',
       },
       _deliveryYear: step._deliveryYear || fallback.deliveryYear || '',
     }
@@ -164,6 +196,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
                       onDelete={onDelete}
                       onStatusLog={onStatusLog}
                       currentUserName={currentUserName}
+                      onFaxRelease={openFax}
                     />
                   ))}
                 </div>
@@ -183,6 +216,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
                       onDelete={onDelete}
                       onStatusLog={onStatusLog}
                       currentUserName={currentUserName}
+                      onFaxRelease={openFax}
                     />
                   ))}
                 </div>
@@ -191,6 +225,19 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
           </div>
         )
       })()}
+
+      {faxStep && (
+        <FaxReleaseFormDialog
+          open={!!faxStep}
+          step={faxStep}
+          surrogateId={surrogateId}
+          surrogateName={surrogateName}
+          surrogateDob={surrogateDob}
+          caseType={caseType}
+          onClose={() => setFaxStep(null)}
+          onSent={handleFaxSent}
+        />
+      )}
     </div>
   )
 }
@@ -226,7 +273,7 @@ function groupStepsByYear(stepsWithMeta) {
   return { years, other }
 }
 
-function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) {
+function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName, onFaxRelease }) {
   // Manually-added records (added via the "+ Add Record" button) get a delete
   // affordance — auto-generated rows can't be deleted here since they'd just
   // re-render from the pregnancy-data auto-gen on next paint.
@@ -393,6 +440,15 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
             <ContactInline icon={MailIcon} label="Email" value={step._provider.email}
               editing={editingField === 'email'} draft={draft} setDraft={setDraft}
               startEdit={() => startInlineEdit('email', step._provider.email)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="email" />
+            {onFaxRelease && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onFaxRelease(step) }}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1A3638] border border-[#1A3638]/30 rounded-full px-2 py-0.5 hover:bg-[#1A3638]/5 transition-colors"
+                title="Fax the release form to this provider"
+              >
+                <Printer className="size-3" /> Fax Release Form
+              </button>
+            )}
           </div>
         </div>
         {canDelete && (

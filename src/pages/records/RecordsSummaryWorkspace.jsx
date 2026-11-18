@@ -1129,11 +1129,11 @@ export default function RecordsSummaryWorkspace() {
       const currentSummary = await getAppConfig(`${SUMMARY_KEY_PREFIX}${id}`) || {}
       await setAppConfig(`${SUMMARY_KEY_PREFIX}${id}`, { ...currentSummary, _completedAt: new Date().toISOString(), _completedBy: currentUser?.name })
 
-      // Create review tasks for Julie, Nicole, and Desiree
+      // Create review tasks for Julie, Nicole, and Jennifer
       const reviewers = [
         { email: 'julie@northstarsurrogacy.com', name: 'Julie Allgood' },
         { email: 'nicole@northstarsurrogacy.com', name: 'Nicole Lawson' },
-        { email: 'desiree@northstarsurrogacy.com', name: 'Desiree Melchiori' },
+        { email: 'jenn@firststarsurrogacy.com', name: 'Jennifer Maatman' },
       ]
       for (const reviewer of reviewers) {
         try {
@@ -1241,7 +1241,7 @@ export default function RecordsSummaryWorkspace() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-600">
-            This will file the Records Summary to the <strong>Medical Records</strong> folder and create review tasks for Julie Allgood, Nicole Lawson, and Desiree Melchiori.
+            This will file the Records Summary to the <strong>Medical Records</strong> folder and create review tasks for Julie Allgood, Nicole Lawson, and Jennifer Maatman.
           </p>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>

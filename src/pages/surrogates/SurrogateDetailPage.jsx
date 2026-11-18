@@ -213,7 +213,7 @@ const RECORD_TYPES = [
   { value: 'PAP', label: 'PAP', color: 'bg-amber-100 text-amber-700' },
 ]
 
-function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {} }) {
+function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {}, surrogateId, surrogateName, surrogateDob }) {
   const [addOpen, setAddOpen] = useState(false)
   const [addLabel, setAddLabel] = useState('')
   const [addType, setAddType] = useState('OB')
@@ -259,6 +259,9 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelet
         currentUserName={currentUserName}
         onStatusLog={onStatusLog}
         providerDefaults={providerDefaults}
+        surrogateId={surrogateId}
+        surrogateName={surrogateName}
+        surrogateDob={surrogateDob}
       />
       {/* Add Record */}
       {addOpen ? (
@@ -1614,16 +1617,22 @@ export default function SurrogateDetailPage() {
               providerDefaults[`ob_records_${i}`] = {
                 name: p.obDoctorName || p.obClinicName || '',
                 phone: p.obPhone || '',
+                fax: p.obFax || '',
+                email: p.obEmail || '',
                 deliveryYear: year || '',
               }
               providerDefaults[`delivery_records_${i}`] = {
                 name: p.hospitalName || '',
                 phone: p.hospitalPhone || '',
+                fax: p.hospitalFax || '',
+                email: p.hospitalEmail || '',
                 deliveryYear: year || '',
               }
               providerDefaults[`ivf_records_${i}`] = {
                 name: p.ivfClinicName || p.ivfDoctorName || '',
                 phone: p.ivfPhone || '',
+                fax: p.ivfFax || '',
+                email: p.ivfEmail || '',
                 deliveryYear: year || '',
               }
             }
@@ -1631,6 +1640,8 @@ export default function SurrogateDetailPage() {
             providerDefaults['pap'] = {
               name: ch.papDoctorName || ch.papClinicName || '',
               phone: ch.papClinicPhone || '',
+              fax: ch.papClinicFax || '',
+              email: ch.papClinicEmail || '',
             }
             return (
               <MedicalRecordsSection
@@ -1641,6 +1652,13 @@ export default function SurrogateDetailPage() {
                 onDelete={deleteRecord}
                 currentUserName={currentUser.name}
                 providerDefaults={providerDefaults}
+                surrogateId={surrogate.id}
+                surrogateName={surrogate.name}
+                surrogateDob={(() => {
+                  const raw = quizAnswers?._confidential?.dob || quizAnswers?.dob
+                  const [y, m, d] = String(raw || '').split('-')
+                  return y && m && d ? `${m}/${d}/${y}` : (raw || '')
+                })()}
                 onStatusLog={async ({ stepLabel, status, by }) => {
                   if (status === 'partial_records_incomplete') {
                     try {

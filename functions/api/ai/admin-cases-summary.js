@@ -453,7 +453,7 @@ Output a single JSON object — NO prose before or after, NO markdown code fence
   ],
   "byAdmin": [
     {
-      "adminName": "Desiree Melchiori",
+      "adminName": "Jennifer Maatman",
       "totals": { "cases": 8, "stalled": 2, "overdueTasks": 1, "healthy": 5 },
       "milestones": [{ "name": "...", "url": "...", "note": "Heartbeat scan window — beta was 21 days ago" }],
       "communication": [{ "name": "...", "url": "...", "note": "No contact in 18 days — last email \\"Re: clinic question\\"" }],
