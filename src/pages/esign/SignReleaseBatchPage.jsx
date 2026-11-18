@@ -194,7 +194,8 @@ export default function SignReleaseBatchPage() {
             // Upload signed HTML (form + audit combined for the HTML version)
             const signedBlob = new Blob([filledHtml + auditHtml], { type: 'text/html' })
             const signedPath = `documents/signed_release_${doc.id}_${Date.now()}.html`
-            await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
+            const { error: htmlUploadErr } = await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
+            if (htmlUploadErr) console.error('Signed HTML upload failed:', htmlUploadErr)
 
             // Generate PDF — page 1: form, page 2: audit trail (separate renders)
             try {
@@ -250,7 +251,10 @@ export default function SignReleaseBatchPage() {
               const pdfBlob = pdf.output('blob')
 
               const pdfPath = `documents/signed_release_${doc.id}_${Date.now()}.pdf`
-              await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
+              // Only file the document once the PDF is actually in storage —
+              // otherwise the case gets a record pointing at a missing file.
+              const { error: pdfUploadErr } = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
+              if (pdfUploadErr) throw pdfUploadErr
               const { data: pdfUrl } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
 
               if (pdfUrl?.publicUrl && doc.case_id) {
@@ -268,7 +272,7 @@ export default function SignReleaseBatchPage() {
               console.error('PDF generation failed, saving HTML instead:', pdfErr)
               // Fallback: save HTML to case documents
               const { data: htmlUrl } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
-              if (htmlUrl?.publicUrl && doc.case_id) {
+              if (!htmlUploadErr && htmlUrl?.publicUrl && doc.case_id) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: doc.case_id,
                   category: 'e-signature',
