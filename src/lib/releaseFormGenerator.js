@@ -1,14 +1,63 @@
 /**
  * HIPAA-Compliant Medical Records Release Form Generator
  * Generates branded HTML forms for e-signature per provider
- * Compliant with 45 CFR 164.508, 42 CFR Part 2, and Cal. Civil Code 56.11
+ * Compliant with 45 CFR 164.508, 42 CFR Part 2, and Minn. Stat. §§ 144.291–144.298 (Minnesota Health Records Act)
  */
 
+// Default "Information to be Released" checkbox list — used for the
+// four pregnancy-related provider types (OB, hospital, MFM, IVF) which
+// historically shared the same hardcoded list. PCP and ER override
+// this with their own provider-specific lists below.
+const DEFAULT_RELEASE_ITEMS = [
+  'All PHI in medical record',
+  'Office visit notes',
+  'Lab results (incl. infectious disease, drug & nicotine)',
+  'Rx / medication information',
+  'Diagnostic imaging & ultrasounds',
+  'Operative notes & procedure reports',
+  'Admission & discharge summaries',
+  'Clinical testing results',
+  'Physician orders',
+  'Postpartum flow sheets',
+]
+
 const PROVIDER_TYPES = {
-  ob: { label: 'Prenatal / OB-GYN', recordTypes: 'Prenatal care, office visits, lab results, ultrasounds, and all related obstetric records' },
-  hospital: { label: 'Labor & Delivery', recordTypes: 'Admission, labor and delivery summary, discharge summary, operative notes, postpartum records, and all related hospital records' },
-  mfm: { label: 'Maternal Fetal Medicine', recordTypes: 'High-risk pregnancy evaluations, specialist consultations, diagnostic testing, and all related MFM records' },
-  ivf: { label: 'IVF / Fertility', recordTypes: 'IVF cycle records, embryo transfer reports, monitoring records, medication protocols, and all related fertility treatment records' },
+  ob:       { label: 'Prenatal / OB-GYN',       recordTypes: 'Prenatal care, office visits, lab results, ultrasounds, and all related obstetric records', items: DEFAULT_RELEASE_ITEMS },
+  hospital: { label: 'Labor & Delivery',        recordTypes: 'Admission, labor and delivery summary, discharge summary, operative notes, postpartum records, and all related hospital records', items: DEFAULT_RELEASE_ITEMS },
+  mfm:      { label: 'Maternal Fetal Medicine', recordTypes: 'High-risk pregnancy evaluations, specialist consultations, diagnostic testing, and all related MFM records', items: DEFAULT_RELEASE_ITEMS },
+  ivf:      { label: 'IVF / Fertility',         recordTypes: 'IVF cycle records, embryo transfer reports, monitoring records, medication protocols, and all related fertility treatment records', items: DEFAULT_RELEASE_ITEMS },
+  // ── New provider types (release form cloned from OB layout — only
+  //    the "Information to be Released" list differs).
+  pcp: {
+    label: 'Primary Care',
+    recordTypes: 'Primary care records, annual physical/wellness exams, office visit notes, and all related general medical records',
+    items: [
+      'Complete office visit notes',
+      'Annual physical/wellness exams',
+      'Problem list',
+      'Medication list',
+      'Allergy list',
+      'Immunization records',
+      'Vital signs/history',
+      'Diagnoses/history summary',
+    ],
+  },
+  er: {
+    label: 'Emergency Room',
+    recordTypes: 'Emergency department records, evaluation notes, discharge summaries, and all related emergency care records',
+    items: [
+      'Emergency room notes',
+      'History & physical',
+      'Discharge summary / discharge instructions',
+      'Medication administration records',
+      'Vital signs',
+      'Lab results',
+      'Imaging reports (CT, MRI, ultrasound, X-ray)',
+      'EKG/ECG reports',
+      'Consultation notes',
+      'Operative/procedure notes (if applicable)',
+    ],
+  },
 }
 
 /**
@@ -40,6 +89,13 @@ export function extractProviders(clinicData) {
       addOrMerge(key, { type: 'ob', clinicName: p.obClinicName, doctorName: p.obDoctorName, phone: p.obPhone, address: p.obAddress, pregnancyNum: pregNum }, p.date)
     }
 
+    const hasSecondObProvider = p.transferredCare === 'yes' || p.transferredCare === true || p.obClinicName2 || p.obDoctorName2 || p.obPhone2 || p.obAddress2
+    const secondObClinicName = p.obClinicName2 || p.obDoctorName2
+    if (hasSecondObProvider && secondObClinicName) {
+      const key = `ob_${secondObClinicName.toLowerCase().trim()}`
+      addOrMerge(key, { type: 'ob', clinicName: secondObClinicName, doctorName: p.obDoctorName2, phone: p.obPhone2, address: p.obAddress2, pregnancyNum: pregNum }, p.date)
+    }
+
     // Hospital
     if (p.hospitalName && !isNonDelivery) {
       const key = `hospital_${p.hospitalName.toLowerCase().trim()}`
@@ -57,6 +113,31 @@ export function extractProviders(clinicData) {
       const key = `ivf_${p.ivfClinicName.toLowerCase().trim()}`
       addOrMerge(key, { type: 'ivf', clinicName: p.ivfClinicName, doctorName: p.ivfDoctorName, phone: p.ivfPhone, address: p.ivfAddress, pregnancyNum: pregNum }, p.date)
     }
+
+  }
+
+  // Admin-added "Additional Records" entries live at the ROOT of the
+  // form, not per-pregnancy. Each entry stands alone with its own
+  // admin-typed Dates of Service, so we DON'T fold them into the
+  // pregnancy-date math (formatDatesOfService) — the entry's
+  // datesOfService string is written straight onto the release form.
+  for (let ei = 0; ei < (clinicData.additionalProviders || []).length; ei++) {
+    const extra = clinicData.additionalProviders[ei] || {}
+    if (!extra.type || !extra.clinicName) continue
+    if (!PROVIDER_TYPES[extra.type]) continue
+    const key = `extra_${extra.type}_${ei}`
+    providerMap.set(key, {
+      type: extra.type,
+      clinicName: extra.clinicName,
+      doctorName: extra.doctorName || '',
+      phone: extra.phone || '',
+      address: extra.address || '',
+      pregnancyNum: null,
+      deliveryDates: [],
+      // Pre-formatted dates of service — wins over the date-range math
+      // that runs for pregnancy-derived providers.
+      datesOfServiceOverride: extra.datesOfService || '',
+    })
   }
 
   return Array.from(providerMap.values())
@@ -114,8 +195,8 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <!-- Header -->
   <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #1A3638;">
     <img src="https://app.firststarsurrogacy.com/first-star-logo-email.png" alt="First Star Surrogacy" style="height: 90px; margin-bottom: 4px;" onerror="this.style.display='none'" />
-    <p style="color: #1A3638; font-size: 16px; font-weight: 700; margin: 0;">First Star Surrogacy</p>
-    <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 818-321-9329 | F: 323-843-9433</p>
+    <p style="color: #1A3638; font-size: 16px; font-weight: 700; margin: 0;">First Star Surrogacy, LLC</p>
+    <p style="font-size: 10px; margin: 2px 0 8px 0;">1105 Prairie Rose Way, Victoria, MN 55386 | O: 970-381-6847 | F: 612-524-7961</p>
     <p style="font-size: 14px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>
     <p style="font-size: 11px; font-weight: 600; margin-top: 3px;">${typeInfo.label} Records</p>
   </div>
@@ -138,8 +219,8 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <p style="margin: 10px 0 6px 0;">I authorize the release of <strong>healthcare information</strong> and <strong>reproductive health records</strong> of the patient named above for the purpose of <u>continuation of medical care</u> and evaluation for a gestational surrogacy arrangement to:</p>
 
   <div style="text-align: center; margin: 6px 0; padding: 8px; border: 2px solid #1A3638;">
-    <p style="font-weight: 700; color: #1A3638; font-size: 13px; margin: 0;">First Star Surrogacy C/O Desiree Melchiori</p>
-    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 818-321-9329 | Fax: 323-843-9433 | records@northstarsurrogacy.com</p>
+    <p style="font-weight: 700; color: #1A3638; font-size: 13px; margin: 0;">First Star Surrogacy, LLC C/O Jennifer Maatman</p>
+    <p style="margin: 2px 0; font-size: 10px;">1105 Prairie Rose Way, Victoria, MN 55386 | Ph: 970-381-6847 | Fax: 612-524-7961 | records@firststarsurrogacy.com</p>
   </div>
 
   <!-- Provider -->
@@ -148,14 +229,18 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
     <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
       <tr>
         <td style="padding: 2px 0; width: 50%;"><strong>Facility:</strong> ${provider.clinicName || '_______________'}</td>
-        <td style="padding: 2px 0;"><strong>Doctor:</strong> ${provider.doctorName || 'N/A'}</td>
+        <!-- Deliberately generic. Naming one doctor got a release honored for
+             that doctor's chart only, and the rest of the file withheld. The
+             doctor is still collected on the application; it just never
+             narrows the release. -->
+        <td style="padding: 2px 0;"><strong>Doctor:</strong> All Doctors at this Provider</td>
       </tr>
       <tr>
         <td style="padding: 2px 0;"><strong>Phone:</strong> ${provider.phone || '_______________'}</td>
         <td style="padding: 2px 0;"><strong>Address:</strong> ${provider.address || '_______________'}</td>
       </tr>
       <tr>
-        <td colspan="2" style="padding: 2px 0;"><strong>Dates of Service:</strong> ${formatDatesOfService(provider.deliveryDates) || '_______________'}</td>
+        <td colspan="2" style="padding: 2px 0;"><strong>Dates of Service:</strong> ${provider.datesOfServiceOverride || formatDatesOfService(provider.deliveryDates) || '_______________'}</td>
       </tr>
     </table>
   </div>
@@ -165,16 +250,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
     <p style="font-weight: 700; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 4px;">Information to Be Released:</p>
     <p style="font-size: 10px; margin: 0 0 4px 0;">${typeInfo.recordTypes}, including but not limited to:</p>
     <div style="columns: 2; column-gap: 16px; font-size: 10px;">
-      <p style="margin: 1px 0;">&#9745; All PHI in medical record</p>
-      <p style="margin: 1px 0;">&#9745; Office visit notes</p>
-      <p style="margin: 1px 0;">&#9745; Lab results (incl. infectious disease, drug & nicotine)</p>
-      <p style="margin: 1px 0;">&#9745; Rx / medication information</p>
-      <p style="margin: 1px 0;">&#9745; Diagnostic imaging & ultrasounds</p>
-      <p style="margin: 1px 0;">&#9745; Operative notes & procedure reports</p>
-      <p style="margin: 1px 0;">&#9745; Admission & discharge summaries</p>
-      <p style="margin: 1px 0;">&#9745; Clinical testing results</p>
-      <p style="margin: 1px 0;">&#9745; Physician orders</p>
-      <p style="margin: 1px 0;">&#9745; Postpartum flow sheets</p>
+      ${(typeInfo.items || DEFAULT_RELEASE_ITEMS).map(item => `<p style="margin: 1px 0;">&#9745; ${item}</p>`).join('\n      ')}
     </div>
   </div>
 
@@ -188,12 +264,12 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <!-- Legal Terms — condensed -->
   <div style="margin-top: 10px; font-size: 9.5px; line-height: 1.4;">
     <p style="font-weight: 700; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 4px;">Terms and Conditions</p>
-    <p style="margin: 2px 0;"><strong>Purpose:</strong> Evaluation and continuation of care related to a gestational surrogacy arrangement facilitated by First Star Surrogacy</p>
+    <p style="margin: 2px 0;"><strong>Purpose:</strong> Evaluation and continuation of care related to a gestational surrogacy arrangement facilitated by First Star Surrogacy, LLC</p>
     <p style="margin: 2px 0;"><strong>Expiration:</strong> This authorization expires on <strong>${expirationDate}</strong> (12 months from signature), or upon completion of the surrogacy arrangement, whichever occurs first.</p>
     <p style="margin: 2px 0;"><strong>Right to Revoke:</strong> I may revoke this authorization at any time in writing to the provider's medical records department. Revocation will not affect disclosures already made.</p>
     <p style="margin: 2px 0;"><strong>Voluntary:</strong> Signing is voluntary. Treatment, payment, enrollment, or eligibility for benefits will not be conditioned on signing.</p>
     <p style="margin: 2px 0;"><strong>Re-Disclosure:</strong> Once disclosed, information may no longer be protected by federal or state privacy laws and may be re-disclosed by the recipient.</p>
-    <p style="margin: 2px 0;"><strong>Copy:</strong> Per 45 CFR 164.508(c)(4) and Cal. Civil Code 56.11(i), a copy of this completed authorization will be provided to the patient upon request.</p>
+    <p style="margin: 2px 0;"><strong>Copy:</strong> Per 45 CFR 164.508(c)(4), a copy of this completed authorization will be provided to the patient upon request.</p>
   </div>
 
   <!-- Signature Block -->
@@ -217,8 +293,8 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Footer -->
   <div style="margin-top: 16px; text-align: center; padding-top: 8px; border-top: 1px solid #000;">
-    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 818-321-9329 | F: 323-843-9433 | firststarsurrogacy.com</p>
-    <p style="font-size: 7px; color: #555; margin: 2px 0 0 0;">Compliant with HIPAA (45 CFR 164.508), ESIGN Act, UETA, 42 CFR Part 2, and Cal. Civil Code 56.11.</p>
+    <p style="font-size: 8px; color: #333; margin: 0;">1105 Prairie Rose Way, Victoria, MN 55386 | O: 970-381-6847 | F: 612-524-7961 | firststarsurrogacy.com</p>
+    <p style="font-size: 7px; color: #555; margin: 2px 0 0 0;">Compliant with HIPAA (45 CFR 164.508), ESIGN Act, UETA, 42 CFR Part 2, and Minn. Stat. §§ 144.291–144.298 (Minnesota Health Records Act).</p>
   </div>
 
 </div>`

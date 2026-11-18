@@ -916,6 +916,7 @@ const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 't
 const EMPTY_PREG = {
   date: '', outcome: '', receivedPrenatalCare: '', wasSurrogacy: '',
   obClinicName: '', obDoctorName: '', obPhone: '', obAddress: '',
+  transferredCare: '', obClinicName2: '', obDoctorName2: '', obPhone2: '', obAddress2: '',
   hospitalName: '', hospitalPhone: '', hospitalAddress: '',
   sawMFM: '', mfmClinicName: '', mfmDoctorName: '', mfmPhone: '', mfmAddress: '',
   wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
@@ -1118,13 +1119,31 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
                   <>
                     {/* Prenatal Care */}
                     <div>
-                      <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care</p>
+                      <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care{(p.transferredCare === 'yes' || p.transferredCare === true) ? ' — First Provider' : ''}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div className="space-y-1"><FieldLabel>Clinic Name <Req /></FieldLabel><Input value={p.obClinicName} onChange={e => updatePreg(i, 'obClinicName', e.target.value)} /></div>
                         <div className="space-y-1"><FieldLabel>OB Doctor / Midwife <Req /></FieldLabel><Input value={p.obDoctorName} onChange={e => updatePreg(i, 'obDoctorName', e.target.value)} /></div>
                         <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.obPhone} onChange={e => updatePreg(i, 'obPhone', formatPhone(e.target.value))} /></div>
                         <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress} onChange={e => updatePreg(i, 'obAddress', e.target.value)} placeholder="Optional" /></div>
                       </div>
+                    </div>
+                    {/* Transfer of care → second OB provider */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase">Did you transfer care at any point during this pregnancy? (e.g., switched OB clinics)</p>
+                        <YesNoButtons value={p.transferredCare} onChange={v => updatePreg(i, 'transferredCare', v)} />
+                      </div>
+                      {(p.transferredCare === 'yes' || p.transferredCare === true) && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care — Second Provider</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={p.obClinicName2} onChange={e => updatePreg(i, 'obClinicName2', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>OB Doctor / Midwife</FieldLabel><Input value={p.obDoctorName2} onChange={e => updatePreg(i, 'obDoctorName2', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.obPhone2} onChange={e => updatePreg(i, 'obPhone2', formatPhone(e.target.value))} /></div>
+                            <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress2} onChange={e => updatePreg(i, 'obAddress2', e.target.value)} placeholder="Optional" /></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {/* Delivery Hospital */}
                     {!isNonDel && (

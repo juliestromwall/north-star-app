@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
 import { updateIntakeSubmission } from '@/lib/db'
+import { formatPhoneInput } from '@/lib/utils'
 import TemplateAnswersSection from '@/components/surrogates/TemplateAnswersSection'
 import { GC_TEMPLATE_SECTIONS } from '@/lib/gcApplication'
 import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileConstants'
@@ -751,13 +752,49 @@ function PhotoIdDisplay({ surrogateId }) {
 
 // ── Clinic & Hospital Section ───────────────────────────
 const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy']
+// The *Fax and *Email fields are ADMIN-ONLY: they are researched by staff,
+// never asked of the surrogate, and are not rendered by the portal form in
+// PortalApplicationPage. They flow into the Records Checklist as the provider
+// fax / email defaults — see providerDefaults in SurrogateDetailPage.
 const EMPTY_PREGNANCY = {
   date: '', outcome: '', receivedPrenatalCare: '', wasSurrogacy: '',
-  obClinicName: '', obDoctorName: '', obPhone: '', obAddress: '',
-  hospitalName: '', hospitalPhone: '', hospitalAddress: '',
-  sawMFM: '', mfmClinicName: '', mfmDoctorName: '', mfmPhone: '', mfmAddress: '',
-  wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
+  obClinicName: '', obDoctorName: '', obPhone: '', obFax: '', obEmail: '', obAddress: '',
+  transferredCare: '', obClinicName2: '', obDoctorName2: '', obPhone2: '', obFax2: '', obEmail2: '', obAddress2: '',
+  hospitalName: '', hospitalPhone: '', hospitalFax: '', hospitalEmail: '', hospitalAddress: '',
+  sawMFM: '', mfmClinicName: '', mfmDoctorName: '', mfmPhone: '', mfmFax: '', mfmEmail: '', mfmAddress: '',
+  wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfFax: '', ivfEmail: '', ivfAddress: '',
 }
+
+// Admin-added "Additional Records" entries live at the ROOT of the
+// _clinicHospital form (not per-pregnancy) — each entry stands on its
+// own with its own dates of service. Shape:
+//   { type, clinicName, doctorName, phone, address, datesOfService }
+// type is one of 'ob'|'hospital'|'mfm'|'ivf'|'pcp'|'er'. Each entry
+// generates a release form via releaseFormGenerator.extractProviders()
+// and a tracked record via getMedicalRecordStepIds().
+const EMPTY_ADDITIONAL_PROVIDER = {
+  type: 'pcp',
+  clinicName: '',
+  doctorName: '',
+  phone: '',
+  fax: '', // admin-researched, flows to the Records Checklist
+  email: '', // admin-researched, flows to the Records Checklist
+  address: '',
+  datesOfService: '',
+}
+
+// Picker options for the Additional Records type dropdown. Labels match
+// the names admins use day-to-day; values match PROVIDER_TYPES keys in
+// src/lib/releaseFormGenerator.js.
+const ADDITIONAL_PROVIDER_TYPES = [
+  { value: 'ob',       label: 'OB' },
+  { value: 'hospital', label: 'Delivery' },
+  { value: 'mfm',      label: 'MFM' },
+  { value: 'ivf',      label: 'IVF' },
+  { value: 'pcp',      label: 'PCP' },
+  { value: 'er',       label: 'ER' },
+]
+const ADDITIONAL_PROVIDER_LABELS = Object.fromEntries(ADDITIONAL_PROVIDER_TYPES.map(t => [t.value, t.label]))
 
 function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, search }) {
   const stored = answers?._clinicHospital || {}
@@ -780,22 +817,37 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
           outcome: existing.outcome || prof.outcome || '',
           wasSurrogacy: existing.wasSurrogacy ?? prof.wasSurrogacy ?? '',
           receivedPrenatalCare: existing.receivedPrenatalCare ?? '',
+          transferredCare: existing.transferredCare ?? '',
           obClinicName: existing.obClinicName || '',
           obDoctorName: existing.obDoctorName || '',
           obPhone: existing.obPhone || '',
+          obFax: existing.obFax || '',
+          obEmail: existing.obEmail || '',
           obAddress: existing.obAddress || '',
+          obClinicName2: existing.obClinicName2 || '',
+          obDoctorName2: existing.obDoctorName2 || '',
+          obPhone2: existing.obPhone2 || '',
+          obFax2: existing.obFax2 || '',
+          obEmail2: existing.obEmail2 || '',
+          obAddress2: existing.obAddress2 || '',
           hospitalName: existing.hospitalName || '',
           hospitalPhone: existing.hospitalPhone || '',
+          hospitalFax: existing.hospitalFax || '',
+          hospitalEmail: existing.hospitalEmail || '',
           hospitalAddress: existing.hospitalAddress || '',
           sawMFM: existing.sawMFM ?? '',
           mfmClinicName: existing.mfmClinicName || '',
           mfmDoctorName: existing.mfmDoctorName || '',
           mfmPhone: existing.mfmPhone || '',
+          mfmFax: existing.mfmFax || '',
+          mfmEmail: existing.mfmEmail || '',
           mfmAddress: existing.mfmAddress || '',
           wasIVF: existing.wasIVF ?? '',
           ivfClinicName: existing.ivfClinicName || '',
           ivfDoctorName: existing.ivfDoctorName || '',
           ivfPhone: existing.ivfPhone || '',
+          ivfFax: existing.ivfFax || '',
+          ivfEmail: existing.ivfEmail || '',
           ivfAddress: existing.ivfAddress || '',
         })
       }
@@ -810,8 +862,11 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
         papClinicCity: saved.papClinicCity || '',
         papClinicState: saved.papClinicState || '',
         papClinicPhone: saved.papClinicPhone || '',
+        papClinicFax: saved.papClinicFax || '',
+        papClinicEmail: saved.papClinicEmail || '',
         numberOfPregnancies: saved.numberOfPregnancies || profileCount || '',
         pregnancies,
+        additionalProviders: Array.isArray(saved.additionalProviders) ? saved.additionalProviders : [],
       }
     }
   )
@@ -823,6 +878,27 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
       const pregnancies = [...(f.pregnancies || [])]
       pregnancies[i] = { ...pregnancies[i], [key]: val }
       return { ...f, pregnancies }
+    })
+  }
+
+  function addAdditionalProvider() {
+    setForm(f => ({
+      ...f,
+      additionalProviders: [...(f.additionalProviders || []), { ...EMPTY_ADDITIONAL_PROVIDER }],
+    }))
+  }
+  function updateAdditionalProvider(idx, key, val) {
+    setForm(f => {
+      const list = [...(f.additionalProviders || [])]
+      list[idx] = { ...list[idx], [key]: val }
+      return { ...f, additionalProviders: list }
+    })
+  }
+  function removeAdditionalProvider(idx) {
+    setForm(f => {
+      const list = [...(f.additionalProviders || [])]
+      list.splice(idx, 1)
+      return { ...f, additionalProviders: list }
     })
   }
 
@@ -863,7 +939,7 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Current OB/GYN</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="space-y-1"><FieldLabel>Doctor / Midwife Name</FieldLabel><Input value={form.currentOBGYN} onChange={e => setForm(f => ({ ...f, currentOBGYN: e.target.value }))} /></div>
-                <div className="space-y-1"><FieldLabel>Phone Number</FieldLabel><Input value={form.currentOBPhone} onChange={e => setForm(f => ({ ...f, currentOBPhone: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Phone Number</FieldLabel><Input value={form.currentOBPhone} onChange={e => setForm(f => ({ ...f, currentOBPhone: formatPhoneInput(e.target.value) }))} /></div>
                 <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={form.currentOBAddress} onChange={e => setForm(f => ({ ...f, currentOBAddress: e.target.value }))} placeholder="Optional" /></div>
               </div>
             </div>
@@ -876,7 +952,9 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                 <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={form.papClinicName} onChange={e => setForm(f => ({ ...f, papClinicName: e.target.value }))} /></div>
                 <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.papClinicCity} onChange={e => setForm(f => ({ ...f, papClinicCity: e.target.value }))} /></div>
                 <div className="space-y-1"><FieldLabel>State</FieldLabel><SelectField value={form.papClinicState} onValueChange={v => setForm(f => ({ ...f, papClinicState: v }))} options={US_STATES} /></div>
-                <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={form.papClinicPhone} onChange={e => setForm(f => ({ ...f, papClinicPhone: e.target.value }))} placeholder="Optional" /></div>
+                <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={form.papClinicPhone} onChange={e => setForm(f => ({ ...f, papClinicPhone: formatPhoneInput(e.target.value) }))} placeholder="Optional" /></div>
+                <AdminFaxField value={form.papClinicFax} onChange={v => setForm(f => ({ ...f, papClinicFax: v }))} />
+                <AdminEmailField value={form.papClinicEmail} onChange={v => setForm(f => ({ ...f, papClinicEmail: v }))} />
               </div>
             </div>
             {/* Experienced Surrogate + Pregnancy Count */}
@@ -920,13 +998,35 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                     <>
                       {/* Prenatal Care */}
                       <div>
-                        <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care</p>
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care{(p.transferredCare === 'yes' || p.transferredCare === true) ? ' — First Provider' : ''}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={p.obClinicName} onChange={e => updatePreg(i, 'obClinicName', e.target.value)} /></div>
                           <div className="space-y-1"><FieldLabel>OB Doctor / Midwife</FieldLabel><Input value={p.obDoctorName} onChange={e => updatePreg(i, 'obDoctorName', e.target.value)} /></div>
-                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.obPhone} onChange={e => updatePreg(i, 'obPhone', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.obPhone} onChange={e => updatePreg(i, 'obPhone', formatPhoneInput(e.target.value))} /></div>
+                          <AdminFaxField value={p.obFax} onChange={v => updatePreg(i, 'obFax', v)} />
+                          <AdminEmailField value={p.obEmail} onChange={v => updatePreg(i, 'obEmail', v)} />
                           <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress} onChange={e => updatePreg(i, 'obAddress', e.target.value)} placeholder="Optional" /></div>
                         </div>
+                      </div>
+                      {/* Transfer of care → second OB provider (creates a 2nd OB record) */}
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-[11px] font-semibold text-stone-500 uppercase">Transferred care during this pregnancy? (e.g., switched OB clinics)</p>
+                          <YesNoButtons value={p.transferredCare} onChange={v => updatePreg(i, 'transferredCare', v)} />
+                        </div>
+                        {(p.transferredCare === 'yes' || p.transferredCare === true) && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care — Second Provider</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                              <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={p.obClinicName2} onChange={e => updatePreg(i, 'obClinicName2', e.target.value)} /></div>
+                              <div className="space-y-1"><FieldLabel>OB Doctor / Midwife</FieldLabel><Input value={p.obDoctorName2} onChange={e => updatePreg(i, 'obDoctorName2', e.target.value)} /></div>
+                              <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.obPhone2} onChange={e => updatePreg(i, 'obPhone2', formatPhoneInput(e.target.value))} /></div>
+                              <AdminFaxField value={p.obFax2} onChange={v => updatePreg(i, 'obFax2', v)} />
+                              <AdminEmailField value={p.obEmail2} onChange={v => updatePreg(i, 'obEmail2', v)} />
+                              <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress2} onChange={e => updatePreg(i, 'obAddress2', e.target.value)} placeholder="Optional" /></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {/* Delivery Hospital — only for live births / stillborns or if prenatal care was received */}
                       {(!isNonDel || p.receivedPrenatalCare === 'yes') && !isNonDel && (
@@ -934,7 +1034,9 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                           <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Delivery Hospital</p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <div className="space-y-1"><FieldLabel>Hospital Name</FieldLabel><Input value={p.hospitalName} onChange={e => updatePreg(i, 'hospitalName', e.target.value)} /></div>
-                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.hospitalPhone} onChange={e => updatePreg(i, 'hospitalPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.hospitalPhone} onChange={e => updatePreg(i, 'hospitalPhone', formatPhoneInput(e.target.value))} /></div>
+                            <AdminFaxField value={p.hospitalFax} onChange={v => updatePreg(i, 'hospitalFax', v)} />
+                            <AdminEmailField value={p.hospitalEmail} onChange={v => updatePreg(i, 'hospitalEmail', v)} />
                             <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.hospitalAddress} onChange={e => updatePreg(i, 'hospitalAddress', e.target.value)} placeholder="Optional" /></div>
                           </div>
                         </div>
@@ -949,7 +1051,9 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="space-y-1"><FieldLabel>MFM Clinic Name</FieldLabel><Input value={p.mfmClinicName} onChange={e => updatePreg(i, 'mfmClinicName', e.target.value)} /></div>
                             <div className="space-y-1"><FieldLabel>MFM Doctor Name</FieldLabel><Input value={p.mfmDoctorName} onChange={e => updatePreg(i, 'mfmDoctorName', e.target.value)} /></div>
-                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.mfmPhone} onChange={e => updatePreg(i, 'mfmPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.mfmPhone} onChange={e => updatePreg(i, 'mfmPhone', formatPhoneInput(e.target.value))} /></div>
+                            <AdminFaxField value={p.mfmFax} onChange={v => updatePreg(i, 'mfmFax', v)} />
+                            <AdminEmailField value={p.mfmEmail} onChange={v => updatePreg(i, 'mfmEmail', v)} />
                             <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.mfmAddress} onChange={e => updatePreg(i, 'mfmAddress', e.target.value)} placeholder="Optional" /></div>
                           </div>
                         )}
@@ -964,7 +1068,9 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="space-y-1"><FieldLabel>IVF Clinic Name</FieldLabel><Input value={p.ivfClinicName} onChange={e => updatePreg(i, 'ivfClinicName', e.target.value)} /></div>
                             <div className="space-y-1"><FieldLabel>IVF Doctor Name</FieldLabel><Input value={p.ivfDoctorName} onChange={e => updatePreg(i, 'ivfDoctorName', e.target.value)} /></div>
-                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.ivfPhone} onChange={e => updatePreg(i, 'ivfPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.ivfPhone} onChange={e => updatePreg(i, 'ivfPhone', formatPhoneInput(e.target.value))} /></div>
+                            <AdminFaxField value={p.ivfFax} onChange={v => updatePreg(i, 'ivfFax', v)} />
+                            <AdminEmailField value={p.ivfEmail} onChange={v => updatePreg(i, 'ivfEmail', v)} />
                             <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.ivfAddress} onChange={e => updatePreg(i, 'ivfAddress', e.target.value)} placeholder="Optional" /></div>
                           </div>
                         )}
@@ -974,6 +1080,52 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                 </div>
               )
             })}
+            {/* Additional Records — root-level (not tied to a pregnancy).
+                Admin can add PCP, ER, extra OB visits, etc. Each entry
+                generates its own release form + tracked record. */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-[#1A3638]">Additional Records</p>
+                <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => addAdditionalProvider()}>
+                  <Plus className="size-3" /> Additional Records
+                </Button>
+              </div>
+              {(form.additionalProviders || []).length === 0 ? (
+                <p className="text-[11px] text-stone-400 italic">None added. Click "+ Additional Records" to request release forms for any provider not tied to a specific pregnancy (PCP, ER, extra OB visits, etc.).</p>
+              ) : (
+                <div className="space-y-3">
+                  {(form.additionalProviders || []).map((extra, ei) => (
+                    <div key={ei} className="rounded-lg border border-stone-200 bg-white p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase font-semibold text-stone-400">Provider Type</span>
+                        <SelectField
+                          value={extra.type || 'pcp'}
+                          onValueChange={v => updateAdditionalProvider(ei, 'type', v)}
+                          options={ADDITIONAL_PROVIDER_TYPES}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalProvider(ei)}
+                          className="ml-auto text-[11px] text-stone-400 hover:text-red-500 transition-colors"
+                          title="Remove this provider"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="space-y-1"><FieldLabel>Clinic / Facility Name</FieldLabel><Input value={extra.clinicName || ''} onChange={e => updateAdditionalProvider(ei, 'clinicName', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>Doctor Name</FieldLabel><Input value={extra.doctorName || ''} onChange={e => updateAdditionalProvider(ei, 'doctorName', e.target.value)} placeholder="Optional" /></div>
+                        <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={extra.phone || ''} onChange={e => updateAdditionalProvider(ei, 'phone', formatPhoneInput(e.target.value))} /></div>
+                        <AdminFaxField value={extra.fax} onChange={v => updateAdditionalProvider(ei, 'fax', v)} />
+                        <AdminEmailField value={extra.email} onChange={v => updateAdditionalProvider(ei, 'email', v)} />
+                        <div className="space-y-1 sm:col-span-2"><FieldLabel>Address</FieldLabel><Input value={extra.address || ''} onChange={e => updateAdditionalProvider(ei, 'address', e.target.value)} placeholder="Optional" /></div>
+                        <div className="space-y-1"><FieldLabel>Dates of Service</FieldLabel><Input value={extra.datesOfService || ''} onChange={e => updateAdditionalProvider(ei, 'datesOfService', e.target.value)} placeholder="e.g. 01/15/2023 - 06/30/2024" /></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -1000,6 +1152,8 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                 <ReadField label="City" value={stored.papClinicCity} />
                 <ReadField label="State" value={stored.papClinicState} />
                 <ReadField label="Phone" value={stored.papClinicPhone} />
+                <ReadField label="Fax" value={stored.papClinicFax} />
+                <ReadField label="Email" value={stored.papClinicEmail} />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1026,12 +1180,30 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                     <>
                       {(p.obClinicName || p.obDoctorName) && (
                         <div>
-                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">Prenatal Care</p>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">
+                            Prenatal Care{(p.transferredCare === 'yes' || p.transferredCare === true) ? ' — First Provider' : ''}
+                          </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                             <ReadField label="Clinic" value={p.obClinicName} />
                             <ReadField label="Doctor" value={p.obDoctorName} />
                             <ReadField label="Phone" value={p.obPhone} />
+                            <ReadField label="Fax" value={p.obFax} />
+                            <ReadField label="Email" value={p.obEmail} />
                             <ReadField label="Address" value={p.obAddress} />
+                          </div>
+                        </div>
+                      )}
+                      {(p.transferredCare === 'yes' || p.transferredCare === true || p.obClinicName2 || p.obDoctorName2 || p.obPhone2 || p.obAddress2) && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">Prenatal Care — Second Provider</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <ReadField label="Transferred Care" value={boolDisplay(p.transferredCare)} />
+                            <ReadField label="Clinic" value={p.obClinicName2} />
+                            <ReadField label="Doctor" value={p.obDoctorName2} />
+                            <ReadField label="Phone" value={p.obPhone2} />
+                            <ReadField label="Fax" value={p.obFax2} />
+                            <ReadField label="Email" value={p.obEmail2} />
+                            <ReadField label="Address" value={p.obAddress2} />
                           </div>
                         </div>
                       )}
@@ -1041,6 +1213,8 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                             <ReadField label="Hospital" value={p.hospitalName} />
                             <ReadField label="Phone" value={p.hospitalPhone} />
+                            <ReadField label="Fax" value={p.hospitalFax} />
+                            <ReadField label="Email" value={p.hospitalEmail} />
                             <ReadField label="Address" value={p.hospitalAddress} />
                           </div>
                         </div>
@@ -1052,6 +1226,8 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                             <ReadField label="Clinic" value={p.mfmClinicName} />
                             <ReadField label="Doctor" value={p.mfmDoctorName} />
                             <ReadField label="Phone" value={p.mfmPhone} />
+                            <ReadField label="Fax" value={p.mfmFax} />
+                            <ReadField label="Email" value={p.mfmEmail} />
                             <ReadField label="Address" value={p.mfmAddress} />
                           </div>
                         </div>
@@ -1063,6 +1239,8 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
                             <ReadField label="Clinic" value={p.ivfClinicName} />
                             <ReadField label="Doctor" value={p.ivfDoctorName} />
                             <ReadField label="Phone" value={p.ivfPhone} />
+                            <ReadField label="Fax" value={p.ivfFax} />
+                            <ReadField label="Email" value={p.ivfEmail} />
                             <ReadField label="Address" value={p.ivfAddress} />
                           </div>
                         </div>
@@ -1073,6 +1251,30 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
               )
             })}
             {readPregnancies.length === 0 && <p className="text-sm text-stone-400">No pregnancy provider information entered yet.</p>}
+            {/* Additional Records (root-level) — read mode */}
+            {(stored.additionalProviders || []).length > 0 && (
+              <div className="rounded-xl border border-gray-100 bg-gray-50/30 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Additional Records</p>
+                <div className="space-y-3">
+                  {(stored.additionalProviders || []).map((extra, ei) => (
+                    <div key={ei} className="rounded-lg border border-stone-100 bg-white p-3 space-y-2">
+                      <p className="text-[11px] font-semibold text-[#1A3638]">
+                        {ADDITIONAL_PROVIDER_LABELS[extra.type] || extra.type || 'Provider'}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <ReadField label="Clinic" value={extra.clinicName} />
+                        <ReadField label="Doctor" value={extra.doctorName} />
+                        <ReadField label="Phone" value={extra.phone} />
+                        <ReadField label="Fax" value={extra.fax} />
+                        <ReadField label="Email" value={extra.email} />
+                        <ReadField label="Address" value={extra.address} className="sm:col-span-2" />
+                        <ReadField label="Dates of Service" value={extra.datesOfService} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Generate Release Forms button — admin only, read mode, with data */}
             {readPregnancies.length > 0 && (
@@ -1141,7 +1343,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         // Upload HTML to storage
         await supabase.storage.from('esign-documents').upload(htmlPath, htmlBlob, { contentType: 'text/html', cacheControl: '3600' })
 
-        const typeLabels = { ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }
+        const typeLabels = { ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility', pcp: 'Primary Care', er: 'Emergency Room' }
         const title = `Medical Records Release - ${typeLabels[provider.type] || provider.type} - ${provider.clinicName}`
 
         // Create e-sign document
@@ -1211,7 +1413,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
                 <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to First Star Surrogacy for your surrogacy journey.</p>
                 <p style="color: #888; font-size: 12px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
                   These are legally binding electronic signature requests from First Star Surrogacy, LLC.
-                  If you have questions, please contact us at info@northstarsurrogacy.com.
+                  If you have questions, please contact us at info@firststarsurrogacy.com.
                 </p>
               </div>
             `,
@@ -1291,7 +1493,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
                 <button className="text-[10px] text-stone-500 font-medium hover:underline" onClick={() => setSelectedIndexes(new Set())}>Deselect All</button>
               </div>
               {result.providers.map((p, i) => {
-                const typeLabels = { ob: 'Prenatal/OB', hospital: 'L&D Hospital', mfm: 'MFM', ivf: 'IVF/Fertility' }
+                const typeLabels = { ob: 'Prenatal/OB', hospital: 'L&D Hospital', mfm: 'MFM', ivf: 'IVF/Fertility', pcp: 'Primary Care', er: 'Emergency Room' }
                 return (
                   <label key={i} className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer hover:bg-stone-50 rounded px-1 py-0.5">
                     <input type="checkbox" checked={selectedIndexes.has(i)} onChange={() => toggleProvider(i)} className="size-3.5 accent-[#1A3638]" />

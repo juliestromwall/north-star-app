@@ -2357,7 +2357,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               const dob = sd.dob ? new Date(sd.dob).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
               setFaxDoc(doc)
               setFaxSubject(`STAT! First Star Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
-              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@northstarsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
+              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either records@firststarsurrogacy.com or fax to: 612-524-7961.\n\nThank you so much!`)
               setFaxIncludeDL(true)
               // Fetch current user's Gmail signature
               import('@/lib/google').then(({ getGmailSignature }) => {
@@ -2797,7 +2797,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                             <tr>
                               <td style="text-align: center; padding: 25px; vertical-align: middle;">
                                 <img src="${window.location.origin}/first-star-logo.png" style="height: 90px; display: inline-block;" />
-                                <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 818-321-9329 &nbsp;&nbsp; Fax: 323-843-9433</p>
+                                <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 970-381-6847 &nbsp;&nbsp; Fax: 612-524-7961</p>
                               </td>
                               <td style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700; text-align: center; width: 120px; vertical-align: middle;">Fax</td>
                             </tr>
@@ -2817,10 +2817,10 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                           </div>
                           <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">${faxMessage}</div>
                           <div style="margin-top: 40px;">
-                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/first-star-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'First Star Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
+                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/first-star-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">Jennifer Maatman</p><p style="margin: 0; font-style: italic;">Founder, First Star Surrogacy, LLC</p><p style="margin: 0;">O: 970-381-6847 &nbsp; F: 612-524-7961</p></div></div>`}
                           </div>
                           <div style="margin-top: 30px; padding: 12px; border: 1px solid #000; font-size: 9px; line-height: 1.4;">
-                            ABUNDANT BEGINNINGS COMPANY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
+                            FIRST STAR SURROGACY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
                           </div>
                         </div>
                       `

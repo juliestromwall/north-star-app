@@ -363,7 +363,7 @@ function ConfidentialFooter() {
     <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1.5px solid #1A3638', textAlign: 'center' }}>
       <img src="/first-star-logo.png" alt="firststarsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
       <p style={{ fontSize: 9, color: '#78716c', margin: '0 0 2px' }}>
-        5627 Kanan Road #229, Agoura Hills, CA 91301 &nbsp;·&nbsp; O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
+        1105 Prairie Rose Way, Victoria, MN 55386 &nbsp;·&nbsp; O: (970) 381-6847 &nbsp;·&nbsp; F: (612) 524-7961
       </p>
       <p style={{ fontSize: 7, color: '#a8a29e', margin: 0 }}>
         This document contains privileged and confidential information intended solely for the named recipient(s).

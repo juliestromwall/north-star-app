@@ -205,7 +205,7 @@ export default function IntakeConfirmationPage() {
           </h1>
 
           <p className="text-stone-600 mb-4 leading-relaxed">
-            We sincerely appreciate your interest in Abundant Beginnings and the thoughtfulness you put into completing this application.
+            We sincerely appreciate your interest in First Star Surrogacy and the thoughtfulness you put into completing this application.
           </p>
 
           <p className="text-stone-500 mb-6 leading-relaxed">

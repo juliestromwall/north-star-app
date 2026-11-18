@@ -59,7 +59,7 @@ export const EMAIL_TEMPLATES = [
     id: 'ip_welcome',
     name: 'IP — Welcome & Application Received',
     forType: 'ip',
-    subject: 'Welcome to Abundant Beginnings, {{first_name}}!',
+    subject: 'Welcome to First Star Surrogacy, {{first_name}}!',
     body: `
       <p>Hi {{first_name}},</p>
       <p>Thank you for reaching out to <strong>First Star Surrogacy</strong>! We're honored that you're considering us to help grow your family.</p>
