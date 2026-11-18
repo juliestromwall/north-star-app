@@ -11,25 +11,11 @@ import { useRole } from '@/context/RoleContext'
 import { sendReleaseFormsBatch } from '@/lib/releaseFormBatch'
 import { getAuthHeaders } from '@/lib/authHeaders'
 
-/**
- * Resolve which templates to offer based on marital status + the number
- * of adult household members on the application.
- */
-function resolveTemplateRows({ hasPartner, adultHouseholdMembers = [] }) {
+// Background check waivers (GC, partner, household members) are off — they
+// were ABC's forms, not First Star's. Templates stay in formTemplates.js so
+// already-sent waivers still display.
+function resolveTemplateRows() {
   const rows = []
-  // Background Check
-  rows.push({ section: 'Background Check', templateId: 'gc_background_waiver' })
-  if (hasPartner) rows.push({ section: 'Background Check', templateId: 'partner_background_waiver' })
-  // One row per household member (max 4). The label gets the member's
-  // name appended in the UI render step so admins can tell them apart.
-  adultHouseholdMembers.forEach((m, i) => {
-    if (i >= 4) return
-    rows.push({
-      section: 'Background Check',
-      templateId: `household_member_${i + 1}_background_waiver`,
-      labelOverride: `Household Member Background Waiver — ${[m.firstName, m.lastName].filter(Boolean).join(' ').trim() || `Adult #${i + 1}`}`,
-    })
-  })
   // HIPAA, General Psych and Ellen Winters releases are off until First Star
   // sends updated versions (templates stay in formTemplates.js so already-sent
   // forms still display).
@@ -57,7 +43,7 @@ async function sendSingleResendEmail({ formToken, formTitle, recipientName, reci
   return { success: res.ok && data.success !== false, error: data.error }
 }
 
-export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName, partnerEmail, adminName, adminEmail, adultHouseholdMembers = [] }) {
+export default function ReleaseFormsSection({ surrogate, partnerName, partnerEmail, adminName, adminEmail, adultHouseholdMembers = [] }) {
   const { currentUser } = useRole()
   const [existingDocs, setExistingDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +52,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
   const [resending, setResending] = useState(() => new Set()) // templateIds mid-resend
   const [result, setResult] = useState(null) // { type: 'success'|'error', msg }
 
-  const rows = useMemo(() => resolveTemplateRows({ hasPartner, adultHouseholdMembers }), [hasPartner, adultHouseholdMembers])
+  const rows = useMemo(() => resolveTemplateRows(), [])
 
   const refetch = useCallback(() => {
     if (!surrogate?.id || !supabase) { setLoading(false); return }

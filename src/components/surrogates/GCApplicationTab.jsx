@@ -1651,7 +1651,6 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     { id: 'references', label: 'References' },
     { id: 'clinic', label: 'Clinic & Hospital' },
     { id: 'social', label: 'Social Media' },
-    { id: 'waivers', label: 'BG Waivers' },
   ]
 
   return (
