@@ -56,3 +56,14 @@ create policy "esign_audit_log_all" on esign_audit_log for all using (true);
 -- Storage bucket for e-signature files
 insert into storage.buckets (id, name, public) values ('esign-documents', 'esign-documents', true)
 on conflict (id) do nothing;
+
+-- Signers (often not logged in) upload their signed copy from the browser.
+-- Insert-only, limited to signed_* files in this bucket. Applied to
+-- production 2026-11-18 after signed releases were silently failing to save.
+create policy "esign signers can upload signed copies"
+on storage.objects for insert
+to anon, authenticated
+with check (
+  bucket_id = 'esign-documents'
+  and name like 'documents/signed\_%'
+);
